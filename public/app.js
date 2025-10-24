@@ -1,6 +1,7 @@
-// public/editor.ts
+// public/app/utils.ts
 var nope = (x) => {};
 
+// public/app/Logger.ts
 class Logger {
   name;
   constructor(name) {
@@ -39,6 +40,7 @@ class Logger {
   }
 }
 
+// public/app/PixelCanvas.ts
 class PixelCanvas {
   width;
   height;
@@ -321,7 +323,7 @@ class PixelCanvas {
   }
 }
 
-// public/entry.ts
+// public/app.ts
 var editorCanvasEl = document.getElementById("editor");
 if (!(editorCanvasEl instanceof HTMLCanvasElement)) {
   throw new Error('Unable to find <canvas> element with id "editor"');

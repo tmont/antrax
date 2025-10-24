@@ -8,9 +8,9 @@
         "@types/bun": "1.3.1"
     },
     "scripts": {
-        "build": "bun build --outfile public/app.js --target browser --watch --no-clear-screen public/entry.ts",
+        "build": "bun build --outfile public/app.js --target browser --watch --no-clear-screen public/app.ts",
         "start": "bun run --watch --no-clear-screen server.ts"
     },
-    "module": "public/editor.ts",
+    "module": "public/Canvas.ts",
     "type": "module"
 }

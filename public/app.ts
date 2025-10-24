@@ -1,4 +1,4 @@
-import { type CanvasOptions, PixelCanvas } from './editor.ts';
+import { type CanvasOptions, PixelCanvas } from './app/PixelCanvas.ts';
 
 const editorCanvasEl = document.getElementById('editor');
 
