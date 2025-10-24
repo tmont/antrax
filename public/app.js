@@ -123,7 +123,7 @@ class PixelCanvas {
     if (this.isEditable) {
       return;
     }
-    const onMouseMove = (e) => {
+    const activatePixelAtCursor = (e) => {
       const { clientX, clientY } = e;
       const offsetY = this.$el.offsetTop;
       const offsetX = this.$el.offsetLeft;
@@ -136,7 +136,10 @@ class PixelCanvas {
         this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, "green");
       }
     };
-    const onMouseDown = () => {
+    const onMouseMove = (e) => {
+      activatePixelAtCursor(e);
+    };
+    const onMouseDown = (e) => {
       if (!this.isEditable) {
         return;
       }
@@ -145,6 +148,7 @@ class PixelCanvas {
       }
       this.setDrawState("drawing");
       resetHoveredPixels();
+      activatePixelAtCursor(e);
       this.$el.addEventListener("mousemove", onMouseMove);
     };
     const onMouseUp = () => {

@@ -128,7 +128,7 @@ export class PixelCanvas {
             return;
         }
 
-        const onMouseMove = (e: MouseEvent): void => {
+        const activatePixelAtCursor = (e: MouseEvent): void => {
             const { clientX, clientY } = e;
 
             const offsetY = this.$el.offsetTop;
@@ -145,7 +145,11 @@ export class PixelCanvas {
             }
         };
 
-        const onMouseDown = () => {
+        const onMouseMove = (e: MouseEvent): void => {
+            activatePixelAtCursor(e);
+        };
+
+        const onMouseDown = (e: MouseEvent) => {
             if (!this.isEditable) {
                 return;
             }
@@ -157,6 +161,7 @@ export class PixelCanvas {
             this.setDrawState('drawing');
             resetHoveredPixels();
 
+            activatePixelAtCursor(e);
             this.$el.addEventListener('mousemove', onMouseMove);
         };
 
