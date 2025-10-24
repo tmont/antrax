@@ -1,15 +1,27 @@
-# atari-7800-sprite-editor
+# Atari 7800 Sprite Editor
 
-To install dependencies:
+A graphical sprite editor for the Atari 7800.
 
-```bash
-bun install
-```
+**Features:**
+- Zooming
+- Grid
+- Customizable width/height
+- Customizable pixel size
 
-To run:
+**Eventually:**
+- Color palette management
+- Data import/export
+- Code gen
+- Lo/hi-res mode switching
+- Multiple sprites
+- Animations
 
-```bash
-bun run index.ts
-```
 
-This project was created using `bun init` in bun v1.2.6. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+## Prerequisites
+1. [Bun](https://bun.com/docs/installation)
+
+## Development
+
+1. `bun install`
+2. `bun run build`
+3. In another terminal, `bun run start`
