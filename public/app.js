@@ -57,6 +57,7 @@ class PixelCanvas {
   showGrid;
   $el;
   $gridEl;
+  $hoverEl;
   drawState = "idle";
   constructor(options) {
     this.logger = Logger.from(this);
@@ -77,8 +78,11 @@ class PixelCanvas {
     this.displayHeight = this.height * this.pixelHeight;
     this.logger.info(`setting display to ${this.displayWidth}x${this.displayHeight}`);
     this.$gridEl = document.createElement("canvas");
-    this.$gridEl.classList.add("grid");
+    this.$gridEl.classList.add("editor-grid");
     this.$el.insertAdjacentElement("afterend", this.$gridEl);
+    this.$hoverEl = document.createElement("canvas");
+    this.$hoverEl.classList.add("editor-hover");
+    this.$el.insertAdjacentElement("afterend", this.$hoverEl);
     this.setCanvasDimensions();
     this.render();
     if (options.editable) {
@@ -90,13 +94,16 @@ class PixelCanvas {
   setCanvasDimensions() {
     this.displayWidth = this.width * this.pixelWidth;
     this.displayHeight = this.height * this.pixelHeight;
-    this.$el.width = this.$gridEl.width = this.displayWidth;
-    this.$el.height = this.$gridEl.height = this.displayHeight;
-    this.$el.style.width = this.$gridEl.style.width = this.displayWidth * this.zoomLevel + "px";
-    this.$el.style.height = this.$gridEl.style.height = this.displayHeight * this.zoomLevel + "px";
-    this.$gridEl.style.top = this.$el.offsetTop + "px";
-    this.$gridEl.style.left = this.$el.offsetLeft + "px";
+    this.$el.width = this.$gridEl.width = this.$hoverEl.width = this.displayWidth;
+    this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.displayHeight;
+    this.$el.style.width = this.$gridEl.style.width = this.$hoverEl.style.width = this.displayWidth * this.zoomLevel + "px";
+    this.$el.style.height = this.$gridEl.style.height = this.$hoverEl.style.height = this.displayHeight * this.zoomLevel + "px";
+    this.setCanvasPosition();
     this.fillPixelDataArray();
+  }
+  setCanvasPosition() {
+    this.$gridEl.style.top = this.$hoverEl.style.top = this.$el.offsetTop + "px";
+    this.$gridEl.style.left = this.$hoverEl.style.left = this.$el.offsetLeft + "px";
   }
   fillPixelDataArray() {
     for (let row = 0;row < this.height; row++) {
@@ -137,6 +144,7 @@ class PixelCanvas {
         return;
       }
       this.setDrawState("drawing");
+      resetHoveredPixels();
       this.$el.addEventListener("mousemove", onMouseMove);
     };
     const onMouseUp = () => {
@@ -152,7 +160,7 @@ class PixelCanvas {
         if (!data?.pixel) {
           continue;
         }
-        this.drawPixelFromRowAndCol({ x: data.col, y: data.row }, data.pixel.color);
+        this.unhighlightPixel({ x: data.col, y: data.row });
       }
     };
     const onHover = (e) => {
@@ -184,6 +192,18 @@ class PixelCanvas {
     this.$el.addEventListener("mousemove", onHover);
     this.$el.addEventListener("mouseout", onMouseOut);
     this.$el.ownerDocument.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("resize", (() => {
+      let timerId = null;
+      return () => {
+        if (timerId) {
+          window.clearTimeout(timerId);
+          timerId = null;
+        }
+        timerId = window.setTimeout(() => {
+          this.setCanvasPosition();
+        }, 150);
+      };
+    })());
     this.isEditable = true;
   }
   setDrawState(newState) {
@@ -259,16 +279,27 @@ class PixelCanvas {
     this.logger.warn(`failed to draw pixel`);
     return false;
   }
-  highlightPixel(pixelRowAndCol) {
+  highlightPixel(pixelRowAndCol, clear = false) {
     const { x: col, y: row } = pixelRowAndCol;
     const pixel = this.pixelData[row]?.[col] || null;
     if (!pixel) {
       return false;
     }
+    const ctx = this.$hoverEl.getContext("2d");
+    if (!ctx) {
+      return false;
+    }
     const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
-    this.ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
-    this.ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
+    if (clear) {
+      ctx.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
+      return true;
+    }
+    ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+    ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
     return true;
+  }
+  unhighlightPixel(pixelRowAndCol) {
+    return this.highlightPixel(pixelRowAndCol, true);
   }
   convertAbsoluteToPixelCoordinate(location) {
     const pixelX = Math.floor(location.x / this.zoomLevel / this.pixelWidth);

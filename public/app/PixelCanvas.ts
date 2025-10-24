@@ -30,6 +30,7 @@ export class PixelCanvas {
 
     private $el: HTMLCanvasElement;
     private readonly $gridEl: HTMLCanvasElement;
+    private readonly $hoverEl: HTMLCanvasElement;
 
     private drawState: PixelCanvasDrawState = 'idle';
 
@@ -59,9 +60,12 @@ export class PixelCanvas {
         this.logger.info(`setting display to ${this.displayWidth}x${this.displayHeight}`);
 
         this.$gridEl = document.createElement('canvas');
-        this.$gridEl.classList.add('grid');
+        this.$gridEl.classList.add('editor-grid');
         this.$el.insertAdjacentElement('afterend', this.$gridEl);
 
+        this.$hoverEl = document.createElement('canvas');
+        this.$hoverEl.classList.add('editor-hover');
+        this.$el.insertAdjacentElement('afterend', this.$hoverEl);
 
         this.setCanvasDimensions();
 
@@ -82,15 +86,19 @@ export class PixelCanvas {
         this.displayWidth = this.width * this.pixelWidth;
         this.displayHeight = this.height * this.pixelHeight;
 
-        this.$el.width = this.$gridEl.width = this.displayWidth;
-        this.$el.height = this.$gridEl.height = this.displayHeight;
-        this.$el.style.width = this.$gridEl.style.width = (this.displayWidth * this.zoomLevel) + 'px';
-        this.$el.style.height = this.$gridEl.style.height = (this.displayHeight * this.zoomLevel) + 'px';
+        this.$el.width = this.$gridEl.width = this.$hoverEl.width = this.displayWidth;
+        this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.displayHeight;
+        this.$el.style.width = this.$gridEl.style.width = this.$hoverEl.style.width = (this.displayWidth * this.zoomLevel) + 'px';
+        this.$el.style.height = this.$gridEl.style.height = this.$hoverEl.style.height = (this.displayHeight * this.zoomLevel) + 'px';
 
-        this.$gridEl.style.top = this.$el.offsetTop + 'px';
-        this.$gridEl.style.left = this.$el.offsetLeft + 'px';
+        this.setCanvasPosition();
 
         this.fillPixelDataArray();
+    }
+
+    private setCanvasPosition(): void {
+        this.$gridEl.style.top = this.$hoverEl.style.top = this.$el.offsetTop + 'px';
+        this.$gridEl.style.left = this.$hoverEl.style.left = this.$el.offsetLeft + 'px';
     }
 
     private fillPixelDataArray(): void {
@@ -147,6 +155,7 @@ export class PixelCanvas {
             }
 
             this.setDrawState('drawing');
+            resetHoveredPixels();
 
             this.$el.addEventListener('mousemove', onMouseMove);
         };
@@ -168,7 +177,8 @@ export class PixelCanvas {
                 }
 
                 // this.logger.info(`clearing pixel at ${data.row},${data.col}`);
-                this.drawPixelFromRowAndCol({ x: data.col, y: data.row }, data.pixel.color);
+                this.unhighlightPixel({ x: data.col, y: data.row });
+                // this.drawPixelFromRowAndCol({ x: data.col, y: data.row }, data.pixel.color);
             }
         };
 
@@ -209,6 +219,21 @@ export class PixelCanvas {
         this.$el.addEventListener('mousemove', onHover);
         this.$el.addEventListener('mouseout', onMouseOut);
         this.$el.ownerDocument.addEventListener('mouseup', onMouseUp);
+
+        // ensure that the absolutely positioned canvases are correctly aligned after a window resize
+        window.addEventListener('resize', (() => {
+            let timerId: number | null = null;
+            return () => {
+                if (timerId) {
+                    window.clearTimeout(timerId);
+                    timerId = null;
+                }
+
+                timerId = window.setTimeout(() => {
+                    this.setCanvasPosition();
+                }, 150);
+            };
+        })());
 
         this.isEditable = true;
     }
@@ -308,18 +333,33 @@ export class PixelCanvas {
         return false;
     }
 
-    public highlightPixel(pixelRowAndCol: Coordinate): boolean {
+    public highlightPixel(pixelRowAndCol: Coordinate, clear = false): boolean {
         const { x: col, y: row } = pixelRowAndCol;
         const pixel = this.pixelData[row]?.[col] || null;
         if (!pixel) {
             return false;
         }
 
+        const ctx = this.$hoverEl.getContext('2d');
+        if (!ctx) {
+            return false;
+        }
+
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
+
+        if (clear) {
+            ctx.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
+            return true;
+        }
+
         // this.logger.debug(`highlighting pixel at ${absoluteCoordinate.x},${absoluteCoordinate.y}`);
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        this.ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
         return true;
+    }
+
+    public unhighlightPixel(pixelRowAndCol: Coordinate): boolean {
+        return this.highlightPixel(pixelRowAndCol, true);
     }
 
     private convertAbsoluteToPixelCoordinate(location: Coordinate): Coordinate {
