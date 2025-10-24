@@ -25,3 +25,4 @@ A graphical sprite editor for the Atari 7800.
 1. `bun install`
 2. `bun run build`
 3. In another terminal, `bun run start`
+4. Visit http://localhost:11000/
