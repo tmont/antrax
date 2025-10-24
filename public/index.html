@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Atari 7800 Sprite Editor</title>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                margin: 0;
+                background-color: ivory;
+                font-family: sans-serif;
+            }
+            canvas.editor {
+                border: 2px solid gray;
+                box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
+                text-align: center;
+                image-rendering: pixelated;
+                cursor: crosshair;
+            }
+            canvas.grid {
+                pointer-events: none;
+                position: absolute;
+                image-rendering: pixelated;
+            }
+
+            .app {
+                display: flex;
+                margin: 20px;
+                justify-content: space-between;
+                gap: 20px;
+            }
+
+            .options-form {
+                /*flex: 1;*/
+                text-align: right;
+            }
+
+            .canvas-area {
+                flex: 1;
+            }
+            .info-area {
+                flex: 1;
+            }
+            .form-group {
+                margin-bottom: 5px;
+            }
+
+            input[type="number"] {
+                width: 5em;
+            }
+            input[type="range"] {
+                width: 8em;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="app">
+            <div class="options-form">
+                <div class="form-group">
+                    <label for="option-zoom-level">Zoom:</label>
+                    <input id="option-zoom-level" type="range" min="1" max="4" step="1" autocomplete="off"/>
+                </div>
+                <div class="form-group">
+                    <input id="option-show-grid" type="checkbox" autocomplete="off" />
+                    <label for="option-show-grid">Show grid</label>
+                </div>
+                <div class="form-group">
+                    <label for="option-width">Width:</label>
+                    <input id="option-width" type="number" min="1" max="256" step="1" autocomplete="off"/>
+                </div>
+                <div class="form-group">
+                    <label for="option-height">Height:</label>
+                    <input id="option-height" type="number" min="1" max="256" step="1" autocomplete="off"/>
+                </div>
+                <div class="form-group">
+                    <label for="option-pixel-width">Pixel width:</label>
+                    <input id="option-pixel-width" type="number" min="1" max="30" step="1" autocomplete="off"/>
+                </div>
+                <div class="form-group">
+                    <label for="option-pixel-height">Pixel height:</label>
+                    <input id="option-pixel-height" type="number" min="1" max="30" step="1" autocomplete="off"/>
+                </div>
+            </div>
+            <div class="canvas-area">
+                <canvas class="editor" id="editor" width="300" height="300"></canvas>
+            </div>
+<!--            <div class="info-area"></div>-->
+        </div>
+
+        <script src="./app.js"></script>
+    </body>
+</html>
