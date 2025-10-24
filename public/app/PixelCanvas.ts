@@ -55,8 +55,8 @@ export class PixelCanvas {
         this.width = options.width;
         this.height = options.height;
 
-        this.displayWidth = this.width * this.pixelWidth;
-        this.displayHeight = this.height * this.pixelHeight;
+        this.displayWidth = this.width * this.displayPixelWidth;
+        this.displayHeight = this.height * this.displayPixelHeight;
         this.logger.info(`setting display to ${this.displayWidth}x${this.displayHeight}`);
 
         this.$gridEl = document.createElement('canvas');
@@ -69,10 +69,6 @@ export class PixelCanvas {
 
         this.setCanvasDimensions();
 
-        // const fudge = 0.5;
-        // this.ctx.translate(fudge, fudge);
-        // this.$gridEl.getContext('2d')?.translate(fudge, fudge);
-
         this.render();
 
         if (options.editable) {
@@ -83,13 +79,11 @@ export class PixelCanvas {
     }
 
     private setCanvasDimensions(): void {
-        this.displayWidth = this.width * this.pixelWidth;
-        this.displayHeight = this.height * this.pixelHeight;
+        this.displayWidth = this.width * this.displayPixelWidth;
+        this.displayHeight = this.height * this.displayPixelHeight;
 
         this.$el.width = this.$gridEl.width = this.$hoverEl.width = this.displayWidth;
         this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.displayHeight;
-        this.$el.style.width = this.$gridEl.style.width = this.$hoverEl.style.width = (this.displayWidth * this.zoomLevel) + 'px';
-        this.$el.style.height = this.$gridEl.style.height = this.$hoverEl.style.height = (this.displayHeight * this.zoomLevel) + 'px';
 
         this.setCanvasPosition();
 
@@ -97,8 +91,12 @@ export class PixelCanvas {
     }
 
     private setCanvasPosition(): void {
-        this.$gridEl.style.top = this.$hoverEl.style.top = this.$el.offsetTop + 'px';
-        this.$gridEl.style.left = this.$hoverEl.style.left = this.$el.offsetLeft + 'px';
+        const computedStyle = window.getComputedStyle(this.$el);
+        const borderTopWidth = parseInt(computedStyle?.getPropertyValue('border-top-width'), 10);
+        const borderLeftWidth = parseInt(computedStyle?.getPropertyValue('border-left-width'), 10);
+
+        this.$gridEl.style.top = this.$hoverEl.style.top = (this.$el.offsetTop + borderTopWidth) + 'px';
+        this.$gridEl.style.left = this.$hoverEl.style.left = (this.$el.offsetLeft + borderLeftWidth) + 'px';
     }
 
     private fillPixelDataArray(): void {
@@ -159,7 +157,7 @@ export class PixelCanvas {
             }
 
             this.setDrawState('drawing');
-            resetHoveredPixels();
+            this.unhighlightPixel();
 
             activatePixelAtCursor(e);
             this.$el.addEventListener('mousemove', onMouseMove);
@@ -172,27 +170,12 @@ export class PixelCanvas {
             }
         };
 
-        const hoveredPixels: Array<{ row: number; col: number; pixel: PixelInfo | null }> = [];
-
-        const resetHoveredPixels = () => {
-            while (hoveredPixels.length) {
-                const data = hoveredPixels.pop();
-                if (!data?.pixel) {
-                    continue;
-                }
-
-                // this.logger.info(`clearing pixel at ${data.row},${data.col}`);
-                this.unhighlightPixel({ x: data.col, y: data.row });
-                // this.drawPixelFromRowAndCol({ x: data.col, y: data.row }, data.pixel.color);
-            }
-        };
-
         const onHover = (e: MouseEvent): void => {
             if (this.drawState !== 'idle') {
                 return;
             }
 
-            resetHoveredPixels();
+            this.unhighlightPixel();
 
             const { clientX, clientY } = e;
 
@@ -206,14 +189,12 @@ export class PixelCanvas {
             if (!pixelData.pixel) {
                 this.logger.warn(`no pixel found at ${trueX},${trueY}`);
             } else {
-                if (this.highlightPixel({ x: pixelData.col, y: pixelData.row })) {
-                    hoveredPixels.push(pixelData);
-                }
+                this.highlightPixel({ x: pixelData.col, y: pixelData.row });
             }
         };
 
         const onMouseOut = () => {
-            resetHoveredPixels();
+            this.unhighlightPixel();
         };
 
         this.eventMap['mousedown'] = [ onMouseDown ];
@@ -280,15 +261,15 @@ export class PixelCanvas {
             return;
         }
 
-        ctx.strokeStyle = 'black';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        for (let i = 0; i <= width; i += this.pixelWidth) {
+        for (let i = 0; i <= width; i += this.displayPixelWidth) {
             ctx.moveTo(i, 0);
             ctx.lineTo(i, height);
         }
 
-        for (let i = 0; i <= height; i += this.pixelHeight) {
+        for (let i = 0; i <= height; i += this.displayPixelHeight) {
             ctx.moveTo(0, i);
             ctx.lineTo(width, i);
         }
@@ -305,13 +286,13 @@ export class PixelCanvas {
         }
 
         if (color === null) {
-            this.ctx.clearRect(location.x, location.y, this.pixelWidth, this.pixelHeight);
+            this.ctx.clearRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
             return false;
         }
 
         // this.logger.debug(`drawing ${color} pixel absolutely at ${location.x},${location.y}`);
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(location.x, location.y, this.pixelWidth, this.pixelHeight);
+        this.ctx.fillRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
 
         return true;
     }
@@ -338,7 +319,7 @@ export class PixelCanvas {
         return false;
     }
 
-    public highlightPixel(pixelRowAndCol: Coordinate, clear = false): boolean {
+    public highlightPixel(pixelRowAndCol: Coordinate): boolean {
         const { x: col, y: row } = pixelRowAndCol;
         const pixel = this.pixelData[row]?.[col] || null;
         if (!pixel) {
@@ -352,19 +333,32 @@ export class PixelCanvas {
 
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
 
-        if (clear) {
-            ctx.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
-            return true;
-        }
-
         // this.logger.debug(`highlighting pixel at ${absoluteCoordinate.x},${absoluteCoordinate.y}`);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.setLineDash([ 2, 2 ]);
+        ctx.strokeRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
         ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-        ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
+        ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+
         return true;
     }
 
-    public unhighlightPixel(pixelRowAndCol: Coordinate): boolean {
-        return this.highlightPixel(pixelRowAndCol, true);
+    private get displayPixelWidth(): number {
+        return this.pixelWidth * this.zoomLevel;
+    }
+
+    private get displayPixelHeight(): number {
+        return this.pixelHeight * this.zoomLevel;
+    }
+
+    public unhighlightPixel(): boolean {
+        const ctx = this.$hoverEl.getContext('2d');
+        if (!ctx) {
+            return false;
+        }
+
+        ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
+        return true;
     }
 
     private convertAbsoluteToPixelCoordinate(location: Coordinate): Coordinate {
@@ -375,8 +369,8 @@ export class PixelCanvas {
     }
 
     private convertPixelToAbsoluteCoordinate(location: Coordinate): Coordinate {
-        const absoluteX = location.x * this.pixelWidth;
-        const absoluteY = location.y * this.pixelHeight;
+        const absoluteX = location.x * this.displayPixelWidth;
+        const absoluteY = location.y * this.displayPixelHeight;
 
         return { x: absoluteX, y: absoluteY };
     }

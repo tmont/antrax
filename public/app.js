@@ -74,8 +74,8 @@ class PixelCanvas {
     this.showGrid = typeof options.showGrid === "boolean" ? options.showGrid : false;
     this.width = options.width;
     this.height = options.height;
-    this.displayWidth = this.width * this.pixelWidth;
-    this.displayHeight = this.height * this.pixelHeight;
+    this.displayWidth = this.width * this.displayPixelWidth;
+    this.displayHeight = this.height * this.displayPixelHeight;
     this.logger.info(`setting display to ${this.displayWidth}x${this.displayHeight}`);
     this.$gridEl = document.createElement("canvas");
     this.$gridEl.classList.add("editor-grid");
@@ -92,18 +92,19 @@ class PixelCanvas {
     }
   }
   setCanvasDimensions() {
-    this.displayWidth = this.width * this.pixelWidth;
-    this.displayHeight = this.height * this.pixelHeight;
+    this.displayWidth = this.width * this.displayPixelWidth;
+    this.displayHeight = this.height * this.displayPixelHeight;
     this.$el.width = this.$gridEl.width = this.$hoverEl.width = this.displayWidth;
     this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.displayHeight;
-    this.$el.style.width = this.$gridEl.style.width = this.$hoverEl.style.width = this.displayWidth * this.zoomLevel + "px";
-    this.$el.style.height = this.$gridEl.style.height = this.$hoverEl.style.height = this.displayHeight * this.zoomLevel + "px";
     this.setCanvasPosition();
     this.fillPixelDataArray();
   }
   setCanvasPosition() {
-    this.$gridEl.style.top = this.$hoverEl.style.top = this.$el.offsetTop + "px";
-    this.$gridEl.style.left = this.$hoverEl.style.left = this.$el.offsetLeft + "px";
+    const computedStyle = window.getComputedStyle(this.$el);
+    const borderTopWidth = parseInt(computedStyle?.getPropertyValue("border-top-width"), 10);
+    const borderLeftWidth = parseInt(computedStyle?.getPropertyValue("border-left-width"), 10);
+    this.$gridEl.style.top = this.$hoverEl.style.top = this.$el.offsetTop + borderTopWidth + "px";
+    this.$gridEl.style.left = this.$hoverEl.style.left = this.$el.offsetLeft + borderLeftWidth + "px";
   }
   fillPixelDataArray() {
     for (let row = 0;row < this.height; row++) {
@@ -147,7 +148,7 @@ class PixelCanvas {
         return;
       }
       this.setDrawState("drawing");
-      resetHoveredPixels();
+      this.unhighlightPixel();
       activatePixelAtCursor(e);
       this.$el.addEventListener("mousemove", onMouseMove);
     };
@@ -157,21 +158,11 @@ class PixelCanvas {
         this.setDrawState("idle");
       }
     };
-    const hoveredPixels = [];
-    const resetHoveredPixels = () => {
-      while (hoveredPixels.length) {
-        const data = hoveredPixels.pop();
-        if (!data?.pixel) {
-          continue;
-        }
-        this.unhighlightPixel({ x: data.col, y: data.row });
-      }
-    };
     const onHover = (e) => {
       if (this.drawState !== "idle") {
         return;
       }
-      resetHoveredPixels();
+      this.unhighlightPixel();
       const { clientX, clientY } = e;
       const offsetY = this.$el.offsetTop;
       const offsetX = this.$el.offsetLeft;
@@ -181,13 +172,11 @@ class PixelCanvas {
       if (!pixelData.pixel) {
         this.logger.warn(`no pixel found at ${trueX},${trueY}`);
       } else {
-        if (this.highlightPixel({ x: pixelData.col, y: pixelData.row })) {
-          hoveredPixels.push(pixelData);
-        }
+        this.highlightPixel({ x: pixelData.col, y: pixelData.row });
       }
     };
     const onMouseOut = () => {
-      resetHoveredPixels();
+      this.unhighlightPixel();
     };
     this.eventMap["mousedown"] = [onMouseDown];
     this.eventMap["mousemove"] = [onMouseMove];
@@ -240,14 +229,14 @@ class PixelCanvas {
     if (!this.showGrid) {
       return;
     }
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let i = 0;i <= width; i += this.pixelWidth) {
+    for (let i = 0;i <= width; i += this.displayPixelWidth) {
       ctx.moveTo(i, 0);
       ctx.lineTo(i, height);
     }
-    for (let i = 0;i <= height; i += this.pixelHeight) {
+    for (let i = 0;i <= height; i += this.displayPixelHeight) {
       ctx.moveTo(0, i);
       ctx.lineTo(width, i);
     }
@@ -258,11 +247,11 @@ class PixelCanvas {
       return false;
     }
     if (color === null) {
-      this.ctx.clearRect(location.x, location.y, this.pixelWidth, this.pixelHeight);
+      this.ctx.clearRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
       return false;
     }
     this.ctx.fillStyle = color;
-    this.ctx.fillRect(location.x, location.y, this.pixelWidth, this.pixelHeight);
+    this.ctx.fillRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
     return true;
   }
   drawPixelFromRowAndCol(pixelRowAndCol, color) {
@@ -283,7 +272,7 @@ class PixelCanvas {
     this.logger.warn(`failed to draw pixel`);
     return false;
   }
-  highlightPixel(pixelRowAndCol, clear = false) {
+  highlightPixel(pixelRowAndCol) {
     const { x: col, y: row } = pixelRowAndCol;
     const pixel = this.pixelData[row]?.[col] || null;
     if (!pixel) {
@@ -294,16 +283,26 @@ class PixelCanvas {
       return false;
     }
     const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
-    if (clear) {
-      ctx.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
-      return true;
-    }
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.setLineDash([2, 2]);
+    ctx.strokeRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
     ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
-    ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.pixelWidth, this.pixelHeight);
+    ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
     return true;
   }
-  unhighlightPixel(pixelRowAndCol) {
-    return this.highlightPixel(pixelRowAndCol, true);
+  get displayPixelWidth() {
+    return this.pixelWidth * this.zoomLevel;
+  }
+  get displayPixelHeight() {
+    return this.pixelHeight * this.zoomLevel;
+  }
+  unhighlightPixel() {
+    const ctx = this.$hoverEl.getContext("2d");
+    if (!ctx) {
+      return false;
+    }
+    ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
+    return true;
   }
   convertAbsoluteToPixelCoordinate(location) {
     const pixelX = Math.floor(location.x / this.zoomLevel / this.pixelWidth);
@@ -311,8 +310,8 @@ class PixelCanvas {
     return { x: pixelX, y: pixelY };
   }
   convertPixelToAbsoluteCoordinate(location) {
-    const absoluteX = location.x * this.pixelWidth;
-    const absoluteY = location.y * this.pixelHeight;
+    const absoluteX = location.x * this.displayPixelWidth;
+    const absoluteY = location.y * this.displayPixelHeight;
     return { x: absoluteX, y: absoluteY };
   }
   getPixelAt(screenLocation) {
