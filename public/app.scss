@@ -1,0 +1,78 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background-color: ivory;
+    font-family: sans-serif;
+}
+
+canvas.editor {
+    border: 2px solid gray;
+    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    image-rendering: pixelated;
+    cursor: crosshair;
+}
+
+canvas.editor-grid, canvas.editor-hover {
+    pointer-events: none;
+    position: absolute;
+    image-rendering: pixelated;
+}
+
+.app {
+    display: flex;
+    margin: 20px;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.options-form {
+    text-align: right;
+}
+
+.canvas-area {
+    flex: 1;
+    display: flex;
+}
+
+.frame-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.frame-toolbar {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.toolbar-items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 2px;
+}
+.toolbar-items > li {
+
+}
+
+.info-area {
+    flex: 1;
+}
+
+.form-group {
+    margin-bottom: 5px;
+}
+
+input[type="number"] {
+    width: 5em;
+}
+
+input[type="range"] {
+    width: 8em;
+}

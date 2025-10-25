@@ -9,6 +9,7 @@
     },
     "scripts": {
         "build": "bun build --outfile public/app.js --target browser --watch --no-clear-screen public/app.ts",
+        "sass": ".dev/dart-sass/sass --watch --no-source-map public/app.scss public/app.css",
         "start": "bun run --watch --no-clear-screen server.ts"
     },
     "module": "public/Canvas.ts",
