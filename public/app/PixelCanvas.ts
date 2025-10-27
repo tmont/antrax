@@ -1,14 +1,16 @@
 import { Logger } from './Logger';
+import { ObjectGroup } from './ObjectGroup.ts';
 import type { Coordinate, Dimensions, PixelColor, PixelInfo } from './utils.ts';
 
 export interface CanvasOptions extends Dimensions {
     pixelWidth: number;
     pixelHeight: number;
     editable?: boolean;
-    canvasEl: HTMLCanvasElement;
+    mountEl: HTMLElement;
     pixelData?: PixelInfo[][];
     zoomLevel?: number;
     showGrid?: boolean;
+    group?: ObjectGroup | null;
 }
 
 export type PixelCanvasDrawState = 'idle' | 'drawing';
@@ -27,18 +29,38 @@ export class PixelCanvas {
     private readonly eventMap: Record<string, Array<(...x: any[]) => void>> = {};
     private readonly pixelData: PixelInfo[][];
     private showGrid;
+    private readonly $container: HTMLElement;
+    private readonly $frameContainer: HTMLDivElement;
+    public readonly name: string;
+    public readonly id: number;
+    public readonly group: ObjectGroup;
+    private destroyed = false;
 
-    private $el: HTMLCanvasElement;
+    private static instanceCount = 0;
+
+    private readonly $el: HTMLCanvasElement;
     private readonly $gridEl: HTMLCanvasElement;
     private readonly $hoverEl: HTMLCanvasElement;
 
     private drawState: PixelCanvasDrawState = 'idle';
 
     public constructor(options: CanvasOptions) {
+        PixelCanvas.instanceCount++;
+        this.id = PixelCanvas.instanceCount;
+        this.name = `Object ${this.id}`;
         this.logger = Logger.from(this);
+        this.group = options.group || new ObjectGroup();
+
+        this.$container = options.mountEl;
+
+        this.$frameContainer = document.createElement('div');
+        this.$frameContainer.classList.add('frame-container');
+
+        this.$el = document.createElement('canvas');
+        this.$el.classList.add('editor');
+        this.$frameContainer.appendChild(this.$el);
 
 
-        this.$el = options.canvasEl;
         const context = this.$el.getContext('2d');
         if (!context) {
             throw new Error('Unable to retrieve 2d context for canvas element');
@@ -61,11 +83,9 @@ export class PixelCanvas {
 
         this.$gridEl = document.createElement('canvas');
         this.$gridEl.classList.add('editor-grid');
-        this.$el.insertAdjacentElement('afterend', this.$gridEl);
 
         this.$hoverEl = document.createElement('canvas');
         this.$hoverEl.classList.add('editor-hover');
-        this.$el.insertAdjacentElement('afterend', this.$hoverEl);
 
         this.setCanvasDimensions();
 
@@ -78,7 +98,47 @@ export class PixelCanvas {
         }
     }
 
+    public getPixelDimensions(): Dimensions {
+        return {
+            width: this.pixelWidth,
+            height: this.pixelHeight,
+        };
+    }
+
+    public getDimensions(): Dimensions {
+        return {
+            width: this.width,
+            height: this.height,
+        };
+    }
+
+    public getContainer(): HTMLElement {
+        return this.$container;
+    }
+
+    public clonePixelData(): PixelInfo[][] {
+        return this.pixelData.map((row) => {
+            return row.map((info) => {
+                return {
+                    color: info.color,
+                };
+            });
+        });
+    }
+
+    public getZoomLevel(): number {
+        return this.zoomLevel;
+    }
+
+    public getShowGrid(): boolean {
+        return this.showGrid;
+    }
+
     private setCanvasDimensions(): void {
+        if (this.destroyed) {
+            return;
+        }
+
         this.displayWidth = this.width * this.displayPixelWidth;
         this.displayHeight = this.height * this.displayPixelHeight;
 
@@ -86,11 +146,14 @@ export class PixelCanvas {
         this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.displayHeight;
 
         this.setCanvasPosition();
-
         this.fillPixelDataArray();
     }
 
-    private setCanvasPosition(): void {
+    public setCanvasPosition(): void {
+        if (this.destroyed) {
+            return;
+        }
+
         const computedStyle = window.getComputedStyle(this.$el);
         const borderTopWidth = parseInt(computedStyle?.getPropertyValue('border-top-width'), 10);
         const borderLeftWidth = parseInt(computedStyle?.getPropertyValue('border-left-width'), 10);
@@ -108,7 +171,59 @@ export class PixelCanvas {
         }
     }
 
+    public hide(): void {
+        if (this.destroyed) {
+            return;
+        }
+
+        this.disable();
+
+        this.$el.style.display = 'none';
+        this.$hoverEl.style.display = 'none';
+        this.$gridEl.style.display = 'none';
+    }
+
+    public show(): void {
+        if (this.destroyed) {
+            return;
+        }
+
+        if (!this.$frameContainer.isConnected) {
+            this.$container.appendChild(this.$frameContainer);
+        }
+        if (!this.$gridEl.isConnected) {
+            this.$el.insertAdjacentElement('afterend', this.$gridEl);
+        }
+        if (!this.$hoverEl.isConnected) {
+            this.$el.insertAdjacentElement('afterend', this.$hoverEl);
+        }
+
+        this.$el.style.display = '';
+        this.$hoverEl.style.display = '';
+        this.$gridEl.style.display = '';
+        this.setCanvasPosition();
+
+        this.render();
+        this.enable();
+    }
+
+    public destroy(): void {
+        if (this.destroyed) {
+            return;
+        }
+
+        this.disable();
+        this.$el.remove();
+        this.$hoverEl.remove();
+        this.$gridEl.remove();
+        this.destroyed = true;
+    }
+
     public disable(): void {
+        if (this.destroyed) {
+            return;
+        }
+
         // remove event listeners
         // for (const [ eventName, listeners ] of Object.entries(this.eventMap)) {
         //
@@ -122,6 +237,10 @@ export class PixelCanvas {
     }
 
     public enable(): void {
+        if (this.destroyed) {
+            return;
+        }
+
         if (this.isEditable) {
             return;
         }
@@ -129,11 +248,10 @@ export class PixelCanvas {
         const activatePixelAtCursor = (e: MouseEvent): void => {
             const { clientX, clientY } = e;
 
-            const offsetY = this.$el.offsetTop;
-            const offsetX = this.$el.offsetLeft;
+            const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
 
-            const trueX = clientX + document.documentElement.scrollLeft - offsetX;
-            const trueY = clientY + document.documentElement.scrollTop - offsetY;
+            const trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
+            const trueY = clientY + document.documentElement.scrollTop - offsetTop;
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
             if (!pixelData.pixel) {
@@ -153,6 +271,10 @@ export class PixelCanvas {
             }
 
             if (this.drawState !== 'idle') {
+                return;
+            }
+
+            if (e.shiftKey) {
                 return;
             }
 
@@ -177,13 +299,16 @@ export class PixelCanvas {
 
             this.unhighlightPixel();
 
+            if (e.shiftKey) {
+                return;
+            }
+
             const { clientX, clientY } = e;
 
-            const offsetY = this.$el.offsetTop;
-            const offsetX = this.$el.offsetLeft;
+            const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
 
-            const trueX = clientX + document.documentElement.scrollLeft - offsetX;
-            const trueY = clientY + document.documentElement.scrollTop - offsetY;
+            const trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
+            const trueY = clientY + document.documentElement.scrollTop - offsetTop;
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
             if (!pixelData.pixel) {
@@ -206,21 +331,6 @@ export class PixelCanvas {
         this.$el.addEventListener('mouseout', onMouseOut);
         this.$el.ownerDocument.addEventListener('mouseup', onMouseUp);
 
-        // ensure that the absolutely positioned canvases are correctly aligned after a window resize
-        window.addEventListener('resize', (() => {
-            let timerId: number | null = null;
-            return () => {
-                if (timerId) {
-                    window.clearTimeout(timerId);
-                    timerId = null;
-                }
-
-                timerId = window.setTimeout(() => {
-                    this.setCanvasPosition();
-                }, 150);
-            };
-        })());
-
         this.isEditable = true;
     }
 
@@ -230,10 +340,18 @@ export class PixelCanvas {
     }
 
     public clear(): void {
+        if (this.destroyed) {
+            return;
+        }
+
         this.ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
     }
 
     public render(): void {
+        if (this.destroyed) {
+            return;
+        }
+
         this.clear();
 
         for (let row = 0; row < this.pixelData.length; row++) {
@@ -248,6 +366,10 @@ export class PixelCanvas {
     }
 
     public renderGrid(): void {
+        if (this.destroyed) {
+            return;
+        }
+
         const ctx = this.$gridEl.getContext('2d');
         if (!ctx) {
             this.logger.error('no grid canvas context');
@@ -281,7 +403,7 @@ export class PixelCanvas {
      * Probably should never be used publicly
      */
     public drawPixelFromScreenLocation(location: Coordinate, color: PixelColor): boolean {
-        if (!this.isEditable) {
+        if (this.destroyed) {
             return false;
         }
 
@@ -298,10 +420,6 @@ export class PixelCanvas {
     }
 
     public drawPixelFromRowAndCol(pixelRowAndCol: Coordinate, color: PixelColor): boolean {
-        if (!this.isEditable) {
-            return false;
-        }
-
         const { x: col, y: row } = pixelRowAndCol;
         const pixel = this.pixelData[row]?.[col] || null;
         if (!pixel) {
@@ -320,6 +438,10 @@ export class PixelCanvas {
     }
 
     public highlightPixel(pixelRowAndCol: Coordinate): boolean {
+        if (this.destroyed) {
+            return false;
+        }
+
         const { x: col, y: row } = pixelRowAndCol;
         const pixel = this.pixelData[row]?.[col] || null;
         if (!pixel) {
@@ -352,6 +474,10 @@ export class PixelCanvas {
     }
 
     public unhighlightPixel(): boolean {
+        if (this.destroyed) {
+            return false;
+        }
+
         const ctx = this.$hoverEl.getContext('2d');
         if (!ctx) {
             return false;
@@ -392,7 +518,7 @@ export class PixelCanvas {
     }
 
     public setZoomLevel(zoomLevel: number): void {
-        if (zoomLevel < 1 || zoomLevel > 4 || !Number.isInteger(zoomLevel)) {
+        if (zoomLevel <= 0 || zoomLevel > 10) {
             return;
         }
 

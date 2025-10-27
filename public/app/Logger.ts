@@ -1,11 +1,15 @@
 import { nope } from './utils';
 
+const hasName = (instance: object): instance is { name: string } => typeof (instance as any).name === 'string' &&
+    (instance as any).name;
+
 export class Logger {
     public constructor(public readonly name: string) {
     }
 
     public static from(instance: object): Logger {
-        return new Logger(instance.constructor.name);
+        const name = hasName(instance) ? instance.name : instance.constructor.name;
+        return new Logger(name);
     }
 
     private log(level: 'debug' | 'info' | 'warn' | 'error', ...objects: any[]): void {

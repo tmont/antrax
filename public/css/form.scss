@@ -1,0 +1,9 @@
+@use "./config";
+
+input {
+    border-radius: config.$input-radius;
+    background-color: config.$input-bg-color;
+    border: 1px solid config.$input-border;
+    color: config.$input-color;
+    font-size: config.$input-font-size;
+}

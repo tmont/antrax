@@ -2,91 +2,102 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Atari 7800 Sprite Editor</title>
-        <style>
-            * {
-                box-sizing: border-box;
-            }
-            body {
-                margin: 0;
-                background-color: ivory;
-                font-family: sans-serif;
-            }
-            canvas.editor {
-                border: 2px solid gray;
-                box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
-                text-align: center;
-                image-rendering: pixelated;
-                cursor: crosshair;
-            }
-            canvas.editor-grid, canvas.editor-hover {
-                pointer-events: none;
-                position: absolute;
-                image-rendering: pixelated;
-            }
-
-            .app {
-                display: flex;
-                margin: 20px;
-                justify-content: space-between;
-                gap: 20px;
-            }
-
-            .options-form {
-                /*flex: 1;*/
-                text-align: right;
-            }
-
-            .canvas-area {
-                flex: 1;
-            }
-            .info-area {
-                flex: 1;
-            }
-            .form-group {
-                margin-bottom: 5px;
-            }
-
-            input[type="number"] {
-                width: 5em;
-            }
-            input[type="range"] {
-                width: 8em;
-            }
-        </style>
+        <title>Atari 7800 Graphics Editor</title>
+        <link rel="stylesheet" href="./app.css" />
     </head>
     <body>
-        <div class="app">
-            <div class="options-form">
-                <div class="form-group">
-                    <label for="option-zoom-level">Zoom:</label>
-                    <input id="option-zoom-level" type="range" min="1" max="4" step="1" autocomplete="off"/>
-                </div>
-                <div class="form-group">
-                    <input id="option-show-grid" type="checkbox" autocomplete="off" />
-                    <label for="option-show-grid">Show grid</label>
-                </div>
-                <div class="form-group">
-                    <label for="option-width">Width:</label>
-                    <input id="option-width" type="number" min="1" max="256" step="1" autocomplete="off"/>
-                </div>
-                <div class="form-group">
-                    <label for="option-height">Height:</label>
-                    <input id="option-height" type="number" min="1" max="256" step="1" autocomplete="off"/>
-                </div>
-                <div class="form-group">
-                    <label for="option-pixel-width">Pixel width:</label>
-                    <input id="option-pixel-width" type="number" min="1" max="30" step="1" autocomplete="off"/>
-                </div>
-                <div class="form-group">
-                    <label for="option-pixel-height">Pixel height:</label>
-                    <input id="option-pixel-height" type="number" min="1" max="30" step="1" autocomplete="off"/>
-                </div>
-            </div>
-            <div class="canvas-area">
-                <canvas class="editor" id="editor" width="300" height="300"></canvas>
-            </div>
+<!--        <div class="app">-->
+<!--            <div class="options-form">-->
+<!--                <div class="form-group">-->
+<!--                    <label for="option-zoom-level">Zoom:</label>-->
+<!--                    <input id="option-zoom-level" type="range" min="1" max="4" step="0.5" autocomplete="off"/>-->
+<!--                </div>-->
+<!--                <div class="form-group">-->
+<!--                    <input id="option-show-grid" type="checkbox" autocomplete="off" />-->
+<!--                    <label for="option-show-grid">Show grid</label>-->
+<!--                </div>-->
+<!--                <div class="form-group">-->
+<!--                    <label for="option-width">Width:</label>-->
+<!--                    <input id="option-width" type="number" min="1" max="256" step="1" autocomplete="off"/>-->
+<!--                </div>-->
+<!--                <div class="form-group">-->
+<!--                    <label for="option-height">Height:</label>-->
+<!--                    <input id="option-height" type="number" min="1" max="256" step="1" autocomplete="off"/>-->
+<!--                </div>-->
+<!--                <div class="form-group">-->
+<!--                    <label for="option-pixel-width">Pixel width:</label>-->
+<!--                    <input id="option-pixel-width" type="number" min="1" max="30" step="1" autocomplete="off"/>-->
+<!--                </div>-->
+<!--                <div class="form-group">-->
+<!--                    <label for="option-pixel-height">Pixel height:</label>-->
+<!--                    <input id="option-pixel-height" type="number" min="1" max="30" step="1" autocomplete="off"/>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="canvas-area"></div>-->
 <!--            <div class="info-area"></div>-->
+<!--        </div>-->
+
+        <div class="app">
+            <div class="main-sidebar">
+                <div class="app-logo project-header">7800 Gfx Editor</div>
+                <div class="project-structure">
+                    <header class="project-name clamp-1"></header>
+                    <div class="project-objects indented-list"></div>
+                    <div class="project-controls">
+                        <button type="button" class="btn btn-success new-object-btn">
+                            &plus; New
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="main-content">
+                <div class="content-header project-header">
+                    Palettes and stuff&hellip;
+                </div>
+                <div class="canvas-container">
+                    <div class="canvas-area"></div>
+                </div>
+                <div class="canvas-gutter">
+                    <div class="global-info gutter-list">
+                        <div>
+                            <a class="help-link" href="#" title="Help and keyboard shortcuts">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </a>
+                        </div>
+
+                        <div class="current-coordinates"></div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem">
+                            <input type="checkbox" id="option-show-grid" autocomplete="off"/>
+                            <label for="option-show-grid"><ins>G</ins>rid</label>
+                        </div>
+                        <div>
+                            <label class="zoom-level-label" title="Click to reset zoom">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <span class="zoom-level-value">1x</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="canvas-info gutter-list">
+                        <div>
+                            <label><ins>P</ins>ixels:</label>
+                            <input type="number" id="option-pixel-width" step="1" min="1" max="32" autocomplete="off" style="appearance: textfield"/>
+                            <span>&times;</span>
+                            <input type="number" id="option-pixel-height" step="1" min="1" max="32" autocomplete="off" style="appearance: textfield"/>
+                        </div>
+
+                        <div>
+                            <label><ins>C</ins>anvas:</label>
+                            <input type="number" id="option-canvas-width" step="1" min="1" max="320" autocomplete="off" style="appearance: textfield"/>
+                            <span>&times;</span>
+                            <input type="number" id="option-canvas-height" step="1" min="1" max="320" autocomplete="off" style="appearance: textfield"/>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
 
         <script src="./app.js"></script>

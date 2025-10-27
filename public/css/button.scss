@@ -1,0 +1,101 @@
+@use "sass:color";
+@use "sass:math";
+@use "./config";
+
+@mixin button-variant($bg, $border-color) {
+    $bg1: $bg;
+    $bg2: color.adjust($bg1, $lightness: -10%);
+    $border-color: rgba($border-color, 0.75);
+    border-color: $border-color;
+    background-image: linear-gradient(to bottom, rgba($bg1, 0.95), rgba($bg2, 0.95));
+    transition: all 100ms ease-out;
+    box-shadow: none;
+    font-size: config.$input-font-size;
+
+    &:hover {
+        border-color: rgba($border-color, 0.75);
+        background-image: linear-gradient(to bottom, $bg1, $bg2);
+        box-shadow: inset 0 -5px 5px rgba(black, 0.1);
+    }
+
+    &:focus,
+    &:active {
+        border-color: rgba($border-color, 0.35);
+        background-image: linear-gradient(
+            to bottom,
+            color.adjust($bg2, $saturation: -5%),
+            color.adjust($bg1, $saturation: -5%)
+        );
+        box-shadow:
+            inset 0 -5px 5px rgba(black, 0.1),
+            -2px -2px 2px rgba(black, 0.25),
+            1px 1px 1px rgba(black, 0.25);
+    }
+
+    &:disabled, &.disabled {
+        &,
+        &:focus,
+        &:active {
+            $satValue: 5%;
+            border-color: color.adjust($border-color, $saturation: -$satValue);
+            background-image: linear-gradient(
+                to bottom,
+                rgba(color.adjust($bg1, $saturation: -$satValue), 0.85),
+                rgba(color.adjust($bg2, $saturation: -$satValue), 0.85)
+            );
+            box-shadow: inherit;
+        }
+    }
+}
+
+.btn {
+    display: inline-block;
+    color: config.$color;
+    text-decoration: none;
+    user-select: none;
+    padding: config.$gutter-quarter config.$gutter-half;
+    border-radius: config.$input-radius;
+    border: 1px solid transparent;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: none;
+        color: config.$color;
+    }
+
+    &:focus {
+        outline: 0;
+    }
+
+    box-shadow:
+        inset 0px -5px 5px rgba(white, 0.1),
+        2px 2px 1px rgba(black, 0.125);
+
+    text-shadow: 1px 1px 1px rgba(black, 0.5);
+
+    &:disabled, &.disabled {
+        opacity: 0.75;
+        cursor: not-allowed;
+    }
+
+    &.btn-sm {
+        padding: config.$gutter-eighth config.$gutter-quarter;
+        font-size: 80%;
+    }
+}
+
+.btn-danger {
+    @include button-variant(config.$danger-bg, config.$danger-border);
+}
+
+.btn-primary {
+    @include button-variant(config.$primary-bg, config.$primary-border);
+}
+
+.btn-secondary {
+    @include button-variant(config.$secondary-bg, config.$secondary-border);
+}
+
+.btn-success {
+    @include button-variant(config.$success-bg, config.$success-border);
+}

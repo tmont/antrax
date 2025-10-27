@@ -1,78 +1,223 @@
+@use "sass:color";
+@use "sass:math";
+@use "../node_modules/@fortawesome/fontawesome-free/scss/fontawesome";
+@use "../node_modules/@fortawesome/fontawesome-free/scss/solid";
+
+@use "./css/config.scss";
+@use "./css/button.scss";
+@use "./css/form.scss";
+
 * {
     box-sizing: border-box;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
     margin: 0;
-    background-color: ivory;
+    background-color: config.$bg-color;
     font-family: sans-serif;
+    color: config.$color;
+    font-size: 14px;
+    overflow: hidden;
 }
 
-canvas.editor {
-    border: 2px solid gray;
-    box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
-    text-align: center;
-    image-rendering: pixelated;
-    cursor: crosshair;
-}
-
-canvas.editor-grid, canvas.editor-hover {
-    pointer-events: none;
-    position: absolute;
-    image-rendering: pixelated;
+a {
+    color: config.$primary-color;
 }
 
 .app {
     display: flex;
-    margin: 20px;
-    justify-content: space-between;
-    gap: 20px;
+    height: 100%;
+    align-items: stretch;
 }
 
-.options-form {
-    text-align: right;
+.indented-list {
+    margin-left: config.$gutter-half;
 }
 
-.canvas-area {
-    flex: 1;
+.main-sidebar {
+    flex-shrink: 0;
+    width: config.$sidebar-width;
+    background-color: config.$sidebar-bg-color;
+    border-right: 2px solid config.$border-color;
+
+    .project-controls {
+        margin-top: config.$gutter;
+    }
+
+    .project-structure {
+        padding: config.$sidebar-padding-y config.$sidebar-padding-x;
+
+        .project-name {
+            font-weight: bold;
+            margin-bottom: config.$gutter-half;
+        }
+
+        .group-name {
+            font-weight: bold;
+            margin-bottom: config.$gutter-quarter;
+        }
+
+        .project-objects {
+            display: flex;
+            flex-direction: column;
+            gap: config.$gutter-half;
+            font-size: 90%;
+        }
+
+        .group-items {
+            display: flex;
+            flex-direction: column;
+            gap: config.$gutter-quarter;
+        }
+
+        .project-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition:
+                color linear 100ms,
+                background-color linear 100ms;
+
+            &:hover {
+                &:not(&.active) {
+                    background-color: rgba(config.$accent-bg, 0.5);
+                }
+            }
+
+            .item-name {
+                display: block;
+                padding: config.$gutter-quarter config.$gutter-quarter;
+                flex: 1;
+                color: config.$color;
+                text-decoration: none;
+            }
+
+            &.active {
+                background-color: config.$accent-bg;
+
+                .item-name {
+                    color: config.$primary-color;
+                    font-weight: bold;
+                }
+            }
+
+            .item-controls {
+                display: flex;
+                gap: config.$gutter-quarter;
+                flex-shrink: 0;
+            }
+        }
+    }
+}
+
+.app-logo {
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 2px rgba(255, 255, 0, 0.25);
+}
+
+.project-header {
+    height: config.$header-height;
     display: flex;
+    align-items: center;
+    background-color: config.$header-bg-color;
+    border-bottom: 2px solid config.$border-color;
+    flex-shrink: 0;
 }
 
-.frame-container {
+.main-content {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
 }
 
-.frame-toolbar {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 5px;
-}
-
-.toolbar-items {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    gap: 2px;
-}
-.toolbar-items > li {
-
-}
-
-.info-area {
+.canvas-container {
     flex: 1;
+    position: relative;
+    overflow: hidden;
+
+    &.panning-start {
+        &, canvas {
+            cursor: grab !important;
+        }
+    }
+    &.panning {
+        &, canvas {
+            cursor: grabbing !important;
+        }
+    }
+
+    .canvas-area {
+        overflow: hidden;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
 }
 
-.form-group {
-    margin-bottom: 5px;
+.canvas-gutter {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: config.$gutter;
+
+    height: config.$editor-gutter-height;
+    border-top: 2px solid config.$border-color;
+    background-color: config.$sidebar-bg-color;
+    font-size: 80%;
+    color: rgba(config.$color, 0.6);
+    transition: color linear 100ms;
+
+    &:hover {
+        color: config.$color;
+    }
+
+    .gutter-list {
+        display: flex;
+        gap: config.$gutter;
+        align-items: center;
+        padding: config.$editor-gutter-padding;
+    }
+
+    .zoom-level-label {
+        cursor: pointer;
+    }
+
+    .zoom-level-value {
+        display: inline-block;
+        width: 2.2em; // totally rock solid
+    }
+
+    .divider {
+        //width: 1px;
+        height: 100%;
+        border-right: 2px solid config.$border-color;
+    }
 }
 
-input[type="number"] {
-    width: 5em;
+canvas {
+    &.editor {
+        border: 2px solid gray;
+        box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
+        image-rendering: pixelated;
+        cursor: crosshair;
+    }
+
+    &.editor-grid, &.editor-hover {
+        pointer-events: none;
+        position: absolute;
+        image-rendering: pixelated;
+    }
 }
 
-input[type="range"] {
-    width: 8em;
+.clamp-1 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
 }
