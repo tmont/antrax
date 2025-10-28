@@ -216,6 +216,18 @@ canvas {
     }
 }
 
+kbd {
+    display: inline-block;
+    font-size: 90%;
+    border: 1px solid config.$secondary-border;
+    border-radius: 2px;
+    padding: 2px 4px;
+    text-align: center;
+    font-family: monospace;
+    background-color: config.$secondary-bg;
+    background-image: linear-gradient(to bottom, config.$secondary-bg, color.adjust(config.$secondary-bg, $lightness: -5%));
+}
+
 .clamp-1 {
     display: -webkit-box;
     -webkit-box-orient: vertical;
