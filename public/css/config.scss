@@ -16,14 +16,7 @@ $editor-gutter-padding: $gutter-quarter;
 
 $bg-color: #363636;
 $color: #B8B8B8;
-$accent-color: color.adjust($color, $lightness: 10%);
-$accent-bg: color.adjust($bg-color, $lightness: 2%);
-$input-bg-color: color.adjust($bg-color, $lightness: -5%);
-$input-color: $color;
-$input-border: color.adjust($bg-color, $lightness: 5%);
-$sidebar-bg-color: color.adjust($bg-color, $lightness: -5%);
-$border-color: color.adjust($bg-color, $lightness: 5%);
-$header-bg-color: color.adjust($sidebar-bg-color, $lightness: -5%);
+
 $success-bg: #356c35;
 $success-border: #499649;
 $danger-bg: #8d3e3e;
@@ -33,3 +26,15 @@ $primary-bg: #793679;
 $primary-border: #9f479f;
 $secondary-bg: #366d79;
 $secondary-border: #468e9d;
+
+$accent-color: color.adjust($color, $lightness: 10%);
+$accent-bg: color.adjust($bg-color, $lightness: 2%);
+$input-bg-color: color.adjust($bg-color, $lightness: -5%);
+$input-color: $color;
+$input-border: color.adjust($bg-color, $lightness: 5%);
+$input-focus-color: $primary-color;
+$input-shadow-color: $primary-bg;
+$sidebar-bg-color: color.adjust($bg-color, $lightness: -5%);
+$border-color: color.adjust($bg-color, $lightness: 5%);
+$header-bg-color: color.adjust($sidebar-bg-color, $lightness: -5%);
+

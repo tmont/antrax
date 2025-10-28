@@ -6,4 +6,15 @@ input {
     border: 1px solid config.$input-border;
     color: config.$input-color;
     font-size: config.$input-font-size;
+
+    &:not([type="checkbox"]) {
+        &:focus, &:active {
+            outline: 1px solid config.$input-focus-color;
+            box-shadow: 0 0 2px config.$input-shadow-color;
+        }
+    }
+
+    &[type="checkbox"] {
+        accent-color: config.$input-shadow-color;
+    }
 }
