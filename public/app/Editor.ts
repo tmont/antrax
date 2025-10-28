@@ -1,3 +1,4 @@
+import { Modal } from './Modal.ts';
 import type { Project } from './Project.ts';
 import { findOrDie } from './utils.ts';
 
@@ -7,6 +8,48 @@ export interface EditorOptions {
     project: Project;
     mountEl: HTMLElement;
 }
+
+const infoContent = `
+<section>
+    <header>Keyboard shortcuts</header>
+    <table>
+        <tr>
+            <td><kbd>G</kbd></td>
+            <td>Toggle grid</td>    
+        </tr>
+        <tr>
+            <td><kbd>P</kbd></td>
+            <td>Update pixel dimensions</td>    
+        </tr>
+        <tr>
+            <td><kbd>C</kbd></td>
+            <td>Update canvas dimensions</td>    
+        </tr>
+        <tr>
+            <td><kbd>Shift</kbd>+<kbd>0</kbd></td>
+            <td>Reset zoom level to <strong>1x</strong></td>    
+        </tr>
+    </table>
+</section>
+
+<section>
+    <header>Canvas interactions</header>
+    <table>
+        <tr>
+            <td>Scrollwheel</td>
+            <td>Zoom in/out by <strong>0.1</strong></td>    
+        </tr>
+        <tr>
+            <td><kbd>Shift</kbd>+Scrollwheel</td>
+            <td>Zoom in/out by <strong>0.5</strong></td>    
+        </tr>
+        <tr>
+            <td><kbd>Shift</kbd>+Left click &amp; drag</td>
+            <td>Pan canvas</td>    
+        </tr>
+    </table>
+</section>
+`;
 
 export class Editor {
     private showGrid: boolean;
@@ -200,6 +243,24 @@ export class Editor {
                 setValue(value);
             });
         });
+
+        findOrDie(document, '.help-link', node => node instanceof HTMLAnchorElement)
+            .addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const modal = Modal.create({
+                    contentHtml: infoContent,
+                    actions: 'ok',
+                    title: 'Info',
+                    type: 'default',
+                });
+
+
+                modal.on('action', () => {
+                    modal.destroy();
+                });
+                modal.show();
+            });
 
         this.updateZoomLevelUI();
         this.initialized = true;

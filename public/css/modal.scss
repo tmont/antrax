@@ -1,0 +1,85 @@
+@use "./config";
+
+$modal-z-index: 100;
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.15);
+    z-index: $modal-z-index;
+    backdrop-filter: blur(2px);
+}
+
+.modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid config.$border-color;
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.75);
+    z-index: $modal-z-index + 1;
+    border-radius: 4px;
+    background-color: config.$bg-color;
+
+    $modal-padding-x: config.$gutter;
+    $modal-padding-y: config.$gutter-half;
+
+    .modal-title, .modal-footer {
+        padding: $modal-padding-y $modal-padding-x;
+    }
+
+    .modal-title {
+        font-weight: bold;
+        font-size: 1.25rem;
+        background-color: config.$accent-bg;
+        border-bottom: 2px solid config.$border-color;
+        text-shadow: 1px 1px 1px black;
+    }
+
+    .modal-footer {
+        background-color: config.$accent-bg;
+        border-top: 2px solid config.$border-color;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .modal-body {
+        padding: $modal-padding-x;
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter;
+
+        section {
+            > header {
+                color: config.$accent-color;
+                margin-bottom: config.$gutter-quarter;
+                text-shadow: 1px 1px 1px black;
+            }
+        }
+    }
+
+    table {
+        font-size: 85%;
+        border-collapse: collapse;
+        width: 100%;
+        background-color: config.$sidebar-bg-color;
+        td {
+            padding: config.$gutter-quarter;
+            border: 1px solid config.$border-color;
+        }
+    }
+
+    kbd {
+        display: inline-block;
+        border: 1px solid config.$border-color;
+        border-radius: 2px;
+        padding: 2px 4px;
+        text-align: center;
+        font-family: monospace;
+        background-color: config.$secondary-bg;
+    }
+}

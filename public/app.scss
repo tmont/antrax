@@ -6,6 +6,7 @@
 @use "./css/config.scss";
 @use "./css/button.scss";
 @use "./css/form.scss";
+@use "./css/modal.scss";
 
 * {
     box-sizing: border-box;
@@ -18,7 +19,7 @@ html, body {
 body {
     margin: 0;
     background-color: config.$bg-color;
-    font-family: sans-serif;
+    font-family: "Noto Sans", sans-serif;
     color: config.$color;
     font-size: 14px;
     overflow: hidden;
