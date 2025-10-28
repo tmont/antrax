@@ -63,6 +63,7 @@ export class Editor {
     private readonly $pixelHeightInput: HTMLInputElement;
     private readonly $canvasWidthInput: HTMLInputElement;
     private readonly $canvasHeightInput: HTMLInputElement;
+    private readonly $canvasCoordinates: HTMLElement;
     private initialized = false;
 
     public constructor(options: EditorOptions) {
@@ -81,6 +82,7 @@ export class Editor {
         this.$pixelHeightInput = findOrDie(this.$gutter, '#option-pixel-height', node => node instanceof HTMLInputElement);
         this.$canvasWidthInput = findOrDie(this.$gutter, '#option-canvas-width', node => node instanceof HTMLInputElement);
         this.$canvasHeightInput = findOrDie(this.$gutter, '#option-canvas-height', node => node instanceof HTMLInputElement);
+        this.$canvasCoordinates = findOrDie(this.$gutter, '.current-coordinates', node => node instanceof HTMLElement);
 
         this.project = options.project;
         this.setProject(options.project);
@@ -98,6 +100,14 @@ export class Editor {
             this.$pixelHeightInput.value = pixelHeight.toString();
             this.$canvasWidthInput.value = canvasWidth.toString();
             this.$canvasHeightInput.value = canvasHeight.toString();
+        });
+        this.project.on('pixel_highlight', (e) => {
+            this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
+        });
+        this.project.on('pixel_draw', (e) => {
+            if (e.behavior === 'user') {
+                this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
+            }
         });
     }
 

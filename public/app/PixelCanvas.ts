@@ -1,3 +1,4 @@
+import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup } from './ObjectGroup.ts';
 import type { Coordinate, Dimensions, PixelColor, PixelInfo } from './utils.ts';
@@ -15,7 +16,21 @@ export interface CanvasOptions extends Dimensions {
 
 export type PixelCanvasDrawState = 'idle' | 'drawing';
 
-export class PixelCanvas {
+export type PixelDrawingBehavior = 'user' | 'internal';
+
+export interface PixelDrawingEvent {
+    pixel: PixelInfo;
+    row: number;
+    col: number;
+    behavior: PixelDrawingBehavior;
+}
+
+type PixelCanvasEventMap = {
+    pixel_highlight: [ PixelDrawingEvent ];
+    pixel_draw: [ PixelDrawingEvent ];
+};
+
+export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private width: number;
     private height: number;
     private displayWidth: number;
@@ -45,6 +60,7 @@ export class PixelCanvas {
     private drawState: PixelCanvasDrawState = 'idle';
 
     public constructor(options: CanvasOptions) {
+        super();
         PixelCanvas.instanceCount++;
         this.id = PixelCanvas.instanceCount;
         this.name = `Object ${this.id}`;
@@ -257,7 +273,7 @@ export class PixelCanvas {
             if (!pixelData.pixel) {
                 this.logger.warn(`no pixel found at ${trueX},${trueY}`);
             } else {
-                this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, 'green');
+                this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, 'green', 'user');
             }
         };
 
@@ -358,7 +374,7 @@ export class PixelCanvas {
             const pixelRow = this.pixelData[row]!;
             for (let col = 0; col < pixelRow.length; col++) {
                 const pixelInfo = pixelRow[col]!;
-                this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo.color);
+                this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo.color, 'internal');
             }
         }
 
@@ -419,7 +435,7 @@ export class PixelCanvas {
         return true;
     }
 
-    public drawPixelFromRowAndCol(pixelRowAndCol: Coordinate, color: PixelColor): boolean {
+    public drawPixelFromRowAndCol(pixelRowAndCol: Coordinate, color: PixelColor, behavior: PixelDrawingBehavior): boolean {
         const { x: col, y: row } = pixelRowAndCol;
         const pixel = this.pixelData[row]?.[col] || null;
         if (!pixel) {
@@ -430,6 +446,7 @@ export class PixelCanvas {
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
         if (this.drawPixelFromScreenLocation(absoluteCoordinate, color)) {
             pixel.color = color;
+            this.emit('pixel_draw', { pixel, row, col, behavior });
             return true;
         }
 
@@ -461,6 +478,8 @@ export class PixelCanvas {
         ctx.strokeRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
         ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
         ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+
+        this.emit('pixel_highlight', { pixel, row, col, behavior: 'user' });
 
         return true;
     }

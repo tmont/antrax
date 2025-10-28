@@ -1,7 +1,7 @@
 import { EventEmitter } from './EventEmitter.ts';
 import type { ObjectGroup } from './ObjectGroup.ts';
-import { type CanvasOptions, PixelCanvas } from './PixelCanvas.ts';
-import { parseTemplate } from './utils.ts';
+import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './PixelCanvas.ts';
+import { findOrDie, parseTemplate } from './utils.ts';
 
 const objectItemTmpl = `
 <div class="project-item">
@@ -33,6 +33,8 @@ export interface ProjectOptions extends Pick<CanvasOptions, 'mountEl' | 'showGri
 
 export type ProjectEventMap = {
     canvas_activate: [ PixelCanvas ];
+    pixel_highlight: [ PixelDrawingEvent ];
+    pixel_draw: [ PixelDrawingEvent ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -67,10 +69,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             return;
         }
 
-        const newObjBtn = this.$container.querySelector('.new-object-btn');
-        if (!newObjBtn) {
-            throw new Error('Unable to find new-object-btn element');
-        }
+        const newObjBtn = findOrDie(this.$container, '.new-object-btn', node => node instanceof HTMLElement);
 
         newObjBtn.addEventListener('click', () => {
             this.addObject({
@@ -116,6 +115,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public addObject(options: CanvasOptions): PixelCanvas {
         const canvas = new PixelCanvas(options);
+        canvas.on('pixel_highlight', (...args) => {
+            this.emit('pixel_highlight', ...args);
+        });
+        canvas.on('pixel_draw', (...args) => {
+            this.emit('pixel_draw', ...args);
+        });
         this.canvases.push(canvas);
 
         const el = parseTemplate(objectItemTmpl);
