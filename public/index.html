@@ -29,12 +29,19 @@
                 <div class="canvas-gutter">
                     <div class="global-info gutter-list">
                         <div>
-                            <a class="help-link" href="#" title="Help and keyboard shortcuts">
+                            <a class="help-link" href="#" title="Help and keyboard shortcuts" style="font-size: 0.9rem">
                                 <i class="fa-solid fa-circle-info"></i>
                             </a>
                         </div>
 
-                        <div class="current-coordinates" style="width: 5em; text-align: center"></div>
+                        <div class="breadcrumb">
+                            <span class="active-group-name">n/a</span>
+                            <span class="breadcrumb-divider"><i class="fa-solid fa-chevron-right"></i></span>
+                            <span class="active-object-name">n/a</span>
+                        </div>
+
+                        <div class="current-coordinates" style="width: 5em; text-align: center">0,0</div>
+
                         <div style="display: flex; align-items: center; gap: 0.25rem">
                             <input type="checkbox" id="option-show-grid" autocomplete="off"/>
                             <label for="option-show-grid"><ins>G</ins>rid</label>
@@ -63,8 +70,9 @@
                             <span>&times;</span>
                             <input type="number" id="option-canvas-height" step="1" min="1" max="320" autocomplete="off" style="appearance: textfield"/>
                         </div>
-
                     </div>
+
+                    <div class="divider"></div>
                 </div>
             </div>
         </div>

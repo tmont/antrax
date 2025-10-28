@@ -171,12 +171,6 @@ a {
     border-top: 2px solid config.$border-color;
     background-color: config.$sidebar-bg-color;
     font-size: 80%;
-    color: rgba(config.$color, 0.6);
-    transition: color linear 100ms;
-
-    &:hover {
-        color: config.$color;
-    }
 
     .gutter-list {
         display: flex;
@@ -195,9 +189,20 @@ a {
     }
 
     .divider {
-        //width: 1px;
         height: 100%;
         border-right: 2px solid config.$border-color;
+    }
+
+    .breadcrumb {
+        display: flex;
+        gap: config.$gutter-eighth;
+        .active-group-name, .active-object-name {
+            max-width: 5em;
+        }
+
+        .breadcrumb-divider {
+            color: config.$muted-color;
+        }
     }
 }
 

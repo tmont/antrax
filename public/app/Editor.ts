@@ -64,6 +64,8 @@ export class Editor {
     private readonly $canvasWidthInput: HTMLInputElement;
     private readonly $canvasHeightInput: HTMLInputElement;
     private readonly $canvasCoordinates: HTMLElement;
+    private readonly $activeGroupName: HTMLElement;
+    private readonly $activeObjectName: HTMLElement;
     private initialized = false;
 
     public constructor(options: EditorOptions) {
@@ -83,23 +85,32 @@ export class Editor {
         this.$canvasWidthInput = findOrDie(this.$gutter, '#option-canvas-width', node => node instanceof HTMLInputElement);
         this.$canvasHeightInput = findOrDie(this.$gutter, '#option-canvas-height', node => node instanceof HTMLInputElement);
         this.$canvasCoordinates = findOrDie(this.$gutter, '.current-coordinates', node => node instanceof HTMLElement);
+        this.$activeGroupName = findOrDie(this.$gutter, '.breadcrumb .active-group-name', node => node instanceof HTMLElement);
+        this.$activeObjectName = findOrDie(this.$gutter, '.breadcrumb .active-object-name', node => node instanceof HTMLElement);
 
         this.project = options.project;
         this.setProject(options.project);
     }
 
     public setProject(project: Project): void {
+        // disable events on previously active project
+        this.project.off();
+
         this.project = project;
         this.project.off();
         this.project.on('canvas_activate', (activeCanvas) => {
-            // update gutter info
-            const { width: pixelWidth, height: pixelHeight } = activeCanvas.getPixelDimensions();
-            const { width: canvasWidth, height: canvasHeight } = activeCanvas.getDimensions();
+            const { width: pixelWidth, height: pixelHeight } = activeCanvas?.getPixelDimensions() || { width: 0, height: 0 };
+            const { width: canvasWidth, height: canvasHeight } = activeCanvas?.getDimensions() || { width: 0, height: 0 };
 
-            this.$pixelWidthInput.value = pixelWidth.toString();
-            this.$pixelHeightInput.value = pixelHeight.toString();
-            this.$canvasWidthInput.value = canvasWidth.toString();
-            this.$canvasHeightInput.value = canvasHeight.toString();
+            this.$pixelWidthInput.value = (pixelWidth || '').toString();
+            this.$pixelHeightInput.value = (pixelHeight || '').toString();
+            this.$canvasWidthInput.value = (canvasWidth || '').toString();
+            this.$canvasHeightInput.value = (canvasHeight || '').toString();
+
+            this.$activeGroupName.innerText = activeCanvas?.group.name || 'n/a';
+            this.$activeObjectName.innerText = activeCanvas?.name || 'n/a';
+
+            this.$canvasCoordinates.innerText = `0,0`;
         });
         this.project.on('pixel_highlight', (e) => {
             this.$canvasCoordinates.innerText = `${e.row},${e.col}`;

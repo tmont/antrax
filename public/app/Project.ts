@@ -32,7 +32,7 @@ export interface ProjectOptions extends Pick<CanvasOptions, 'mountEl' | 'showGri
 }
 
 export type ProjectEventMap = {
-    canvas_activate: [ PixelCanvas ];
+    canvas_activate: [ PixelCanvas | null ];
     pixel_highlight: [ PixelDrawingEvent ];
     pixel_draw: [ PixelDrawingEvent ];
 };
@@ -94,20 +94,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.initialized = true;
     }
 
-    public activateCanvas(canvas: PixelCanvas): void {
+    public activateCanvas(canvas: PixelCanvas | null): void {
         if (this.activeCanvas) {
             this.activeCanvas.hide();
         }
 
         this.activeCanvas = canvas;
-        this.activeCanvas.show();
+        this.activeCanvas?.show();
 
         this.emit('canvas_activate', this.activeCanvas);
 
         const items = this.$container.querySelectorAll(`.project-item`);
         items.forEach((el) => {
             el.classList.remove('active');
-            if (el.getAttribute('data-canvas-id') === canvas.id.toString()) {
+            if (el.getAttribute('data-canvas-id') === canvas?.id.toString()) {
                 el.classList.add('active');
             }
         });
@@ -189,6 +189,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         if (this.activeCanvas === canvas) {
             this.activeCanvas.destroy();
             this.activeCanvas = null;
+            this.activateCanvas(null);
         }
 
         if (!this.getObjectsInGroup(canvas.group).length) {
