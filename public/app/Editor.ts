@@ -188,6 +188,8 @@ export class Editor {
 
         const canvasContainer = findElement(this.$el, '.canvas-container');
         const canvasArea = findElement(this.$el, '.canvas-area');
+        let panning = false;
+        let panningOrigin = { x: 0, y: 0 };
 
         canvasContainer.addEventListener('wheel', (e) => {
             const coefficient = e.shiftKey ? 0.5 : 0.1;
@@ -208,10 +210,6 @@ export class Editor {
             if (e.shiftKey || e.key === 'Shift') {
                 canvasContainer.classList.add('panning-start');
             }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            canvasContainer.classList.remove('panning-start');
 
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
                 this.zoomLevel = 1;
@@ -228,8 +226,10 @@ export class Editor {
             }
         });
 
-        let panning = false;
-        let panningOrigin = { x: 0, y: 0 };
+        document.addEventListener('keyup', () => {
+            canvasContainer.classList.remove('panning-start');
+        });
+
         canvasContainer.addEventListener('mousedown', (e) => {
             if (!e.shiftKey) {
                 return;
