@@ -13,45 +13,65 @@ export interface EditorOptions {
 }
 
 const infoContent = `
-<section>
-    <header>Keyboard shortcuts</header>
-    <table>
-        <tr>
-            <td><kbd>G</kbd></td>
-            <td>Toggle grid</td>    
-        </tr>
-        <tr>
-            <td><kbd>P</kbd></td>
-            <td>Update pixel dimensions</td>    
-        </tr>
-        <tr>
-            <td><kbd>C</kbd></td>
-            <td>Update canvas dimensions</td>    
-        </tr>
-        <tr>
-            <td><kbd>Shift</kbd>+<kbd>0</kbd></td>
-            <td>Reset zoom level to <strong>1x</strong></td>    
-        </tr>
-    </table>
-</section>
-
-<section>
-    <header>Canvas interactions</header>
-    <table>
-        <tr>
-            <td>Scrollwheel</td>
-            <td>Zoom in/out by <strong>0.1</strong></td>    
-        </tr>
-        <tr>
-            <td><kbd>Shift</kbd>+Scrollwheel</td>
-            <td>Zoom in/out by <strong>0.5</strong></td>    
-        </tr>
-        <tr>
-            <td><kbd>Shift</kbd>+Left click &amp; drag</td>
-            <td>Pan canvas</td>    
-        </tr>
-    </table>
-</section>
+<div class="col">
+    <section>
+        <header>Keyboard shortcuts</header>
+        <table>
+            <tr>
+                <td><kbd>G</kbd></td>
+                <td>Toggle grid</td>
+            </tr>
+            <tr>
+                <td><kbd>P</kbd></td>
+                <td>Update pixel dimensions</td>
+            </tr>
+            <tr>
+                <td><kbd>C</kbd></td>
+                <td>Update canvas dimensions</td>
+            </tr>
+            <tr>
+                <td><kbd>Shift</kbd>+<kbd>0</kbd></td>
+                <td>Reset zoom level to <strong>1x</strong></td>
+            </tr>
+        </table>
+    </section>
+    <section>
+        <header>Canvas interactions</header>
+        <table>
+            <tr>
+                <td>Scrollwheel</td>
+                <td>Zoom in/out by <strong>0.1</strong></td>
+            </tr>
+            <tr>
+                <td><kbd>Shift</kbd>+Scrollwheel</td>
+                <td>Zoom in/out by <strong>0.5</strong></td>
+            </tr>
+            <tr>
+                <td><kbd>Shift</kbd>+Left click &amp; drag</td>
+                <td>Pan canvas</td>
+            </tr>
+        </table>
+    </section>
+</div>
+<div class="col">
+    <section>
+        <header>Colors &amp; palettes</header>
+        <table>
+            <tr>
+                <td><kbd>Shift</kbd>+Left click</td>
+                <td>Open palette color picker</td>
+            </tr>
+            <tr>
+                <td>Left click</td>
+                <td>Open background color picker</td>
+            </tr>
+            <tr>
+                <td>Left click</td>
+                <td>Select palette color</td>
+            </tr>
+        </table>
+    </section>
+</div>
 `;
 
 export class Editor {

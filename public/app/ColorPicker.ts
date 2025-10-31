@@ -1,7 +1,7 @@
 import { type Atari7800Color, colors } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
-import { Popover } from './Popover.ts';
+import { Popover, type PopoverEventMap } from './Popover.ts';
 import { findOrDie, parseTemplate } from './utils.ts';
 
 const tmpl = `<div class="color-picker"><form></form></div>`;
@@ -13,6 +13,7 @@ export interface ColorPickerOptions {
 
 export type ColorPickerEventMap = {
     color_select: [ Atari7800Color, number ];
+    hide: PopoverEventMap['hide'];
 };
 
 export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
@@ -73,6 +74,8 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
             content: $el,
             title: this.title,
         });
+
+        this.popover.bubble('hide', this);
     }
 
     public hide(): void {

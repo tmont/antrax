@@ -52,8 +52,13 @@ $modal-z-index: 100;
     .modal-body {
         padding: $modal-padding-x;
         display: flex;
-        flex-direction: column;
-        gap: config.$gutter;
+        gap: config.$gutter-half;
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: config.$gutter;
+        }
 
         section {
             > header {
@@ -70,7 +75,7 @@ $modal-z-index: 100;
         width: 100%;
         background-color: config.$sidebar-bg-color;
         td {
-            padding: config.$gutter-quarter;
+            padding: config.$gutter-half;
             border: 1px solid config.$border-color;
         }
     }

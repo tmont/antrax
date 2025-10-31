@@ -74,27 +74,30 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         });
 
         const $el = this.$el;
-        ([ 0, 1, 2 ] as ColorIndex[]).forEach((paletteColorIndex) => {
-            findElement($el, `[data-index="${paletteColorIndex}"]`).addEventListener('click', (() => {
-                const picker = new ColorPicker({
-                    activeColor: this.colors[paletteColorIndex],
-                    title: `Change ${this.name} C${paletteColorIndex}`,
-                });
+        this.colors.forEach((_, paletteColorIndex) => {
+            const $swatch = findElement($el, `[data-index="${paletteColorIndex}"]`);
+            const picker = new ColorPicker({
+                activeColor: this.colors[paletteColorIndex],
+                title: `Change ${this.name} C${paletteColorIndex}`,
+            });
 
-                picker.on('color_select', (color, colorIndex) => {
-                    this.colors[paletteColorIndex] = color;
-                    this.updateColors();
-                    this.emit('color_change', color, paletteColorIndex);
-                });
+            picker.on('color_select', (color) => {
+                this.colors[paletteColorIndex] = color;
+                this.updateColors();
+                this.emit('color_change', color, paletteColorIndex as ColorIndex);
+            });
 
-                return (e) => {
-                    if (!(e.target instanceof HTMLElement)) {
-                        return;
-                    }
+            $swatch.addEventListener('click', (e) => {
+                if (!e.shiftKey) {
+                    return;
+                }
 
-                    picker.show(e.target);
-                };
-            })());
+                if (!(e.target instanceof HTMLElement)) {
+                    return;
+                }
+
+                picker.show(e.target);
+            });
         });
 
         $container.appendChild(this.$el);
