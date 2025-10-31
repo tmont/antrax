@@ -50,6 +50,10 @@ const infoContent = `
                 <td><kbd>Shift</kbd>+Left click &amp; drag</td>
                 <td>Pan canvas</td>
             </tr>
+            <tr>
+                <td><kbd>Ctrl</kbd>+Left click</td>
+                <td>Erase pixel</td>
+            </tr>
         </table>
     </section>
 </div>

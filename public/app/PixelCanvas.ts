@@ -273,7 +273,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         const activatePixelAtCursor = (e: MouseEvent): void => {
-            const { clientX, clientY } = e;
+            const { clientX, clientY, ctrlKey: erasing } = e;
 
             const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
 
@@ -281,12 +281,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             const trueY = clientY + document.documentElement.scrollTop - offsetTop;
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
-            if (!pixelData.pixel) {
-                // this.logger.warn(`no pixel found at ${trueX},${trueY}`);
-            } else {
-                const color = this.group.getActiveColor();
-                pixelData.pixel.palette = this.group.getActivePalette();
-                pixelData.pixel.index = this.group.getActiveColorIndex();
+            if (pixelData.pixel) {
+                pixelData.pixel.palette = erasing ? null : this.group.getActivePalette();
+                pixelData.pixel.index = erasing ? null : this.group.getActiveColorIndex();
                 this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, pixelData.pixel, 'user');
             }
         };
