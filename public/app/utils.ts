@@ -1,4 +1,7 @@
-export const nope = (x: never) => {};
+import type { ColorIndex, ColorPalette } from './ColorPalette.ts';
+import type { Atari7800Color } from './colors.ts';
+
+export const nope = (_x: never) => {};
 
 export interface Dimensions {
     width: number;
@@ -10,11 +13,19 @@ export interface Coordinate {
     y: number;
 }
 
-export type PixelColor = string | null;
+export type PixelColor = Atari7800Color | null;
 
-export interface PixelInfo {
-    color: PixelColor;
+export interface PixelInfoColor {
+    palette: Readonly<ColorPalette>;
+    index: ColorIndex;
 }
+
+export interface PixelInfoBg {
+    palette: null;
+    index: null;
+}
+
+export type PixelInfo = PixelInfoColor | PixelInfoBg;
 
 const parser = new DOMParser();
 export const parseTemplate = (html: string): HTMLElement => {
@@ -33,4 +44,8 @@ export const findOrDie = <T>(ancestor: ParentNode, selector: string, predicate: 
     }
 
     return child;
+};
+
+export const findElement = (ancestor: ParentNode, selector: string): HTMLElement => {
+    return findOrDie(ancestor, selector, node => node instanceof HTMLElement);
 };

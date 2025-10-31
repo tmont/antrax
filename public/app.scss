@@ -4,9 +4,14 @@
 @use "../node_modules/@fortawesome/fontawesome-free/scss/solid";
 
 @use "./css/config.scss";
+
 @use "./css/button.scss";
+@use "./css/color-picker.scss";
 @use "./css/form.scss";
 @use "./css/modal.scss";
+@use "./css/palette.scss";
+@use "./css/popover.scss";
+@use "./css/swatch.scss";
 
 * {
     box-sizing: border-box;
@@ -19,7 +24,7 @@ html, body {
 body {
     margin: 0;
     background-color: config.$bg-color;
-    font-family: "Noto Sans", sans-serif;
+    font-family: config.$font-sans;
     color: config.$color;
     font-size: 14px;
     overflow: hidden;
@@ -27,6 +32,10 @@ body {
 
 a {
     color: config.$primary-color;
+}
+
+kbd, tt, code {
+    font-family: config.$font-mono;
 }
 
 .app {

@@ -1,5 +1,8 @@
+import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
+import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import type { Atari7800Color } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
-import type { ObjectGroup } from './ObjectGroup.ts';
+import { ObjectGroup } from './ObjectGroup.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './PixelCanvas.ts';
 import { findOrDie, parseTemplate } from './utils.ts';
 
@@ -29,6 +32,9 @@ export interface ProjectOptions extends Pick<CanvasOptions, 'mountEl' | 'showGri
     name: string;
     canvasWidth?: number;
     canvasHeight?: number;
+    paletteSet: ColorPaletteSet;
+    palette: ColorPalette;
+    colorIndex: ColorIndex;
 }
 
 export type ProjectEventMap = {
@@ -51,6 +57,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private readonly $canvasContainer: HTMLElement;
     private initialized = false;
 
+    private activeColorPaletteSet: ColorPaletteSet;
+    private activeColorPalette: ColorPalette;
+    private activeColorIndex: ColorIndex;
+
     public constructor(options: ProjectOptions) {
         super();
         this.name = options.name;
@@ -62,6 +72,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.pixelHeight = options.pixelHeight || 7;
         this.canvasWidth = options.canvasWidth || 30;
         this.canvasHeight = options.canvasWidth || 30;
+        this.activeColorPaletteSet = options.paletteSet;
+        this.activeColorPalette = options.palette;
+        this.activeColorIndex = options.colorIndex;
     }
 
     public init(): void {
@@ -81,15 +94,17 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 pixelWidth: this.pixelWidth,
                 zoomLevel: this.zoomLevel,
                 showGrid: this.showGrid,
-                pixelData: [
-                    [ { color: 'red', }, { color: 'blue' }, { color: 'green' } ],
-                    [ { color: 'black', }, { color: 'yellow' }, { color: 'magenta' } ],
-                    [ { color: 'orange', }, { color: 'purple' }, { color: 'cyan' } ],
-                ],
+                group: new ObjectGroup({
+                    paletteSet: this.activeColorPaletteSet,
+                    palette: this.activeColorPalette,
+                    colorIndex: this.activeColorIndex,
+                    backgroundColor: this.activeColorPaletteSet.getBackgroundColor(),
+                }),
             });
         });
 
         this.update();
+        this.activeColorPalette.setActiveState(true, this.activeColorIndex);
 
         this.initialized = true;
     }
@@ -245,5 +260,34 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     private getObjectsInGroup(group: ObjectGroup): PixelCanvas[] {
         return this.canvases.filter(canvas => canvas.group === group);
+    }
+
+    public setActiveColor(
+        paletteSet: ColorPaletteSet,
+        palette: ColorPalette,
+        color: Atari7800Color,
+        index: ColorIndex,
+    ): void {
+        this.activeColorPaletteSet = paletteSet;
+        this.activeColorPalette = palette;
+        this.activeColorIndex = index;
+
+        if (this.activeCanvas) {
+            this.activeCanvas.group.setActiveColor(paletteSet, palette, index);
+        }
+    }
+
+    public setBackgroundColor(color: Atari7800Color): void {
+        if (this.activeCanvas) {
+            this.activeCanvas.render();
+        }
+    }
+
+    public updatePaletteColor(palette: ColorPalette, colorIndex: ColorIndex): void {
+        if (this.activeCanvas) {
+            // re-rendering everything is unnecessary, but it might not be a big deal, and
+            // it's making things a little easier right now
+            this.activeCanvas.render();
+        }
     }
 }

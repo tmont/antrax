@@ -1,7 +1,7 @@
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup } from './ObjectGroup.ts';
-import type { Coordinate, Dimensions, PixelColor, PixelInfo } from './utils.ts';
+import type { Coordinate, Dimensions, PixelInfo } from './utils.ts';
 
 export interface CanvasOptions extends Dimensions {
     pixelWidth: number;
@@ -11,7 +11,7 @@ export interface CanvasOptions extends Dimensions {
     pixelData?: PixelInfo[][];
     zoomLevel?: number;
     showGrid?: boolean;
-    group?: ObjectGroup | null;
+    group: ObjectGroup;
 }
 
 export type PixelCanvasDrawState = 'idle' | 'drawing';
@@ -65,7 +65,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.id = PixelCanvas.instanceCount;
         this.name = `Object ${this.id}`;
         this.logger = Logger.from(this);
-        this.group = options.group || new ObjectGroup();
+        this.group = options.group;
 
         this.$container = options.mountEl;
 
@@ -75,7 +75,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$el = document.createElement('canvas');
         this.$el.classList.add('editor');
         this.$frameContainer.appendChild(this.$el);
-
 
         const context = this.$el.getContext('2d');
         if (!context) {
@@ -135,8 +134,16 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public clonePixelData(): PixelInfo[][] {
         return this.pixelData.map((row) => {
             return row.map((info) => {
+                if (info.palette) {
+                    return {
+                        palette: info.palette,
+                        index: info.index,
+                    }
+                }
+
                 return {
-                    color: info.color,
+                    palette: null,
+                    index: null,
                 };
             });
         });
@@ -182,7 +189,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         for (let row = 0; row < this.height; row++) {
             const pixelRow = this.pixelData[row] = this.pixelData[row] || [];
             for (let col = 0; col < this.width; col++) {
-                pixelRow[col] = pixelRow[col] || { color: null };
+                pixelRow[col] = pixelRow[col] || {
+                    palette: null,
+                    index: null,
+                };
             }
         }
     }
@@ -240,6 +250,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        // TODO
         // remove event listeners
         // for (const [ eventName, listeners ] of Object.entries(this.eventMap)) {
         //
@@ -271,9 +282,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
             if (!pixelData.pixel) {
-                this.logger.warn(`no pixel found at ${trueX},${trueY}`);
+                // this.logger.warn(`no pixel found at ${trueX},${trueY}`);
             } else {
-                this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, 'green', 'user');
+                const color = this.group.getActiveColor();
+                pixelData.pixel.palette = this.group.getActivePalette();
+                pixelData.pixel.index = this.group.getActiveColorIndex();
+                this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, pixelData.pixel, 'user');
             }
         };
 
@@ -356,11 +370,17 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public clear(): void {
+        this.logger.info(`clearing canvas with color ${this.group.getBackgroundColor().hex}`);
+        this.clearRect(0, 0, this.displayWidth, this.displayHeight);
+    }
+
+    public clearRect(x: number, y: number, width: number, height: number): void {
         if (this.destroyed) {
             return;
         }
 
-        this.ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
+        this.ctx.fillStyle = this.group.getBackgroundColor().hex;
+        this.ctx.fillRect(x, y, width, height);
     }
 
     public render(): void {
@@ -374,7 +394,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             const pixelRow = this.pixelData[row]!;
             for (let col = 0; col < pixelRow.length; col++) {
                 const pixelInfo = pixelRow[col]!;
-                this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo.color, 'internal');
+                this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, 'internal');
             }
         }
 
@@ -418,39 +438,32 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     /**
      * Probably should never be used publicly
      */
-    public drawPixelFromScreenLocation(location: Coordinate, color: PixelColor): boolean {
+    public drawPixelFromScreenLocation(location: Coordinate, pixel: PixelInfo): boolean {
         if (this.destroyed) {
             return false;
         }
 
-        if (color === null) {
-            this.ctx.clearRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
+        if (!pixel.palette) {
+            this.clearRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
             return false;
         }
 
-        // this.logger.debug(`drawing ${color} pixel absolutely at ${location.x},${location.y}`);
-        this.ctx.fillStyle = color;
+        this.ctx.fillStyle = pixel.palette.getColorAt(pixel.index).hex;
         this.ctx.fillRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
 
         return true;
     }
 
-    public drawPixelFromRowAndCol(pixelRowAndCol: Coordinate, color: PixelColor, behavior: PixelDrawingBehavior): boolean {
+    public drawPixelFromRowAndCol(pixelRowAndCol: Coordinate, pixel: PixelInfo, behavior: PixelDrawingBehavior): boolean {
         const { x: col, y: row } = pixelRowAndCol;
-        const pixel = this.pixelData[row]?.[col] || null;
-        if (!pixel) {
-            this.logger.error(`No pixel data at coordinate ${pixelRowAndCol.x},${pixelRowAndCol.y}`);
-            return false;
-        }
         // this.logger.debug(`drawing ${color} pixel at ${pixelRowAndCol.x},${pixelRowAndCol.y} [${row},${col}]`);
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
-        if (this.drawPixelFromScreenLocation(absoluteCoordinate, color)) {
-            pixel.color = color;
+        if (this.drawPixelFromScreenLocation(absoluteCoordinate, pixel)) {
+            // pixel.color = color;
             this.emit('pixel_draw', { pixel, row, col, behavior });
             return true;
         }
 
-        this.logger.warn(`failed to draw pixel`);
         return false;
     }
 

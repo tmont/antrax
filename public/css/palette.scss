@@ -1,0 +1,44 @@
+@use "sass:math";
+@use "./config";
+
+.palette-set-container {
+    display: flex;
+    gap: config.$gutter-half;
+    padding: config.$gutter-quarter config.$gutter-half;
+    align-items: center;
+
+    .bg-color-container {
+        .color-swatch {
+            width: math.div(config.$header-height, 1.5);
+            height: math.div(config.$header-height, 1.5);
+        }
+    }
+}
+
+.palette-list {
+    display: flex;
+    gap: config.$gutter-half;
+    align-items: center;
+    font-size: 90%;
+}
+
+.color-palette-container {
+    display: flex;
+    flex-direction: column;
+    gap: config.$gutter-eighth;
+
+    &.active {
+        background-color: config.$accent-bg;
+        .color-palette-name {
+            color: config.$primary-color;
+        }
+    }
+
+    .color-palette-name {
+        font-weight: bold;
+        border-bottom: 1px solid config.$muted-color;
+        text-align: center;
+        font-family: config.$font-mono;
+    }
+}
+

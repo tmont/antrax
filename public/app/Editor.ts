@@ -1,12 +1,15 @@
+import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import { ColorPaletteSetCollection } from './ColorPaletteSetCollection.ts';
 import { Modal } from './Modal.ts';
 import type { Project } from './Project.ts';
-import { findOrDie } from './utils.ts';
+import { findElement, findOrDie } from './utils.ts';
 
 export interface EditorOptions {
     showGrid?: boolean;
     zoomLevel?: number;
     project: Project;
     mountEl: HTMLElement;
+    paletteSets: ColorPaletteSet[];
 }
 
 const infoContent = `
@@ -68,25 +71,28 @@ export class Editor {
     private readonly $activeObjectName: HTMLElement;
     private initialized = false;
 
+    private readonly paletteSets: ColorPaletteSetCollection;
+
     public constructor(options: EditorOptions) {
         this.showGrid = typeof options.showGrid === 'boolean' ? options.showGrid : false;
         this.zoomLevel = options.zoomLevel || 2;
         this.$el = options.mountEl;
-        const gutter = this.$el.querySelector('.canvas-gutter');
-        if (!(gutter instanceof HTMLElement)) {
-            throw new Error('.canvas-gutter element not found');
-        }
 
-        this.$gutter = findOrDie(this.$el, '.canvas-gutter', node => node instanceof HTMLElement);
+        this.paletteSets = new ColorPaletteSetCollection({
+            mountEl: findElement(this.$el, '.content-header'),
+            paletteSets: options.paletteSets,
+        });
+
+        this.$gutter = findElement(this.$el, '.canvas-gutter');
         this.$gridInput = findOrDie(this.$gutter, '#option-show-grid', node => node instanceof HTMLInputElement);
-        this.$zoomValue = findOrDie(this.$gutter, '.zoom-level-value', node => node instanceof HTMLElement);
+        this.$zoomValue = findElement(this.$gutter, '.zoom-level-value');
         this.$pixelWidthInput = findOrDie(this.$gutter, '#option-pixel-width', node => node instanceof HTMLInputElement);
         this.$pixelHeightInput = findOrDie(this.$gutter, '#option-pixel-height', node => node instanceof HTMLInputElement);
         this.$canvasWidthInput = findOrDie(this.$gutter, '#option-canvas-width', node => node instanceof HTMLInputElement);
         this.$canvasHeightInput = findOrDie(this.$gutter, '#option-canvas-height', node => node instanceof HTMLInputElement);
-        this.$canvasCoordinates = findOrDie(this.$gutter, '.current-coordinates', node => node instanceof HTMLElement);
-        this.$activeGroupName = findOrDie(this.$gutter, '.breadcrumb .active-group-name', node => node instanceof HTMLElement);
-        this.$activeObjectName = findOrDie(this.$gutter, '.breadcrumb .active-object-name', node => node instanceof HTMLElement);
+        this.$canvasCoordinates = findElement(this.$gutter, '.current-coordinates');
+        this.$activeGroupName = findElement(this.$gutter, '.breadcrumb .active-group-name');
+        this.$activeObjectName = findElement(this.$gutter, '.breadcrumb .active-object-name');
 
         this.project = options.project;
         this.setProject(options.project);
@@ -131,6 +137,19 @@ export class Editor {
             return;
         }
 
+        this.paletteSets.init();
+        this.project.init();
+        this.paletteSets.on('color_select', (paletteSet, palette, color, index) => {
+            this.project.setActiveColor(paletteSet, palette, color, index);
+        });
+        this.paletteSets.on('color_change', (paletteSet, palette, color, index) => {
+            this.project.setActiveColor(paletteSet, palette, color, index);
+            this.project.updatePaletteColor(palette, index);
+        });
+        this.paletteSets.on('bg_select', (paletteSet, color) => {
+            this.project.setBackgroundColor(color);
+        });
+
         // ensure that the absolutely positioned canvases are correctly aligned after a window resize
         window.addEventListener('resize', (() => {
             let debounceId: number | null = null;
@@ -147,8 +166,8 @@ export class Editor {
             };
         })());
 
-        const canvasContainer = findOrDie(this.$el, '.canvas-container', node => node instanceof HTMLElement);
-        const canvasArea = findOrDie(this.$el, '.canvas-area', node => node instanceof HTMLElement);
+        const canvasContainer = findElement(this.$el, '.canvas-container');
+        const canvasArea = findElement(this.$el, '.canvas-area');
 
         canvasContainer.addEventListener('wheel', (e) => {
             const coefficient = e.shiftKey ? 0.5 : 0.1;

@@ -1,0 +1,8 @@
+@use "./config";
+
+.color-picker {
+    form {
+        display: grid;
+        grid-template-columns: repeat(16, 1fr);
+    }
+}

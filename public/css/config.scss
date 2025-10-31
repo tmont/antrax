@@ -1,6 +1,9 @@
 @use "sass:color";
 @use "sass:math";
 
+$font-sans: "Noto Sans", sans-serif;
+$font-mono: Consolas, monospace;
+
 $gutter: 1rem;
 $gutter-half: math.div($gutter, 2);
 $gutter-quarter: math.div($gutter, 4);
@@ -28,6 +31,8 @@ $primary-border: #9f479f;
 $secondary-bg: #366d79;
 $secondary-border: #468e9d;
 
+$card-title-bg: color.adjust($bg-color, $lightness: -5%);
+$card-body-bg: color.adjust($bg-color, $lightness: -2%);
 $accent-color: color.adjust($color, $lightness: 10%);
 $accent-bg: color.adjust($bg-color, $lightness: 2%);
 $input-bg-color: color.adjust($bg-color, $lightness: -5%);
@@ -35,7 +40,7 @@ $input-color: $color;
 $input-border: color.adjust($bg-color, $lightness: 5%);
 $input-focus-color: $primary-color;
 $input-shadow-color: $primary-bg;
-$sidebar-bg-color: color.adjust($bg-color, $lightness: -5%);
+$sidebar-bg-color: color.adjust($bg-color, $lightness: -2%);
 $border-color: color.adjust($bg-color, $lightness: 5%);
-$header-bg-color: color.adjust($sidebar-bg-color, $lightness: -5%);
+$header-bg-color: $sidebar-bg-color;
 

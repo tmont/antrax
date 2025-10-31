@@ -22,7 +22,7 @@ export class Logger {
             case 'info':
             case 'warn':
             case 'error':
-                console[level](`[${this.name}]`, ...objects);
+                console[level](`%c[${this.name}]`, `color: #666699`, ...objects);
                 break;
             default:
                 nope(level);

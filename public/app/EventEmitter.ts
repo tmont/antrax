@@ -19,6 +19,12 @@ export class EventEmitter<TEventMap extends EventArgMap> {
         this.listeners(name).push(listener);
     }
 
+    public bubble<K extends keyof TEventMap>(name: K, other: EventEmitter<Pick<TEventMap, K>>): void {
+        this.on(name, (...args) => {
+            other.emit(name, ...args);
+        });
+    }
+
     public off<K extends keyof TEventMap>(name?: K, listener?: (...args: TEventMap[K]) => void): void {
         if (!name) {
             this.events = {};
