@@ -7,6 +7,7 @@ export type PopoverEventMap = {
 
 const tmpl = `
 <div class="popover">
+    <div class="arrow"></div>
     <div class="popover-header">
         <span class="popover-title"></span>
         <span class="close-x"><i class="fa-solid fa-close"></i></span>
@@ -43,8 +44,11 @@ export class Popover extends EventEmitter<PopoverEventMap> {
 
     public show($target: HTMLElement): void {
         const position = $target.getBoundingClientRect();
+
         this.$el.style.left = position.left + 'px';
         this.$el.style.top = (position.top + position.height) + 'px';
+
+        findElement(this.$el, '.arrow').style.left = (position.width / 2) + 'px';
 
         const parent = document.body;
         if (this.$el.parentNode !== parent) {
