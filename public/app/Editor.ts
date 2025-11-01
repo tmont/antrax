@@ -291,7 +291,7 @@ export class Editor {
             this.project.setShowGrid(this.$gridInput.checked);
         });
 
-        this.$gutter.querySelector('.zoom-level-label')?.addEventListener('click', () => {
+        findElement(this.$gutter, '.zoom-level-label').addEventListener('click', () => {
             this.zoomLevel = 1;
             this.updateZoomLevelUI();
             this.project.zoomTo(this.zoomLevel);
@@ -305,12 +305,27 @@ export class Editor {
         ];
 
         inputs.forEach(([ input, setValue ]) => {
+            // prevent non-numeric inputs
+            input.addEventListener('keydown', (e) => {
+                if (e.key.length === 1 && !/\d/.test(e.key)) {
+                    e.preventDefault();
+                    return;
+                }
+            });
+
+            const max = Number(input.max) || Infinity;
+            const min = Number(input.min) || -Infinity;
+
+            let prevValue = parseInt(input.value) || 0;
             input.addEventListener('change', () => {
                 const value = parseInt(input.value);
-                if (isNaN(value)) {
+                if (isNaN(value) || value > max || value < min) {
+                    input.value = (value > max ? max : (value < min ? min : prevValue)).toString();
+                    setValue(Number(input.value));
                     return;
                 }
 
+                prevValue = value;
                 setValue(value);
             });
         });
