@@ -361,6 +361,29 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.isEditable = true;
     }
 
+    private generateURLTimeoutId: number | null = null;
+
+    public generateDataURL(callback: (url: string | null) => void): boolean {
+        if (this.generateURLTimeoutId) {
+            window.clearTimeout(this.generateURLTimeoutId);
+            this.generateURLTimeoutId = null;
+        }
+
+        this.generateURLTimeoutId = window.setTimeout(() => {
+            this.$el.toBlob((blob) => {
+                if (!blob) {
+                    callback(null);
+                    return;
+                }
+
+                this.logger.debug('generated blob');
+                callback(URL.createObjectURL(blob));
+            }, 'image/png');
+        }, 50);
+
+        return true;
+    }
+
     private setDrawState(newState: PixelCanvasDrawState): void {
         this.logger.info(`setting drawState to ${newState}`);
         this.drawState = newState;
@@ -442,7 +465,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         if (!pixel.palette) {
             this.clearRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
-            return false;
+            return true;
         }
 
         this.ctx.fillStyle = pixel.palette.getColorAt(pixel.index).hex;
@@ -456,7 +479,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         // this.logger.debug(`drawing ${color} pixel at ${pixelRowAndCol.x},${pixelRowAndCol.y} [${row},${col}]`);
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
         if (this.drawPixelFromScreenLocation(absoluteCoordinate, pixel)) {
-            // pixel.color = color;
             this.emit('pixel_draw', { pixel, row, col, behavior });
             return true;
         }

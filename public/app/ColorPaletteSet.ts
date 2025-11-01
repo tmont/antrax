@@ -93,6 +93,10 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         return this.backgroundColor;
     }
 
+    public getName(): string {
+        return this.name;
+    }
+
     public init(): void {
         if (this.initialized) {
             return;

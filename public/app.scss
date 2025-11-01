@@ -86,11 +86,9 @@ kbd, tt, code {
 
         .project-item {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition:
-                color linear 100ms,
-                background-color linear 100ms;
+            flex-direction: column;
+            gap: config.$gutter-eighth;
+            padding: config.$gutter-eighth config.$gutter-quarter;
 
             &:hover {
                 &:not(&.active) {
@@ -98,20 +96,51 @@ kbd, tt, code {
                 }
             }
 
-            .item-name {
-                padding: config.$gutter-quarter config.$gutter-quarter;
-                flex: 1;
-                color: config.$color;
-                text-decoration: none;
-            }
-
             &.active {
                 background-color: config.$accent-bg;
+
+                a {
+                    cursor: default;
+                }
+
+                .object-info {
+                    display: flex;
+                }
 
                 .item-name {
                     color: config.$primary-color;
                     font-weight: bold;
                 }
+            }
+
+            .object-info {
+                display: none;
+                margin: 0 auto;
+                gap: config.$gutter-half;
+                font-size: 90%;
+            }
+
+            .object-thumbnail {
+                width: 1.25rem;
+                height: 1.25rem;
+                object-fit: contain;
+                display: block;
+            }
+        }
+
+        .project-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition:
+                color linear 100ms,
+                background-color linear 100ms;
+
+            .item-name {
+                padding: config.$gutter-quarter config.$gutter-quarter;
+                flex: 1;
+                color: config.$color;
+                text-decoration: none;
             }
 
             .item-controls {

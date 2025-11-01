@@ -4,18 +4,31 @@ import type { Atari7800Color } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './PixelCanvas.ts';
-import { findOrDie, parseTemplate } from './utils.ts';
+import { findElement, findOrDie, parseTemplate } from './utils.ts';
+
+// https://stackoverflow.com/a/13139830
+const emptyGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
 const objectItemTmpl = `
 <div class="project-item">
-    <a href="#" class="item-name clamp-1"></a>
-    <div class="item-controls">
-        <button type="button" class="btn btn-sm btn-success add-object-btn" title="Clone object in same group">
-            <i class="fa-solid fa-clone"></i>
-        </button>
-        <button type="button" class="btn btn-sm btn-danger del-object-btn" title="Delete object">
-            <i class="fa-solid fa-trash"></i>
-        </button>
+    <div class="project-list-item">
+        <img alt="" class="object-thumbnail" src="${emptyGif}" />
+        <a href="#" class="item-name clamp-1"></a>
+        <div class="item-controls">
+            <button type="button" class="btn btn-sm btn-success add-object-btn" title="Clone object in same group">
+                <i class="fa-solid fa-clone"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-danger del-object-btn" title="Delete object">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+    </div>
+    <div class="object-info">
+        <span class="canvas-size"></span>
+        <span>&middot;</span>
+        <div><span class="pixel-size"></span>px</div>
+        <span>&middot;</span>
+        <div class="palette-set-name clamp-1"></div>
     </div>
 </div>
 `;
@@ -126,6 +139,16 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 el.classList.add('active');
             }
         });
+
+        this.updateObjectInfo();
+    }
+
+    private findActiveProjectItem(): HTMLElement | null {
+        if (!this.activeCanvas) {
+            return null;
+        }
+
+        return findElement(this.$container, `.project-item[data-canvas-id="${this.activeCanvas.id}"]`);
     }
 
     public addObject(options: CanvasOptions): PixelCanvas {
@@ -134,6 +157,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.emit('pixel_highlight', ...args);
         });
         canvas.on('pixel_draw', (...args) => {
+            this.updateActiveThumbnail();
             this.emit('pixel_draw', ...args);
         });
         this.canvases.push(canvas);
@@ -223,6 +247,45 @@ export class Project extends EventEmitter<ProjectEventMap> {
         nameEl.appendChild(this.$container.ownerDocument.createTextNode(this.name));
     }
 
+    public updateObjectInfo(): void {
+        const $el = this.findActiveProjectItem();
+        if (!$el || !this.activeCanvas) {
+            return;
+        }
+
+        this.updateActiveThumbnail();
+
+        const { width, height } = this.activeCanvas.getDimensions();
+        const { width: pixelWidth, height: pixelHeight } = this.activeCanvas.getPixelDimensions();
+
+        findElement($el, '.canvas-size').innerText = `${width}×${height}`;
+        findElement($el, '.pixel-size').innerText = `${pixelWidth}×${pixelHeight}`;
+        findElement($el, '.palette-set-name').innerText = this.activeCanvas.group.getPaletteSet().getName();
+    }
+
+    public updateActiveThumbnail(): void {
+        if (this.activeCanvas) {
+            this.updateThumbnailForCanvas(this.activeCanvas);
+        }
+    }
+
+    private updateThumbnailForCanvas(canvas: PixelCanvas): void {
+        canvas.generateDataURL((url) => {
+            const selector = `[data-canvas-id="${canvas.id}"] .object-thumbnail`;
+            const thumbnail = findOrDie(this.$container, selector, node => node instanceof HTMLImageElement);
+            thumbnail.src = url || emptyGif;
+        });
+    }
+
+    /**
+     * This is explicit because inactive canvases aren't shown, but the thumbnails are,
+     * so if something changes (like a palette color change) then we might need to update
+     * thumbnails other than the active one.
+     */
+    public updateAllThumbnails(): void {
+        this.canvases.forEach(canvas => this.updateThumbnailForCanvas(canvas));
+    }
+
     public onResize(): void {
         // TODO not needed any more since it's absolutely positioned?
         this.activeCanvas?.setCanvasPosition();
@@ -246,6 +309,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.pixelHeight = height;
         }
         this.activeCanvas?.setPixelDimensions(width, height);
+        this.updateObjectInfo();
     }
 
     public setCanvasDimensions(width: number | null, height: number | null): void {
@@ -256,6 +320,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.canvasHeight = height;
         }
         this.activeCanvas?.setDimensions(width, height);
+        this.updateObjectInfo();
     }
 
     private getObjectsInGroup(group: ObjectGroup): PixelCanvas[] {
@@ -272,22 +337,18 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.activeColorPalette = palette;
         this.activeColorIndex = index;
 
-        if (this.activeCanvas) {
-            this.activeCanvas.group.setActiveColor(paletteSet, palette, index);
-        }
+        // TODO this should probably only be for groups with the active palette set...
+        this.canvases.forEach(canvas => canvas.group.setActiveColor(paletteSet, palette, index));
     }
 
     public setBackgroundColor(color: Atari7800Color): void {
-        if (this.activeCanvas) {
-            this.activeCanvas.render();
-        }
+        // TODO this should probably only be for groups with the active palette set...
+        this.canvases.forEach(canvas => canvas.render());
+        this.updateAllThumbnails();
     }
 
     public updatePaletteColor(palette: ColorPalette, colorIndex: ColorIndex): void {
-        if (this.activeCanvas) {
-            // re-rendering everything is unnecessary, but it might not be a big deal, and
-            // it's making things a little easier right now
-            this.activeCanvas.render();
-        }
+        this.canvases.forEach(canvas => canvas.render());
+        this.updateAllThumbnails();
     }
 }

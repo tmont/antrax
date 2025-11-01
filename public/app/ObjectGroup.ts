@@ -34,6 +34,10 @@ export class ObjectGroup {
         this.logger = Logger.from(this);
     }
 
+    public getPaletteSet(): Readonly<ColorPaletteSet> {
+        return this.paletteSet;
+    }
+
     public getActivePalette(): Readonly<ColorPalette> {
         return this.activePalette;
     }
