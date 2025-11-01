@@ -1,5 +1,7 @@
+import type { ColorIndex } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import { ColorPaletteSetCollection } from './ColorPaletteSetCollection.ts';
+import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import type { Project } from './Project.ts';
 import { findElement, findOrDie } from './utils.ts';
@@ -30,7 +32,7 @@ const infoContent = `
                 <td>Update canvas dimensions</td>
             </tr>
             <tr>
-                <td><kbd>Shift</kbd>+<kbd>0</kbd></td>
+                <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
                 <td>Reset zoom level to <strong>1x</strong></td>
             </tr>
         </table>
@@ -43,15 +45,15 @@ const infoContent = `
                 <td>Zoom in/out by <strong>0.1</strong></td>
             </tr>
             <tr>
-                <td><kbd>Shift</kbd>+Scrollwheel</td>
+                <td><kbd>Shift</kbd> + Scrollwheel</td>
                 <td>Zoom in/out by <strong>0.5</strong></td>
             </tr>
             <tr>
-                <td><kbd>Shift</kbd>+Left click &amp; drag</td>
+                <td><kbd>Shift</kbd> + Left click &amp; drag</td>
                 <td>Pan canvas</td>
             </tr>
             <tr>
-                <td><kbd>Ctrl</kbd>+Left click</td>
+                <td><kbd>Ctrl</kbd> + Left click</td>
                 <td>Erase pixel</td>
             </tr>
         </table>
@@ -62,7 +64,7 @@ const infoContent = `
         <header>Colors &amp; palettes</header>
         <table>
             <tr>
-                <td><kbd>Shift</kbd>+Left click</td>
+                <td><kbd>Shift</kbd> + Left click</td>
                 <td>Open palette color picker</td>
             </tr>
             <tr>
@@ -73,6 +75,10 @@ const infoContent = `
                 <td>Left click</td>
                 <td>Select palette color</td>
             </tr>
+            <tr>
+                <td><kbd>1-8</kbd> &rarr; <kbd>1-3</kbd></td>
+                <td>Select palette &amp; color</td>
+            </tr>
         </table>
     </section>
 </div>
@@ -82,6 +88,7 @@ export class Editor {
     private showGrid: boolean;
     private zoomLevel: number;
     private project: Project;
+    private readonly logger: Logger;
     private readonly $el: HTMLElement;
     private readonly $gutter: HTMLElement;
     private readonly $gridInput: HTMLInputElement;
@@ -101,6 +108,8 @@ export class Editor {
         this.showGrid = typeof options.showGrid === 'boolean' ? options.showGrid : false;
         this.zoomLevel = options.zoomLevel || 2;
         this.$el = options.mountEl;
+
+        this.logger = Logger.from(this);
 
         this.paletteSets = new ColorPaletteSetCollection({
             mountEl: findElement(this.$el, '.content-header'),
@@ -209,6 +218,8 @@ export class Editor {
             this.project.zoomTo(this.zoomLevel);
         });
 
+        let chord2: string[] = [];
+        let chordTimeoutId: number | null = null;
         document.addEventListener('keydown', (e) => {
             if (panning) {
                 return;
@@ -220,6 +231,44 @@ export class Editor {
 
             if (e.shiftKey || e.key === 'Shift') {
                 canvasContainer.classList.add('panning-start');
+            }
+
+            if (/^\d$/.test(e.key)) {
+                if (chordTimeoutId) {
+                    window.clearTimeout(chordTimeoutId);
+                    chordTimeoutId = null;
+                }
+
+                chord2.push(e.key);
+                while (chord2.length > 2) {
+                    chord2.shift();
+                }
+
+                if (chord2.length === 2) {
+                    const [ key1, key2 ] = chord2;
+                    chord2 = [];
+
+                    const paletteIndex = Number(key1);
+                    const colorIndex = Number(key2);
+                    if (paletteIndex >= 1 && paletteIndex <= 8 && (colorIndex >= 1 && colorIndex <= 3)) {
+                        // select color in palette
+                        const trueColorIndex: ColorIndex = colorIndex - 1 as any;
+                        const set = this.paletteSets.getActivePaletteSet();
+                        const palette = set?.getPalettes()[paletteIndex - 1];
+                        const color = palette?.getColorAt(trueColorIndex);
+                        if (set && palette && color) {
+                            this.logger.info(`setting active color to ${color.hex} due to key chord ${key1},${key2}`);
+                            this.project.setActiveColor(set, palette, color, trueColorIndex);
+                            set.setActiveColor(palette, trueColorIndex);
+                        }
+                    }
+                } else {
+                    // clear chord after a little bit of time
+                    chordTimeoutId = window.setTimeout(() => {
+                        this.logger.info('clearing key chord');
+                        chord2 = [];
+                    }, 5000);
+                }
             }
 
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {

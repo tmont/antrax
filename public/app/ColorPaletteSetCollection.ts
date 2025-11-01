@@ -76,4 +76,8 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
             }
         });
     }
+
+    public getActivePaletteSet(): ColorPaletteSet | null {
+        return this.activePaletteSet;
+    }
 }

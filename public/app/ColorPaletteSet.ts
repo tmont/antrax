@@ -169,6 +169,12 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
             this.backgroundColor.hex;
     }
 
+    public setActiveColor(palette: ColorPalette, colorIndex: ColorIndex): void {
+        this.palettes.forEach((p) => {
+            p.setActiveState(p === palette, colorIndex);
+        });
+    }
+
     public toJSON(): ColorPaletteSetSerialized {
         return {
             backgroundColor: colorToJson(this.backgroundColor),
