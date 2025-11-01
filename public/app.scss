@@ -7,11 +7,13 @@
 
 @use "./css/button.scss";
 @use "./css/color-picker.scss";
+@use "./css/dropdown.scss";
 @use "./css/form.scss";
 @use "./css/modal.scss";
 @use "./css/palette.scss";
 @use "./css/popover.scss";
 @use "./css/swatch.scss";
+@use "./css/text.scss";
 
 * {
     box-sizing: border-box;
@@ -234,7 +236,7 @@ kbd, tt, code {
         display: flex;
         gap: config.$gutter-eighth;
         .active-group-name, .active-object-name {
-            max-width: 5em;
+            max-width: 10em;
         }
 
         .breadcrumb-divider {

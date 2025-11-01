@@ -4,6 +4,7 @@ import type { Atari7800Color } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './PixelCanvas.ts';
+import { Popover } from './Popover.ts';
 import { findElement, findOrDie, parseTemplate } from './utils.ts';
 
 // https://stackoverflow.com/a/13139830
@@ -15,11 +16,11 @@ const objectItemTmpl = `
         <img alt="" class="object-thumbnail" src="${emptyGif}" />
         <a href="#" class="item-name clamp-1"></a>
         <div class="item-controls">
-            <button type="button" class="btn btn-sm btn-success add-object-btn" title="Clone object in same group">
+            <button type="button" class="btn btn-sm btn-success clone-object-btn" title="Clone object in same group">
                 <i class="fa-solid fa-clone"></i>
             </button>
-            <button type="button" class="btn btn-sm btn-danger del-object-btn" title="Delete object">
-                <i class="fa-solid fa-trash"></i>
+            <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
+                <i class="fa-solid fa-ellipsis-h"></i>
             </button>
         </div>
     </div>
@@ -40,6 +41,28 @@ const objectGroupTmpl = `
 </div>
 `;
 
+const objectOverflowTmpl = `
+<ul class="project-item-overflow list-unstyled dropdown-menu">
+    <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
+    <li class="dropdown-item"><a href="#" data-action="clone"><i class="fa-solid fa-fw fa-clone icon"></i>Clone</a></li>
+    <li class="dropdown-item"><a href="#" data-action="clear"><i class="fa-solid fa-fw fa-eraser icon"></i>Clear</a></li>
+    <li class="dropdown-item disabled"><a href="#" data-action="export"><i class="fa-solid fa-fw fa-file-export icon"></i>Export</a></li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
+</ul>
+`;
+
+const editObjectTmpl = `
+<form class="object-edit-container">
+    <div class="form-row">
+        <input class="object-name-input form-control" type="text" maxlength="50" minlength="1" required />
+    </div>
+    <div class="submit-container">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
+`;
+
 export interface ProjectOptions extends Pick<CanvasOptions, 'mountEl' | 'showGrid' | 'pixelWidth' | 'pixelHeight' | 'zoomLevel'> {
     canvasMountEl: HTMLElement;
     name: string;
@@ -54,6 +77,7 @@ export type ProjectEventMap = {
     canvas_activate: [ PixelCanvas | null ];
     pixel_highlight: [ PixelDrawingEvent ];
     pixel_draw: [ PixelDrawingEvent ];
+    active_object_name_change: [ PixelCanvas ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -151,6 +175,24 @@ export class Project extends EventEmitter<ProjectEventMap> {
         return findElement(this.$container, `.project-item[data-canvas-id="${this.activeCanvas.id}"]`);
     }
 
+    public cloneObject(canvas: PixelCanvas): PixelCanvas {
+        const { width: pixelWidth, height: pixelHeight } = canvas.getPixelDimensions();
+        const { width, height } = canvas.getDimensions();
+
+        return this.addObject({
+            group: canvas.group,
+            mountEl: canvas.getContainer(),
+            pixelWidth: pixelWidth,
+            pixelHeight: pixelHeight,
+            width: width,
+            height: height,
+            pixelData: canvas.clonePixelData(),
+            zoomLevel: canvas.getZoomLevel(),
+            editable: true,
+            showGrid: canvas.getShowGrid(),
+        });
+    }
+
     public addObject(options: CanvasOptions): PixelCanvas {
         const canvas = new PixelCanvas(options);
         canvas.on('pixel_highlight', (...args) => {
@@ -160,21 +202,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.updateActiveThumbnail();
             this.emit('pixel_draw', ...args);
         });
+        canvas.on('reset', () => {
+            this.updateActiveThumbnail();
+        });
         this.canvases.push(canvas);
 
         const el = parseTemplate(objectItemTmpl);
-        const parent = this.$container.querySelector(`.project-objects`);
-        if (!parent) {
-            throw new Error('.project-objects container element not found');
-        }
+        const parent = findElement(this.$container, `.project-objects`);
 
-        el.querySelector('.item-name')?.addEventListener('click', (e) => {
+        findElement(el, '.item-name').addEventListener('click', (e) => {
             e.preventDefault();
             this.activateCanvas(canvas);
         });
 
         const doc = this.$container.ownerDocument;
-        el.querySelector('.item-name')?.appendChild(doc.createTextNode(canvas.name));
         el.setAttribute('data-canvas-id', canvas.id.toString());
 
         let group = parent.querySelector(`.project-item-group[data-group-id="${canvas.group.id}"]`);
@@ -185,28 +226,66 @@ export class Project extends EventEmitter<ProjectEventMap> {
            parent.appendChild(group);
         }
 
-        group.querySelector('.group-items')?.appendChild(el);
-        el.querySelector('.add-object-btn')?.addEventListener('click', () => {
-            const { width: pixelWidth, height: pixelHeight } = canvas.getPixelDimensions();
-            const { width, height } = canvas.getDimensions();
+        findElement(group, '.group-items').appendChild(el);
+        findElement(el, '.clone-object-btn').addEventListener('click', () => {
+            this.cloneObject(canvas);
+        });
 
-            this.addObject({
-                group: canvas.group,
-                mountEl: canvas.getContainer(),
-                pixelWidth: pixelWidth,
-                pixelHeight: pixelHeight,
-                width: width,
-                height: height,
-                pixelData: canvas.clonePixelData(),
-                zoomLevel: canvas.getZoomLevel(),
-                editable: true,
-                showGrid: canvas.getShowGrid(),
+        const overflowContent = parseTemplate(objectOverflowTmpl);
+        const overflowPopover = new Popover({
+            content: overflowContent,
+            dropdown: true,
+        });
+        const $overflow = findElement(el, '.overflow-btn');
+
+        const editForm = parseTemplate(editObjectTmpl);
+        const editPopover = new Popover({
+            content: editForm,
+            title: 'Change object name',
+        });
+
+        const objectName = findElement(el, '.item-name');
+        const input = findOrDie(editForm, '.object-name-input', node => node instanceof HTMLInputElement);
+        editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.setObjectName(canvas, input.value);
+            editPopover.hide();
+        });
+
+        overflowContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
+            anchor.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const action = anchor.getAttribute('data-action');
+                switch (action) {
+                    case 'edit':
+                        overflowPopover.hide();
+                        input.value = canvas.getName();
+                        editPopover.show(objectName);
+                        input.focus();
+                        break;
+                    case 'clear':
+                        canvas.reset();
+                        break;
+                    case 'clone':
+                        this.cloneObject(canvas);
+                        break;
+                    case 'export':
+                        break;
+                    case 'delete':
+                        this.removeObject(canvas);
+                        break;
+                }
+
+                overflowPopover.hide();
             });
         });
 
-        el.querySelector('.del-object-btn')?.addEventListener('click', () => {
-            this.removeObject(canvas);
+        $overflow.addEventListener('click', () => {
+            overflowPopover.show($overflow);
         });
+
+        this.setObjectName(canvas, canvas.getName());
 
         canvas.render();
 
@@ -245,6 +324,15 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         nameEl.innerHTML = '';
         nameEl.appendChild(this.$container.ownerDocument.createTextNode(this.name));
+    }
+
+    public setObjectName(canvas: PixelCanvas, newName: string): void {
+        canvas.setName(newName);
+        const nameEl = findElement(this.$container, `.project-item[data-canvas-id="${canvas.id}"] .item-name`);
+        nameEl.innerText = canvas.getName();
+        if (canvas === this.activeCanvas) {
+            this.emit('active_object_name_change', canvas);
+        }
     }
 
     public updateObjectInfo(): void {

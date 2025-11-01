@@ -6,6 +6,7 @@ input {
     border: 1px solid config.$input-border;
     color: config.$input-color;
     font-size: config.$input-font-size;
+    padding: config.$gutter-eighth config.$gutter-quarter;
 
     &:not([type="checkbox"]) {
         &:focus, &:active {
@@ -17,4 +18,17 @@ input {
     &[type="checkbox"] {
         accent-color: config.$input-shadow-color;
     }
+}
+
+.form-row {
+    margin-bottom: config.$gutter-half;
+
+    .form-control {
+        width: 100%;
+    }
+}
+
+.submit-container {
+    display: flex;
+    justify-content: flex-end;
 }

@@ -17,7 +17,8 @@ const tmpl = `
 `;
 
 export interface PopoverOptions {
-    title: string;
+    title?: string;
+    dropdown?: boolean;
     content: HTMLElement;
 }
 
@@ -29,12 +30,20 @@ export class Popover extends EventEmitter<PopoverEventMap> {
 
         this.$el = parseTemplate(tmpl);
 
-        findElement(this.$el, '.popover-title').innerText = options.title;
-        findElement(this.$el, '.popover-content').appendChild(options.content);
+        if (options.title) {
+            findElement(this.$el, '.popover-title').innerText = options.title;
+            findElement(this.$el, '.close-x').addEventListener('click', () => {
+                this.hide();
+            });
+        } else {
+            this.$el.classList.add('no-header');
+        }
 
-        findElement(this.$el, '.close-x').addEventListener('click', () => {
-            this.hide();
-        });
+        if (options.dropdown) {
+            this.$el.classList.add('dropdown');
+        }
+
+        findElement(this.$el, '.popover-content').appendChild(options.content);
     }
 
     public hide(): void {

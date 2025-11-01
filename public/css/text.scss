@@ -1,0 +1,5 @@
+@use "./config";
+
+.text-danger {
+    color: config.$danger-color !important;
+}

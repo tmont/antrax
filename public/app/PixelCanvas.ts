@@ -1,7 +1,7 @@
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup } from './ObjectGroup.ts';
-import type { Coordinate, Dimensions, PixelInfo } from './utils.ts';
+import type { Coordinate, Dimensions, PixelInfo, PixelInfoBg } from './utils.ts';
 
 export interface CanvasOptions extends Dimensions {
     pixelWidth: number;
@@ -28,6 +28,8 @@ export interface PixelDrawingEvent {
 type PixelCanvasEventMap = {
     pixel_highlight: [ PixelDrawingEvent ];
     pixel_draw: [ PixelDrawingEvent ];
+    clear: [];
+    reset: [];
 };
 
 export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
@@ -46,7 +48,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private showGrid;
     private readonly $container: HTMLElement;
     private readonly $frameContainer: HTMLDivElement;
-    public readonly name: string;
+    private name: string;
     public readonly id: number;
     public readonly group: ObjectGroup;
     private destroyed = false;
@@ -131,6 +133,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.$container;
     }
 
+    public getName(): string {
+        return this.name;
+    }
+
     public clonePixelData(): PixelInfo[][] {
         return this.pixelData.map((row) => {
             return row.map((info) => {
@@ -185,14 +191,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$gridEl.style.left = this.$hoverEl.style.left = (this.$el.offsetLeft + borderLeftWidth) + 'px';
     }
 
-    private fillPixelDataArray(): void {
+    private fillPixelDataArray(reset = false): void {
         for (let row = 0; row < this.height; row++) {
             const pixelRow = this.pixelData[row] = this.pixelData[row] || [];
             for (let col = 0; col < this.width; col++) {
-                pixelRow[col] = pixelRow[col] || {
+                const defaultValue: PixelInfoBg = {
                     palette: null,
                     index: null,
                 };
+                pixelRow[col] = reset ? defaultValue : pixelRow[col] || defaultValue;
             }
         }
     }
@@ -392,6 +399,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public clear(): void {
         this.logger.info(`clearing canvas with color ${this.group.getBackgroundColor().hex}`);
         this.clearRect(0, 0, this.displayWidth, this.displayHeight);
+        this.emit('clear');
+    }
+
+    public reset(): void {
+        this.clear();
+        this.fillPixelDataArray(true);
+        this.emit('reset');
     }
 
     public clearRect(x: number, y: number, width: number, height: number): void {
@@ -598,5 +612,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
         this.setCanvasDimensions();
         this.render();
+    }
+
+    public setName(newName: string): void {
+        this.name = newName;
     }
 }

@@ -138,7 +138,7 @@ export class Editor {
             this.$canvasHeightInput.value = (canvasHeight || '').toString();
 
             this.$activeGroupName.innerText = activeCanvas?.group.name || 'n/a';
-            this.$activeObjectName.innerText = activeCanvas?.name || 'n/a';
+            this.$activeObjectName.innerText = activeCanvas?.getName() || 'n/a';
 
             this.$canvasCoordinates.innerText = `0,0`;
         });
@@ -149,6 +149,9 @@ export class Editor {
             if (e.behavior === 'user') {
                 this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
             }
+        });
+        this.project.on('active_object_name_change', (activeCanvas) => {
+            this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
         });
     }
 
@@ -208,6 +211,10 @@ export class Editor {
 
         document.addEventListener('keydown', (e) => {
             if (panning) {
+                return;
+            }
+
+            if (e.target instanceof HTMLInputElement) {
                 return;
             }
 

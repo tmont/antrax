@@ -28,6 +28,21 @@
         z-index: -1;
     }
 
+    &.no-header {
+        .popover-header {
+            display: none;
+        }
+        .arrow {
+            background-color: config.$card-body-bg;
+        }
+    }
+
+    &.dropdown {
+        .popover-content {
+            padding: 0;
+        }
+    }
+
     .popover-header {
         background-color: config.$card-title-bg;
         padding: config.$gutter-half;
@@ -55,6 +70,7 @@
     }
 
     .popover-content {
+        background-color: config.$card-body-bg;
         padding: config.$gutter-half;
     }
 }

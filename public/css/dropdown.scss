@@ -1,0 +1,46 @@
+@use "./config";
+
+.list-unstyled {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dropdown-menu {
+    display: flex;
+    flex-direction: column;
+    padding-top: config.$gutter-quarter;
+
+    .dropdown-item {
+        width: 100%;
+
+        &.divider {
+            margin: config.$gutter-quarter 0;
+            border-bottom: 2px solid config.$border-color;
+        }
+
+        &.disabled {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+
+        .icon {
+            //margin-right: config.$gutter-quarter;
+        }
+
+        a {
+            display: flex;
+            gap: config.$gutter-half;
+            align-items: center;
+            width: 100%;
+            padding: config.$gutter-quarter config.$gutter;
+            color: config.$color;
+            text-decoration: none;
+
+            &:hover {
+                color: config.$accent-color;
+                background-color: config.$accent-bg;
+            }
+        }
+    }
+}
