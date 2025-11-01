@@ -207,7 +207,7 @@ export class Editor {
         });
 
         document.addEventListener('keydown', (e) => {
-            if (panning || canvasContainer.classList.contains('panning-start')) {
+            if (panning) {
                 return;
             }
 
