@@ -51,21 +51,30 @@ kbd, tt, code {
 }
 
 .main-sidebar {
+    display: flex;
+    flex-direction: column;
     flex-shrink: 0;
     width: config.$sidebar-width;
     background-color: config.$sidebar-bg-color;
     border-right: 2px solid config.$border-color;
 
     .project-controls {
-        margin-top: config.$gutter;
+        display: flex;
+        justify-content: center;
+        gap: config.$gutter-quarter;
     }
 
     .project-structure {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter;
         padding: config.$sidebar-padding-y config.$sidebar-padding-x;
+        overflow: hidden;
 
         .project-name {
             font-weight: bold;
             margin-bottom: config.$gutter-half;
+            flex-shrink: 0;
         }
 
         .group-name {
@@ -78,6 +87,7 @@ kbd, tt, code {
             flex-direction: column;
             gap: config.$gutter-half;
             font-size: 90%;
+            overflow: auto;
         }
 
         .group-items {
