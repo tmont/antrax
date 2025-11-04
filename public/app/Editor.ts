@@ -653,10 +653,28 @@ export class Editor {
             }));
         }
 
-        const activeColorPaletteSet = paletteSets[0]!;
-        const activeColorPalette = activeColorPaletteSet.getPalettes()[0];
+        let activeColorPaletteSet = paletteSets.find(set => set.id === json.settings.activeColorPaletteSetId);
+        let activeColorPalette: ColorPalette | null = null;
+        if (activeColorPaletteSet) {
+            activeColorPalette = activeColorPaletteSet
+                .getPalettes()
+                .find(palette => palette.id === json.settings.activeColorPaletteId) || null;
+
+            if (!activeColorPalette) {
+                this.logger.warn(`ColorPalette{${json.settings.activeColorPaletteId}} not found ` +
+                    `in ColorPaletteSet{${json.settings.activeColorPaletteSetId}}`);
+            }
+        } else {
+            this.logger.warn(`ColorPaletteSet{${json.settings.activeColorPaletteSetId}} not found`);
+            activeColorPaletteSet = paletteSets[0];
+            if (!activeColorPaletteSet) {
+                throw new Error(`no ColorPaletteSets, this is a developer error`);
+            }
+            activeColorPalette = activeColorPaletteSet.getPalettes()[0] || null;
+        }
+
         if (!activeColorPalette) {
-            throw new Error(`ColorPaletteSet ${activeColorPaletteSet.id} does not have any palettes`);
+            throw new Error(`ColorPaletteSet{${activeColorPaletteSet.id}} does not have any palettes`);
         }
 
         this.paletteSets.destroy();
