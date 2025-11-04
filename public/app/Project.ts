@@ -75,6 +75,7 @@ export interface ProjectOptions {
     editorSettings: EditorSettings;
     name: string;
     canvases?: PixelCanvas[];
+    activeCanvas?: PixelCanvas | null;
 }
 
 export type ProjectEventMap = {
@@ -86,7 +87,7 @@ export type ProjectEventMap = {
 
 export class Project extends EventEmitter<ProjectEventMap> {
     private readonly canvases: PixelCanvas[];
-    private activeCanvas: PixelCanvas | null = null;
+    private activeCanvas: PixelCanvas | null;
     public name: string;
     private readonly $container: HTMLElement;
     private initialized = false;
@@ -98,6 +99,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.$container = options.mountEl;
         this.editorSettings = options.editorSettings;
         this.canvases = options.canvases || [];
+        this.activeCanvas = options.activeCanvas && this.canvases.indexOf(options.activeCanvas) !== -1 ?
+            options.activeCanvas :
+            null;
     }
 
     public init(): void {
@@ -106,6 +110,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         }
 
         this.canvases.forEach(canvas => this.wireUpCanvas(canvas));
+        if (this.activeCanvas) {
+            this.activateCanvas(this.activeCanvas);
+        } else if (this.canvases[0]) {
+            this.activateCanvas(this.canvases[0]);
+        }
 
         this.update();
         this.editorSettings.activeColorPalette.setActiveState(true, this.editorSettings.activeColorIndex);
@@ -264,13 +273,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.setObjectName(canvas, canvas.getName());
 
         canvas.render();
-
-        this.activateCanvas(canvas);
     }
 
     public addObject(options: CanvasOptions): PixelCanvas {
         const canvas = new PixelCanvas(options);
         this.wireUpCanvas(canvas);
+        this.activateCanvas(canvas);
         return canvas;
     }
 
@@ -420,12 +428,15 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         const groupCache: any = {};
 
+        const canvases = json.canvases.map(canvasJson =>
+            PixelCanvas.fromJSON(canvasJson, canvasMountEl, editorSettings, groupCache, paletteSets));
+
         return new Project({
             mountEl,
             editorSettings,
             name: json.name,
-            canvases: json.canvases.map(canvasJson =>
-                PixelCanvas.fromJSON(canvasJson, canvasMountEl, editorSettings, groupCache, paletteSets)),
+            canvases,
+            activeCanvas: json.activeCanvasId ? canvases.find(canvas => canvas.id === json.activeCanvasId) : null,
         });
     }
 }
@@ -444,7 +455,6 @@ const isSerialized = (json: any): json is ProjectSerialized => {
     if (!Array.isArray(json.canvases)) {
         return false;
     }
-
     if (!json.canvases.every((obj: unknown) => typeof obj === 'object')) {
         return false;
     }
