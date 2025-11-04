@@ -9,6 +9,10 @@ const server = Bun.serve({
             const pathname = new URL(req.url).pathname.split('/')[2];
             return new Response(Bun.file('./public/fonts/' + pathname));
         },
+        '/images/:name': req => {
+            const pathname = new URL(req.url).pathname.split('/')[2];
+            return new Response(Bun.file('./public/images/' + pathname));
+        },
     },
 });
 
