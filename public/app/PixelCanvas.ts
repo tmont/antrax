@@ -1,17 +1,19 @@
+import type { ColorPalette } from './ColorPalette.ts';
+import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import type { EditorSettings } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
-import { ObjectGroup } from './ObjectGroup.ts';
-import type { Coordinate, Dimensions, PixelInfo, PixelInfoBg } from './utils.ts';
+import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
+import type { Coordinate, Dimensions, PixelInfo, PixelInfoBg, PixelInfoSerialized } from './utils.ts';
 
 export interface CanvasOptions extends Dimensions {
+    id?: PixelCanvas['id'];
     pixelWidth: number;
     pixelHeight: number;
-    editable?: boolean;
     mountEl: HTMLElement;
     pixelData?: PixelInfo[][];
-    zoomLevel?: number;
-    showGrid?: boolean;
     group: ObjectGroup;
+    editorSettings: EditorSettings;
 }
 
 export type PixelCanvasDrawState = 'idle' | 'drawing';
@@ -32,6 +34,17 @@ type PixelCanvasEventMap = {
     reset: [];
 };
 
+export interface PixelCanvasSerialized {
+    id: PixelCanvas['id'];
+    name: string;
+    pixelWidth: number;
+    pixelHeight: number;
+    width: number;
+    height: number;
+    group: ObjectGroupSerialized;
+    pixelData: PixelInfoSerialized[][];
+}
+
 export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private width: number;
     private height: number;
@@ -39,13 +52,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private displayHeight: number;
     private pixelWidth: number;
     private pixelHeight: number;
-    private zoomLevel: number;
-    private isEditable = false;
+    private readonly editorSettings: Readonly<EditorSettings>;
     private ctx: CanvasRenderingContext2D;
     private logger: Logger;
     private readonly eventMap: Record<string, Array<(...x: any[]) => void>> = {};
     private readonly pixelData: PixelInfo[][];
-    private showGrid;
     private readonly $container: HTMLElement;
     private readonly $frameContainer: HTMLDivElement;
     private name: string;
@@ -64,10 +75,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public constructor(options: CanvasOptions) {
         super();
         PixelCanvas.instanceCount++;
-        this.id = PixelCanvas.instanceCount;
+        this.id = options.id || PixelCanvas.instanceCount;
         this.name = `Object ${this.id}`;
         this.logger = Logger.from(this);
         this.group = options.group;
+        this.editorSettings = options.editorSettings;
 
         this.$container = options.mountEl;
 
@@ -88,8 +100,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.pixelData = options.pixelData || [];
         this.pixelWidth = options.pixelWidth;
         this.pixelHeight = options.pixelHeight;
-        this.zoomLevel = options.zoomLevel || 1;
-        this.showGrid = typeof options.showGrid === 'boolean' ? options.showGrid : false;
+
 
         this.width = options.width;
         this.height = options.height;
@@ -107,12 +118,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.setCanvasDimensions();
 
         this.render();
-
-        if (options.editable) {
-            this.enable();
-        } else {
-            this.disable();
-        }
+        this.enable();
     }
 
     public getPixelDimensions(): Dimensions {
@@ -153,14 +159,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 };
             });
         });
-    }
-
-    public getZoomLevel(): number {
-        return this.zoomLevel;
-    }
-
-    public getShowGrid(): boolean {
-        return this.showGrid;
     }
 
     private setCanvasDimensions(): void {
@@ -262,20 +260,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         // for (const [ eventName, listeners ] of Object.entries(this.eventMap)) {
         //
         // }
-
-        if (!this.isEditable) {
-            return;
-        }
-
-        this.isEditable = false;
     }
 
     public enable(): void {
         if (this.destroyed) {
-            return;
-        }
-
-        if (this.isEditable) {
             return;
         }
 
@@ -289,8 +277,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
             if (pixelData.pixel) {
-                pixelData.pixel.palette = erasing ? null : this.group.getActivePalette();
-                pixelData.pixel.index = erasing ? null : this.group.getActiveColorIndex();
+                pixelData.pixel.palette = erasing ? null : this.editorSettings.activeColorPalette;
+                pixelData.pixel.index = erasing ? null : this.editorSettings.activeColorIndex;
                 this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, pixelData.pixel, 'user');
             }
         };
@@ -300,10 +288,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         };
 
         const onMouseDown = (e: MouseEvent) => {
-            if (!this.isEditable) {
-                return;
-            }
-
             if (this.drawState !== 'idle') {
                 return;
             }
@@ -364,8 +348,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$el.addEventListener('mousemove', onHover);
         this.$el.addEventListener('mouseout', onMouseOut);
         this.$el.ownerDocument.addEventListener('mouseup', onMouseUp);
-
-        this.isEditable = true;
     }
 
     private generateURLTimeoutId: number | null = null;
@@ -422,15 +404,23 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        this.logger.debug('rendering');
         this.clear();
 
+        let pixelsDrawn = 0;
+        let totalPixels = 0;
         for (let row = 0; row < this.pixelData.length; row++) {
             const pixelRow = this.pixelData[row]!;
             for (let col = 0; col < pixelRow.length; col++) {
+                totalPixels++;
                 const pixelInfo = pixelRow[col]!;
-                this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, 'internal');
+                if (this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, 'internal')) {
+                    pixelsDrawn += (pixelInfo.index !== null ? 1 : 0);
+                }
             }
         }
+
+        this.logger.debug(`drew ${pixelsDrawn}/${totalPixels} pixel${pixelsDrawn === 1 ? '' : 's'}`);
 
         this.renderGrid();
     }
@@ -446,10 +436,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        this.logger.debug('rendering grid');
+
         const width = this.displayWidth;
         const height = this.displayHeight;
         ctx.clearRect(0, 0, width, height);
-        if (!this.showGrid) {
+        if (!this.editorSettings.showGrid) {
             return;
         }
 
@@ -531,11 +523,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     private get displayPixelWidth(): number {
-        return this.pixelWidth * this.zoomLevel;
+        return this.pixelWidth * this.editorSettings.zoomLevel;
     }
 
     private get displayPixelHeight(): number {
-        return this.pixelHeight * this.zoomLevel;
+        return this.pixelHeight * this.editorSettings.zoomLevel;
     }
 
     public unhighlightPixel(): boolean {
@@ -553,8 +545,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     private convertAbsoluteToPixelCoordinate(location: Coordinate): Coordinate {
-        const pixelX = Math.floor((location.x / this.zoomLevel) / this.pixelWidth);
-        const pixelY = Math.floor((location.y / this.zoomLevel) / this.pixelHeight);
+        const pixelX = Math.floor((location.x / this.editorSettings.zoomLevel) / this.pixelWidth);
+        const pixelY = Math.floor((location.y / this.editorSettings.zoomLevel) / this.pixelHeight);
 
         return { x: pixelX, y: pixelY };
     }
@@ -577,17 +569,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         };
     }
 
-    public setShowGrid(showGrid: boolean): void {
-        this.showGrid = showGrid;
+    public setShowGrid(): void {
         this.renderGrid();
     }
 
-    public setZoomLevel(zoomLevel: number): void {
-        if (zoomLevel <= 0 || zoomLevel > 10) {
-            return;
-        }
+    public setZoomLevel(): void {
+        // if (zoomLevel <= 0 || zoomLevel > 10) {
+        //     return;
+        // }
 
-        this.zoomLevel = zoomLevel;
         this.setCanvasDimensions();
         this.render();
     }
@@ -617,4 +607,105 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public setName(newName: string): void {
         this.name = newName;
     }
+
+    public toJSON(): PixelCanvasSerialized {
+        return {
+            pixelWidth: this.pixelWidth,
+            pixelHeight: this.pixelHeight,
+            width: this.width,
+            height: this.height,
+            name: this.name,
+            id: this.id,
+            group: this.group.toJSON(),
+            pixelData: this.pixelData.map((row) => {
+                return row.map((pixel) => {
+                    return {
+                        index: pixel.index,
+                        paletteId: pixel.palette?.id || null,
+                    };
+                });
+            }),
+        };
+    }
+
+    public static fromJSON(
+        json: object,
+        mountEl: HTMLElement,
+        editorSettings: EditorSettings,
+        groupCache: Record<ObjectGroup['id'], ObjectGroup>,
+        paletteSets: Readonly<ColorPaletteSet[]>,
+    ): PixelCanvas {
+        if (!isSerialized(json)) {
+            throw new Error('Cannot deserialize PixelCanvas, invalid JSON');
+        }
+
+        let group = groupCache[json.group.id];
+        if (!group) {
+            group = ObjectGroup.fromJSON(json.group, editorSettings, paletteSets);
+            groupCache[group.id] = group;
+        }
+
+        const colorPalettes = paletteSets
+            .map(set => set.getPalettes())
+            .reduce((flattened, palettes) => flattened.concat(palettes), []);
+
+        return new PixelCanvas({
+            width: json.width,
+            height: json.height,
+            pixelWidth: json.pixelWidth,
+            pixelHeight: json.pixelHeight,
+            editorSettings,
+            mountEl,
+            group,
+            pixelData: deserializePixelData(json.pixelData, colorPalettes),
+        });
+    }
 }
+
+const isSerialized = (json: any): json is PixelCanvasSerialized => {
+    if (typeof json !== 'object') {
+        return false;
+    }
+    if (!json) {
+        return false;
+    }
+    if (
+        typeof json.width !== 'number' ||
+        typeof json.height !== 'number' ||
+        typeof json.pixelWidth !== 'number' ||
+        typeof json.pixelHeight !== 'number'
+    ) {
+        return false;
+    }
+
+    if (!Array.isArray(json.pixelData) || !json.pixelData.every((row: unknown) => Array.isArray(row))) {
+        return false;
+    }
+
+    return true;
+};
+
+const deserializePixelData = (data: PixelInfoSerialized[][], palettes: Readonly<ColorPalette[]>): PixelInfo[][] => {
+    return data.map((row, i) => {
+        return row.map((item, j): PixelInfo => {
+            let palette: ColorPalette | null = null;
+            if (item.paletteId) {
+                palette = palettes.find(palette => palette.id === item.paletteId) || null;
+                if (!palette) {
+                    console.warn(`palette ${item.paletteId} not found for pixel ${i},${j}`, palettes);
+                }
+            }
+            if (!palette || (item.index !== 0 && item.index !== 1 && item.index !== 2)) {
+                return {
+                    index: null,
+                    palette: null,
+                };
+            }
+
+            return {
+                index: item.index,
+                palette,
+            };
+        });
+    });
+};

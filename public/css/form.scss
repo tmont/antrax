@@ -37,3 +37,18 @@ input {
     appearance: textfield;
     text-align: center;
 }
+
+.file-input-container {
+    position: relative;
+
+    .hidden-file-input {
+        opacity: 0;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+    }
+}
+

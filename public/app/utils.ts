@@ -26,6 +26,10 @@ export interface PixelInfoBg {
 }
 
 export type PixelInfo = PixelInfoColor | PixelInfoBg;
+export interface PixelInfoSerialized {
+    paletteId: ColorPalette['id'] | null;
+    index: ColorIndex | null;
+}
 
 const parser = new DOMParser();
 export const parseTemplate = (html: string): HTMLElement => {

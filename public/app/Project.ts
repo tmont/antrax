@@ -1,9 +1,10 @@
 import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
+import type { EditorSettings } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
-import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './PixelCanvas.ts';
+import { type CanvasOptions, PixelCanvas, type PixelCanvasSerialized, type PixelDrawingEvent } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import { findElement, findOrDie, parseTemplate } from './utils.ts';
 
@@ -63,14 +64,17 @@ const editObjectTmpl = `
 </form>
 `;
 
-export interface ProjectOptions extends Pick<CanvasOptions, 'mountEl' | 'showGrid' | 'pixelWidth' | 'pixelHeight' | 'zoomLevel'> {
-    canvasMountEl: HTMLElement;
+export interface ProjectSerialized {
+    name: Project['name'];
+    activeCanvasId: number | null;
+    canvases: PixelCanvasSerialized[];
+}
+
+export interface ProjectOptions {
+    mountEl: HTMLElement;
+    editorSettings: EditorSettings;
     name: string;
-    canvasWidth?: number;
-    canvasHeight?: number;
-    paletteSet: ColorPaletteSet;
-    palette: ColorPalette;
-    colorIndex: ColorIndex;
+    canvases?: PixelCanvas[];
 }
 
 export type ProjectEventMap = {
@@ -81,37 +85,19 @@ export type ProjectEventMap = {
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
-    private readonly canvases: PixelCanvas[] = [];
+    private readonly canvases: PixelCanvas[];
     private activeCanvas: PixelCanvas | null = null;
-    private showGrid = false;
-    private zoomLevel: number;
-    private pixelWidth: number;
-    private pixelHeight: number;
-    private canvasWidth: number;
-    private canvasHeight: number;
     public name: string;
     private readonly $container: HTMLElement;
-    private readonly $canvasContainer: HTMLElement;
     private initialized = false;
-
-    private activeColorPaletteSet: ColorPaletteSet;
-    private activeColorPalette: ColorPalette;
-    private activeColorIndex: ColorIndex;
+    private readonly editorSettings: Readonly<EditorSettings>;
 
     public constructor(options: ProjectOptions) {
         super();
         this.name = options.name;
         this.$container = options.mountEl;
-        this.$canvasContainer = options.canvasMountEl;
-        this.showGrid = typeof options.showGrid === 'boolean' ? options.showGrid : false;
-        this.zoomLevel = options.zoomLevel || 3;
-        this.pixelWidth = options.pixelWidth || 16;
-        this.pixelHeight = options.pixelHeight || 7;
-        this.canvasWidth = options.canvasWidth || 30;
-        this.canvasHeight = options.canvasWidth || 30;
-        this.activeColorPaletteSet = options.paletteSet;
-        this.activeColorPalette = options.palette;
-        this.activeColorIndex = options.colorIndex;
+        this.editorSettings = options.editorSettings;
+        this.canvases = options.canvases || [];
     }
 
     public init(): void {
@@ -119,31 +105,21 @@ export class Project extends EventEmitter<ProjectEventMap> {
             return;
         }
 
-        const newObjBtn = findOrDie(this.$container, '.new-object-btn', node => node instanceof HTMLElement);
-
-        newObjBtn.addEventListener('click', () => {
-            this.addObject({
-                mountEl: this.$canvasContainer,
-                editable: true,
-                width: this.canvasWidth,
-                height: this.canvasHeight,
-                pixelHeight: this.pixelHeight,
-                pixelWidth: this.pixelWidth,
-                zoomLevel: this.zoomLevel,
-                showGrid: this.showGrid,
-                group: new ObjectGroup({
-                    paletteSet: this.activeColorPaletteSet,
-                    palette: this.activeColorPalette,
-                    colorIndex: this.activeColorIndex,
-                    backgroundColor: this.activeColorPaletteSet.getBackgroundColor(),
-                }),
-            });
-        });
+        this.canvases.forEach(canvas => this.wireUpCanvas(canvas));
 
         this.update();
-        this.activeColorPalette.setActiveState(true, this.activeColorIndex);
+        this.editorSettings.activeColorPalette.setActiveState(true, this.editorSettings.activeColorIndex);
 
         this.initialized = true;
+    }
+
+    public destroy(): void {
+        this.canvases.forEach((canvas) => {
+            this.activeCanvas = null;
+            canvas.off();
+            canvas.destroy();
+            findElement(this.$container, `.project-objects`).innerHTML = '';
+        });
     }
 
     public activateCanvas(canvas: PixelCanvas | null): void {
@@ -187,14 +163,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
             width: width,
             height: height,
             pixelData: canvas.clonePixelData(),
-            zoomLevel: canvas.getZoomLevel(),
-            editable: true,
-            showGrid: canvas.getShowGrid(),
+            editorSettings: this.editorSettings,
         });
     }
 
-    public addObject(options: CanvasOptions): PixelCanvas {
-        const canvas = new PixelCanvas(options);
+    private wireUpCanvas(canvas: PixelCanvas): void {
         canvas.on('pixel_highlight', (...args) => {
             this.emit('pixel_highlight', ...args);
         });
@@ -205,7 +178,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
         canvas.on('reset', () => {
             this.updateActiveThumbnail();
         });
-        this.canvases.push(canvas);
+
+        if (this.canvases.indexOf(canvas) === -1) {
+            this.canvases.push(canvas);
+        }
 
         const el = parseTemplate(objectItemTmpl);
         const parent = findElement(this.$container, `.project-objects`);
@@ -220,10 +196,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         let group = parent.querySelector(`.project-item-group[data-group-id="${canvas.group.id}"]`);
         if (!group) {
-           group = parseTemplate(objectGroupTmpl);
-           group.setAttribute('data-group-id', canvas.group.id);
-           group.querySelector('.group-name')?.appendChild(doc.createTextNode(canvas.group.name));
-           parent.appendChild(group);
+            group = parseTemplate(objectGroupTmpl);
+            group.setAttribute('data-group-id', canvas.group.id);
+            group.querySelector('.group-name')?.appendChild(doc.createTextNode(canvas.group.name));
+            parent.appendChild(group);
         }
 
         findElement(group, '.group-items').appendChild(el);
@@ -290,6 +266,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         canvas.render();
 
         this.activateCanvas(canvas);
+    }
+
+    public addObject(options: CanvasOptions): PixelCanvas {
+        const canvas = new PixelCanvas(options);
+        this.wireUpCanvas(canvas);
         return canvas;
     }
 
@@ -379,34 +360,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.activeCanvas?.setCanvasPosition();
     }
 
-    public zoomTo(zoomLevel: number): void {
-        this.zoomLevel = zoomLevel;
-        this.canvases.forEach(canvas => canvas.setZoomLevel(zoomLevel));
+    public zoomTo(): void {
+        this.canvases.forEach(canvas => canvas.setZoomLevel());
     }
 
-    public setShowGrid(showGrid: boolean): void {
-        this.showGrid = showGrid;
-        this.canvases.forEach(canvas => canvas.setShowGrid(showGrid));
+    public setShowGrid(): void {
+        this.canvases.forEach(canvas => canvas.setShowGrid());
     }
 
     public setPixelDimensions(width: number | null, height: number | null): void {
-        if (width) {
-            this.pixelWidth = width;
-        }
-        if (height) {
-            this.pixelHeight = height;
-        }
         this.activeCanvas?.setPixelDimensions(width, height);
         this.updateObjectInfo();
     }
 
     public setCanvasDimensions(width: number | null, height: number | null): void {
-        if (width) {
-            this.canvasWidth = width;
-        }
-        if (height) {
-            this.canvasHeight = height;
-        }
         this.activeCanvas?.setDimensions(width, height);
         this.updateObjectInfo();
     }
@@ -415,18 +382,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
         return this.canvases.filter(canvas => canvas.group === group);
     }
 
-    public setActiveColor(
-        paletteSet: ColorPaletteSet,
-        palette: ColorPalette,
-        color: Atari7800Color,
-        index: ColorIndex,
-    ): void {
-        this.activeColorPaletteSet = paletteSet;
-        this.activeColorPalette = palette;
-        this.activeColorIndex = index;
-
+    public setActiveColor(paletteSet: ColorPaletteSet, palette: ColorPalette, index: ColorIndex): void {
         // TODO this should probably only be for groups with the active palette set...
-        this.canvases.forEach(canvas => canvas.group.setActiveColor(paletteSet, palette, index));
+        // this.canvases.forEach(canvas => canvas.group.setActiveColor());
     }
 
     public setBackgroundColor(color: Atari7800Color): void {
@@ -436,7 +394,60 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public updatePaletteColor(palette: ColorPalette, colorIndex: ColorIndex): void {
+        // TODO this should probably only be for canvases using this palette...
         this.canvases.forEach(canvas => canvas.render());
         this.updateAllThumbnails();
     }
+
+    public toJSON(): ProjectSerialized {
+        return {
+            name: this.name,
+            activeCanvasId: this.activeCanvas?.id || null,
+            canvases: this.canvases.map(canvas => canvas.toJSON()),
+        };
+    }
+
+    public static fromJSON(
+        json: object,
+        mountEl: HTMLElement,
+        canvasMountEl: HTMLElement,
+        editorSettings: EditorSettings,
+        paletteSets: Readonly<ColorPaletteSet[]>,
+    ): Project {
+        if (!isSerialized(json)) {
+            throw new Error(`Cannot deserialize Project, invalid JSON`);
+        }
+
+        const groupCache: any = {};
+
+        return new Project({
+            mountEl,
+            editorSettings,
+            name: json.name,
+            canvases: json.canvases.map(canvasJson =>
+                PixelCanvas.fromJSON(canvasJson, canvasMountEl, editorSettings, groupCache, paletteSets)),
+        });
+    }
 }
+
+const isSerialized = (json: any): json is ProjectSerialized => {
+    if (typeof json !== 'object') {
+        return false;
+    }
+    if (!json) {
+        return false;
+    }
+
+    if (typeof json.name !== 'string') {
+        return false;
+    }
+    if (!Array.isArray(json.canvases)) {
+        return false;
+    }
+
+    if (!json.canvases.every((obj: unknown) => typeof obj === 'object')) {
+        return false;
+    }
+
+    return true;
+};

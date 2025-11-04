@@ -1,14 +1,19 @@
-import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
+import type { EditorSettings } from './Editor.ts';
 import { Logger } from './Logger.ts';
 
 export interface ObjectGroupOptions {
+    id?: ObjectGroup['id'];
     name?: string;
     paletteSet: ColorPaletteSet;
-    palette: ColorPalette;
-    colorIndex?: ColorIndex;
-    backgroundColor: Atari7800Color;
+    editorSettings: EditorSettings;
+}
+
+export interface ObjectGroupSerialized {
+    id: ObjectGroup['id'];
+    name: ObjectGroup['name'];
+    paletteSetId: ColorPaletteSet['id'];
 }
 
 export class ObjectGroup {
@@ -18,18 +23,16 @@ export class ObjectGroup {
     private readonly logger: Logger;
 
     private paletteSet: Readonly<ColorPaletteSet>;
-    private activePalette: Readonly<ColorPalette>;
-    private activeColorIndex: ColorIndex;
+    private readonly editorSettings: Readonly<EditorSettings>;
 
     private static instanceCount = 0;
 
     public constructor(options: ObjectGroupOptions) {
         ObjectGroup.instanceCount++;
-        this.id = ObjectGroup.instanceCount.toString();
+        this.id = options.id || ObjectGroup.instanceCount.toString();
         this.name = options.name || `Group ${this.id}`;
         this.paletteSet = options.paletteSet;
-        this.activePalette = options.palette;
-        this.activeColorIndex = options.colorIndex || 0;
+        this.editorSettings = options.editorSettings;
 
         this.logger = Logger.from(this);
     }
@@ -38,27 +41,50 @@ export class ObjectGroup {
         return this.paletteSet;
     }
 
-    public getActivePalette(): Readonly<ColorPalette> {
-        return this.activePalette;
-    }
-
-    public getActiveColorIndex(): ColorIndex {
-        return this.activeColorIndex;
-    }
-
     public getBackgroundColor(): Readonly<Atari7800Color> {
         return this.paletteSet.getBackgroundColor();
     }
 
-    public getActiveColor(): Atari7800Color {
-        return this.activePalette.getColorAt(this.activeColorIndex);
+    public toJSON(): ObjectGroupSerialized {
+        return {
+            id: this.id,
+            name: this.name,
+            paletteSetId: this.paletteSet.id,
+        };
     }
 
-    public setActiveColor(paletteSet: ColorPaletteSet, palette: ColorPalette, index: ColorIndex): void {
-        this.paletteSet = paletteSet;
-        this.activePalette = palette;
-        this.activeColorIndex = index;
+    public static fromJSON(
+        json: object,
+        editorSettings: EditorSettings,
+        paletteSets: Readonly<ColorPaletteSet[]>,
+    ): ObjectGroup {
+        if (!isSerialized(json)) {
+            throw new Error('Cannot deserialize ObjectGroup, invalid JSON');
+        }
 
-        this.logger.info(`setting active color to ${palette.name}[${index}]`, this.getActiveColor());
+        const paletteSet = paletteSets.find(set => set.id === json.paletteSetId);
+        if (!paletteSet) {
+            throw new Error(`Cannot deserialize ObjectGroup, palette set with ID "${json.paletteSetId}" not found`);
+        }
+        return new ObjectGroup({
+            id: json.id,
+            editorSettings,
+            name: json.name,
+            paletteSet: paletteSet,
+        });
     }
 }
+
+const isSerialized = (json: any): json is ObjectGroupSerialized => {
+    if (typeof json.id !== 'number') {
+        return false;
+    }
+    if (typeof json.name !== 'string') {
+        return false;
+    }
+    if (typeof json.paletteSetId !== 'number') {
+        return false;
+    }
+
+    return true;
+};

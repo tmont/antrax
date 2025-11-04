@@ -10,6 +10,7 @@ import { Logger } from './Logger.ts';
 import { findElement, parseTemplate } from './utils.ts';
 
 export interface ColorPaletteSetOptions {
+    id?: ColorPaletteSet['id'];
     mountEl: HTMLElement;
     backgroundColor?: Atari7800Color | ColorSerialized;
     palettes?: ColorPalette[] | ColorPaletteSerialized[];
@@ -17,6 +18,8 @@ export interface ColorPaletteSetOptions {
 }
 
 export interface ColorPaletteSetSerialized {
+    id: ColorPaletteSet['id'];
+    name: ColorPaletteSet['name'];
     backgroundColor: ColorSerialized;
     palettes: ColorPaletteSerialized[];
 }
@@ -74,7 +77,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
             }));
         }
 
-        this.id = ColorPaletteSet.instanceCount;
+        this.id = options.id || ColorPaletteSet.instanceCount;
         this.backgroundColor = bg || colors[3];
         this.palettes = palettes.slice(0, 8);
         this.name = options.name || `Palette Set ${this.id}`;
@@ -147,6 +150,10 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         this.initialized = true;
     }
 
+    public destroy(): void {
+        this.$el.remove();
+        this.palettes.forEach((palette) => palette.off());
+    }
 
     public updateName(newName: string): void {
         const $name = findElement(this.$el, '.palette-set-name');
@@ -177,8 +184,41 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
     public toJSON(): ColorPaletteSetSerialized {
         return {
+            id: this.id,
+            name: this.name,
             backgroundColor: colorToJson(this.backgroundColor),
             palettes: this.palettes.map(palette => palette.toJSON()),
         };
     }
+
+    public static fromJSON(json: object, mountEl: HTMLElement): ColorPaletteSet {
+        if (!isSerialized(json)) {
+            throw new Error(`Cannot deserialize ColorPaletteSet, invalid JSON`);
+        }
+
+        return new ColorPaletteSet({
+            id: json.id,
+            mountEl,
+            palettes: json.palettes,
+            backgroundColor: json.backgroundColor,
+            name: json.name,
+        });
+    }
 }
+
+const isSerialized = (json: any): json is ColorPaletteSetSerialized => {
+    if (typeof json.id !== 'number') {
+        return false;
+    }
+    if (typeof json.name !== 'string') {
+        return false;
+    }
+    if (typeof json.backgroundColor !== 'number') {
+        return false;
+    }
+    if (!Array.isArray(json.palettes) && !json.palettes.every((item: unknown) => typeof item === 'object')) {
+        return false;
+    }
+
+    return true;
+};

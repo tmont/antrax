@@ -5,12 +5,14 @@ import { Logger } from './Logger.ts';
 import { findElement, parseTemplate } from './utils.ts';
 
 export interface ColorPaletteOptions {
+    id?: ColorPalette['id'];
     name: string;
     colors?: [ Atari7800Color | ColorSerialized, Atari7800Color | ColorSerialized, Atari7800Color | ColorSerialized ];
 }
 
 export interface ColorPaletteSerialized {
-    name: string;
+    id: ColorPalette['id'];
+    name: ColorPalette['name'];
     colors: [ ColorSerialized, ColorSerialized, ColorSerialized ];
 }
 
@@ -38,9 +40,15 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
     private initialized = false;
     private readonly logger: Logger;
     private $el: HTMLElement | null = null;
+    public readonly id: number;
+    private static instanceCount = 0;
 
     public constructor(options: ColorPaletteOptions) {
         super();
+
+        ColorPalette.instanceCount++;
+
+        this.id = options.id || ColorPalette.instanceCount;
         this.name = options.name;
         this.colors = [
             getColorObject(options?.colors?.[0], colors[0x47]),
@@ -114,13 +122,14 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
     }
 
     public updateColors(): void {
-        if (!this.$el) {
+        const $el = this.$el;
+        if (!$el) {
             throw new Error(`ColorPalette has not been initialized, cannot update colors`);
         }
 
-        findElement(this.$el, '[data-index="0"]').style.backgroundColor = this.colors[0].hex;
-        findElement(this.$el, '[data-index="1"]').style.backgroundColor = this.colors[1].hex;
-        findElement(this.$el, '[data-index="2"]').style.backgroundColor = this.colors[2].hex;
+        this.colors.forEach((color, i) => {
+            findElement($el, `[data-index="${i}"]`).style.backgroundColor = color.hex;
+        });
     }
 
     public setActiveState(isActive: boolean, activeColorIndex: ColorIndex | null): void {
@@ -148,6 +157,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
 
     public toJSON(): ColorPaletteSerialized {
         return {
+            id: this.id,
             name: this.name,
             colors: this.colors.map(colorToJson) as [ ColorSerialized, ColorSerialized, ColorSerialized ],
         };

@@ -1,12 +1,17 @@
 import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
-import { ColorPaletteSet } from './ColorPaletteSet.ts';
+import { ColorPaletteSet, type ColorPaletteSetSerialized } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
+import type { EditorSettings } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 
 export interface ColorPaletteSetCollectionOptions {
-    mountEl: HTMLElement;
     paletteSets: ColorPaletteSet[];
+    editorSettings: EditorSettings;
+}
+
+export interface ColorPaletteSetCollectionSerialized {
+    paletteSets: ColorPaletteSetSerialized[];
 }
 
 export type ColorPaletteSetCollectionEventMap = {
@@ -16,23 +21,26 @@ export type ColorPaletteSetCollectionEventMap = {
 }
 
 export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetCollectionEventMap> {
-    private readonly $el: HTMLElement;
     private readonly paletteSets: ColorPaletteSet[] = [];
     private initialized = false;
-    private activePaletteSet: ColorPaletteSet | null = null;
+    private readonly editorSettings: Readonly<EditorSettings>;
     private readonly logger: Logger;
 
     public constructor(options: ColorPaletteSetCollectionOptions) {
         super();
         this.logger = Logger.from(this);
-        this.$el = options.mountEl;
         this.paletteSets = options.paletteSets;
 
         if (!this.paletteSets.length) {
             throw new Error(`ColorPaletteSetCollection requires at least one ColorPaletteSet`);
         }
 
-        this.activatePaletteSet(this.paletteSets[0]);
+        this.editorSettings = options.editorSettings;
+        this.activatePaletteSet();
+    }
+
+    public getPaletteSets(): Readonly<ColorPaletteSet[]> {
+        return this.paletteSets;
     }
 
     public init(): void {
@@ -58,26 +66,56 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
         this.initialized = true;
     }
 
-    public activatePaletteSet(paletteSet?: ColorPaletteSet | null): void {
-        if (paletteSet) {
-            if (this.paletteSets.indexOf(paletteSet) === -1) {
-                this.logger.warn(`activated palette set not found in array`);
-                return;
-            }
+    public destroy(): void {
+        this.paletteSets.forEach(paletteSet => paletteSet.destroy());
+    }
+
+    public activatePaletteSet(): void {
+        if (this.paletteSets.indexOf(this.editorSettings.activeColorPaletteSet) === -1) {
+            this.logger.warn(`activated palette set not found in array`);
+            return;
         }
 
-        this.logger.debug(`activating palette set ${paletteSet?.id || '[null]'}`);
-        this.activePaletteSet = paletteSet || null;
-        this.paletteSets.forEach((p) => {
-            if (p === paletteSet) {
-                p.activate();
+        this.logger.debug(`activating palette set ${this.editorSettings.activeColorPaletteSet.id}`);
+        this.paletteSets.forEach((paletteSet) => {
+            if (paletteSet === this.editorSettings.activeColorPaletteSet) {
+                paletteSet.activate();
             } else {
-                p.deactivate();
+                paletteSet.deactivate();
             }
         });
     }
 
-    public getActivePaletteSet(): ColorPaletteSet | null {
-        return this.activePaletteSet;
+    public toJSON(): ColorPaletteSetCollectionSerialized {
+        return {
+            paletteSets: this.paletteSets.map(set => set.toJSON()),
+        };
+    }
+
+    public static fromJSON(
+        json: object,
+        editorSettings: EditorSettings,
+        paletteSets: ColorPaletteSet[],
+    ): ColorPaletteSetCollection {
+        if (!isSerialized(json)) {
+            throw new Error(`Cannot deserialize ColorPaletteSetCollection`);
+        }
+
+        return new ColorPaletteSetCollection({
+            editorSettings,
+            paletteSets,
+        });
     }
 }
+
+const isSerialized = (json: object): json is ColorPaletteSetCollectionSerialized => {
+    if (!Array.isArray((json as ColorPaletteSetCollectionSerialized).paletteSets)) {
+        return false;
+    }
+
+    if (!((json as ColorPaletteSetCollectionSerialized).paletteSets).every(json => typeof json === 'object')) {
+        return false;
+    }
+
+    return true;
+};
