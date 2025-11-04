@@ -118,6 +118,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         this.update();
         this.editorSettings.activeColorPalette.setActiveState(true, this.editorSettings.activeColorIndex);
+        this.updateAllThumbnails();
 
         this.initialized = true;
     }
