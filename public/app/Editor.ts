@@ -271,7 +271,6 @@ export class Editor {
                 editorSettings: this.settings,
                 group: new ObjectGroup({
                     paletteSet: this.settings.activeColorPaletteSet,
-                    editorSettings: this.settings,
                 }),
             });
         });

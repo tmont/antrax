@@ -7,7 +7,6 @@ export interface ObjectGroupOptions {
     id?: ObjectGroup['id'];
     name?: string;
     paletteSet: ColorPaletteSet;
-    editorSettings: EditorSettings;
 }
 
 export interface ObjectGroupSerialized {
@@ -17,22 +16,20 @@ export interface ObjectGroupSerialized {
 }
 
 export class ObjectGroup {
-    public readonly id: string;
+    public readonly id: number;
     public name: string;
 
     private readonly logger: Logger;
 
     private paletteSet: Readonly<ColorPaletteSet>;
-    private readonly editorSettings: Readonly<EditorSettings>;
 
     private static instanceCount = 0;
 
     public constructor(options: ObjectGroupOptions) {
         ObjectGroup.instanceCount++;
-        this.id = options.id || ObjectGroup.instanceCount.toString();
+        this.id = options.id || ObjectGroup.instanceCount;
         this.name = options.name || `Group ${this.id}`;
         this.paletteSet = options.paletteSet;
-        this.editorSettings = options.editorSettings;
 
         this.logger = Logger.from(this);
     }
@@ -55,7 +52,6 @@ export class ObjectGroup {
 
     public static fromJSON(
         json: object,
-        editorSettings: EditorSettings,
         paletteSets: Readonly<ColorPaletteSet[]>,
     ): ObjectGroup {
         if (!isSerialized(json)) {
@@ -68,7 +64,6 @@ export class ObjectGroup {
         }
         return new ObjectGroup({
             id: json.id,
-            editorSettings,
             name: json.name,
             paletteSet: paletteSet,
         });

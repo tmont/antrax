@@ -197,7 +197,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         let group = parent.querySelector(`.project-item-group[data-group-id="${canvas.group.id}"]`);
         if (!group) {
             group = parseTemplate(objectGroupTmpl);
-            group.setAttribute('data-group-id', canvas.group.id);
+            group.setAttribute('data-group-id', canvas.group.id.toString());
             group.querySelector('.group-name')?.appendChild(doc.createTextNode(canvas.group.name));
             parent.appendChild(group);
         }

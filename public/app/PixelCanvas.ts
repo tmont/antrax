@@ -8,6 +8,7 @@ import type { Coordinate, Dimensions, PixelInfo, PixelInfoBg, PixelInfoSerialize
 
 export interface CanvasOptions extends Dimensions {
     id?: PixelCanvas['id'];
+    name?: PixelCanvas['name'];
     pixelWidth: number;
     pixelHeight: number;
     mountEl: HTMLElement;
@@ -36,11 +37,11 @@ type PixelCanvasEventMap = {
 
 export interface PixelCanvasSerialized {
     id: PixelCanvas['id'];
-    name: string;
-    pixelWidth: number;
-    pixelHeight: number;
-    width: number;
-    height: number;
+    name: PixelCanvas['name'];
+    pixelWidth: PixelCanvas['pixelWidth'];
+    pixelHeight: PixelCanvas['pixelHeight'];
+    width: PixelCanvas['width'];
+    height: PixelCanvas['height'];
     group: ObjectGroupSerialized;
     pixelData: PixelInfoSerialized[][];
 }
@@ -76,7 +77,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         super();
         PixelCanvas.instanceCount++;
         this.id = options.id || PixelCanvas.instanceCount;
-        this.name = `Object ${this.id}`;
+        this.name = options.name || `Object ${this.id}`;
         this.logger = Logger.from(this);
         this.group = options.group;
         this.editorSettings = options.editorSettings;
@@ -641,7 +642,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         let group = groupCache[json.group.id];
         if (!group) {
-            group = ObjectGroup.fromJSON(json.group, editorSettings, paletteSets);
+            group = ObjectGroup.fromJSON(json.group, paletteSets);
             groupCache[group.id] = group;
         }
 
@@ -650,6 +651,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             .reduce((flattened, palettes) => flattened.concat(palettes), []);
 
         return new PixelCanvas({
+            name: json.name,
             width: json.width,
             height: json.height,
             pixelWidth: json.pixelWidth,
