@@ -126,9 +126,21 @@ kbd, tt, code {
 
             .object-info {
                 display: none;
-                margin: 0 auto;
-                gap: config.$gutter-half;
+                flex-direction: column;
+                gap: config.$gutter-eighth;
                 font-size: 90%;
+
+                .object-details {
+                    display: flex;
+                    gap: config.$gutter-half;
+                    margin: 0 auto;
+                }
+
+                .object-color-list {
+                    display: flex;
+                    gap: config.$gutter-eighth;
+                    justify-content: center;
+                }
             }
 
             .object-thumbnail {

@@ -21,7 +21,7 @@ export class ObjectGroup {
 
     private readonly logger: Logger;
 
-    private paletteSet: Readonly<ColorPaletteSet>;
+    private paletteSet: ColorPaletteSet;
 
     private static instanceCount = 0;
 
@@ -34,7 +34,7 @@ export class ObjectGroup {
         this.logger = Logger.from(this);
     }
 
-    public getPaletteSet(): Readonly<ColorPaletteSet> {
+    public getPaletteSet(): ColorPaletteSet {
         return this.paletteSet;
     }
 

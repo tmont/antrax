@@ -216,6 +216,10 @@ export class Editor {
         this.project.on('active_object_name_change', (activeCanvas) => {
             this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
         });
+        this.project.on('color_select', (paletteSet, palette, index) => {
+            paletteSet.setActiveColor(palette, index);
+            this.setActiveColor(paletteSet, palette, index);
+        });
     }
 
     public setPaletteSets(paletteSets: ColorPaletteSetCollection): void {

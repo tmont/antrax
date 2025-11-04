@@ -1,4 +1,4 @@
-import type { ColorPalette } from './ColorPalette.ts';
+import type { ColorIndex, ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { EditorSettings } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -607,6 +607,33 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public setName(newName: string): void {
         this.name = newName;
+    }
+
+    public getUsedColors(): Array<{ palette: ColorPalette; index: ColorIndex }> {
+        const colors: Array<{ palette: ColorPalette; index: ColorIndex }> = [];
+
+        const seen: Record<string, 1> = {};
+
+        this.pixelData.forEach((row) => {
+            row.forEach((pixelInfo) => {
+                if (!pixelInfo.palette) {
+                    return;
+                }
+
+                const key = `${pixelInfo.palette.id}:${pixelInfo.index}`;
+                if (seen[key]) {
+                    return;
+                }
+
+                seen[key] = 1;
+                colors.push({
+                    palette: pixelInfo.palette,
+                    index: pixelInfo.index,
+                });
+            });
+        });
+
+        return colors;
     }
 
     public toJSON(): PixelCanvasSerialized {

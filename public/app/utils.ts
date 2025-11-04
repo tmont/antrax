@@ -16,7 +16,7 @@ export interface Coordinate {
 export type PixelColor = Atari7800Color | null;
 
 export interface PixelInfoColor {
-    palette: Readonly<ColorPalette>;
+    palette: ColorPalette;
     index: ColorIndex;
 }
 
