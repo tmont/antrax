@@ -120,6 +120,18 @@ export class Modal extends EventEmitter<ModalEventMap> {
         if (Modal.$overlay) {
             Modal.$overlay.style.display = 'block';
         }
+
+        const onKeyDown = (e: KeyboardEvent): void => {
+            if (e.key === 'Escape') {
+                this.destroy();
+            }
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+
+        this.once('close', () => {
+            document.removeEventListener('keydown', onKeyDown);
+        });
     }
 
     public hide(): void {
@@ -127,6 +139,7 @@ export class Modal extends EventEmitter<ModalEventMap> {
         if (Modal.$overlay) {
             Modal.$overlay.style.display = 'none';
         }
+        this.emit('close');
     }
 
     public destroy(): void {
