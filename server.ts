@@ -5,7 +5,7 @@ const server = Bun.serve({
         '/index.html': new Response(Bun.file('./public/index.html')),
         '/app.js': new Response(Bun.file('./public/app.js')),
         '/app.css': new Response(Bun.file('./public/app.css')),
-        '/webfonts/:font': req => {
+        '/fonts/:font': req => {
             const pathname = new URL(req.url).pathname.split('/')[2];
             return new Response(Bun.file('./public/fonts/' + pathname));
         },

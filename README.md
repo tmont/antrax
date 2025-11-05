@@ -30,3 +30,11 @@ A graphical sprite editor for the Atari 7800.
 3. In another terminal, `bun run start`
 4. In another terminal, `bun run sass`
 5. Visit http://localhost:11000/
+
+## Deployment
+1. Create `.dev/.env` with `RELEASE_REMOTE_HOST` and `RELEASE_REMOTE_DIR` definitions, e.g.
+    ```bash
+    RELEASE_REMOTE_HOST=atari7800gfx.example.com
+    RELEASE_REMOTE_DIR=/var/www/atari7800gfx.example.com
+   ```
+2. Run `scripts/release.sh`
