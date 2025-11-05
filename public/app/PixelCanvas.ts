@@ -330,9 +330,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             const trueY = clientY + document.documentElement.scrollTop - offsetTop;
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
-            if (!pixelData.pixel) {
-                this.logger.warn(`no pixel found at ${trueX},${trueY}`);
-            } else {
+            if (pixelData.pixel) {
                 this.highlightPixel({ x: pixelData.col, y: pixelData.row });
             }
         };
