@@ -149,6 +149,7 @@ p {
                     gap: config.$gutter-eighth;
                     justify-content: center;
                     min-height: 17px; // to make it not shift around when text is rendered
+                    flex-wrap: wrap;
                 }
             }
 
