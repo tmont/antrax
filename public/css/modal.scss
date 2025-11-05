@@ -77,6 +77,10 @@ $modal-z-index: 100;
         td {
             padding: config.$gutter-half;
             border: 1px solid config.$border-color;
+
+            p {
+                margin-bottom: config.$gutter-eighth;
+            }
         }
     }
 }

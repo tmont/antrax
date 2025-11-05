@@ -41,27 +41,6 @@ export interface EditorSerialized {
 const infoContent = `
 <div class="col">
     <section>
-        <header>Keyboard shortcuts</header>
-        <table>
-            <tr>
-                <td><kbd>G</kbd></td>
-                <td>Toggle grid</td>
-            </tr>
-            <tr>
-                <td><kbd>P</kbd></td>
-                <td>Update pixel dimensions</td>
-            </tr>
-            <tr>
-                <td><kbd>C</kbd></td>
-                <td>Update canvas dimensions</td>
-            </tr>
-            <tr>
-                <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
-                <td>Reset zoom level to <strong>1x</strong></td>
-            </tr>
-        </table>
-    </section>
-    <section>
         <header>Canvas interactions</header>
         <table>
             <tr>
@@ -82,8 +61,6 @@ const infoContent = `
             </tr>
         </table>
     </section>
-</div>
-<div class="col">
     <section>
         <header>Colors &amp; palettes</header>
         <table>
@@ -96,12 +73,45 @@ const infoContent = `
                 <td>Open background color picker</td>
             </tr>
             <tr>
-                <td>Left click</td>
+                <td>
+                    <p>Left click</p>
+                    <p><kbd>1-8</kbd> &rarr; <kbd>1-3</kbd></p>
+                </td>
                 <td>Select palette color</td>
             </tr>
+        </table>
+    </section>
+</div>
+<div class="col">
+    <section>
+        <header>Keyboard shortcuts</header>
+        <table>
             <tr>
-                <td><kbd>1-8</kbd> &rarr; <kbd>1-3</kbd></td>
-                <td>Select palette &amp; color</td>
+                <td><kbd>G</kbd></td>
+                <td>Toggle grid</td>
+            </tr>
+            <tr>
+                <td><kbd>P</kbd></td>
+                <td>Update pixel dimensions</td>
+            </tr>
+            <tr>
+                <td><kbd>C</kbd></td>
+                <td>Update canvas dimensions</td>
+            </tr>
+            <tr>
+                <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
+                <td>Reset zoom level to <strong>1x</strong></td>
+            </tr>
+            <tr>
+                <td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td>
+                <td>Undo last draw action</td>
+            </tr>
+            <tr>
+                <td>
+                    <p><kbd>Ctrl</kbd> + <kbd>Y</kbd></p>
+                    <p><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></p>
+                </td>
+                <td>Redo last draw action</td>
             </tr>
         </table>
     </section>

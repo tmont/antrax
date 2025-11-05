@@ -40,6 +40,10 @@ kbd, tt, code {
     font-family: config.$font-mono;
 }
 
+p {
+    margin: 0;
+}
+
 .app {
     display: flex;
     height: 100%;
