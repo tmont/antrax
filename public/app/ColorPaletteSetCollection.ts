@@ -39,6 +39,10 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
         this.activatePaletteSet();
     }
 
+    public get name(): string {
+        return 'ColorPaletteSetCollection';
+    }
+
     public getPaletteSets(): Readonly<ColorPaletteSet[]> {
         return this.paletteSets;
     }

@@ -21,9 +21,11 @@ main() {
         bun run lint
 
         bun build \
-            --outfile "${releaseDir}/public/app.js" \
-            --target browser \
+            --outdir "${releaseDir}/public/" \
+            --target=browser \
+            --sourcemap=linked \
             --minify \
+            --keep-names \
             public/app.ts
 
         "${rootDir}"/.dev/dart-sass/sass \

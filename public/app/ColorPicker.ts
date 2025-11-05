@@ -22,6 +22,10 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
     private readonly title: string;
     private activeColor: Readonly<Atari7800Color> | null;
 
+    public get name(): string {
+        return 'ColorPicker';
+    }
+
     public constructor(options?: ColorPickerOptions) {
         super();
 

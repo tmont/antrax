@@ -149,6 +149,10 @@ export class Editor {
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
 
+    public get name(): string {
+        return 'Editor';
+    }
+
     public constructor(options: EditorOptions) {
         this.$el = options.mountEl;
 
