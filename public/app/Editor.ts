@@ -480,8 +480,12 @@ export class Editor {
                 this.project?.setShowGrid();
                 this.$gridInput.checked = this.settings.showGrid;
             } else if (e.key.toLowerCase() === 'p') {
+                // must prevent default so that we don't type a "p" in the input
+                e.preventDefault();
                 this.$pixelWidthInput.focus();
             } else if (e.key.toLowerCase() === 'c') {
+                // must prevent default so that we don't type a "c" in the input
+                e.preventDefault();
                 this.$canvasWidthInput.focus();
             }
         });
