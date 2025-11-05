@@ -1,6 +1,6 @@
 {
     "name": "atari-7800-sprite-editor",
-    "version": "0.0.0",
+    "version": "0.0.3",
     "private": true,
     "devDependencies": {
         "@fortawesome/fontawesome-free": "7.1.0",

@@ -36,6 +36,20 @@ main() {
           "${rootDir}/public/fonts/" \
           "${rootDir}/public/images/" \
           "${releaseDir}/public"
+
+        local nextVersion= currentVersion
+        currentVersion=$(bun -e "import pkg from './package.json'; console.log(pkg.version);")
+
+        while [[ -z "${nextVersion}" ]]; do
+            echo -n "new version number (current: ${currentVersion}): "
+            read -r nextVersion
+            echo
+        done
+
+        perl -p -i -e "s/\\\$VERSION\\\$/${nextVersion}/" "${releaseDir}/public/index.html"
+
+        echo "writing new version to package.json..."
+        bun -e "import pkg from './package.json'; pkg.version = '${nextVersion}'; Bun.write('./package.json', JSON.stringify(pkg, null, '    '));"
     )
 
     local envFile="${rootDir}/.dev/.env"
