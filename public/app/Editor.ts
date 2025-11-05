@@ -322,6 +322,10 @@ export class Editor {
         this.$zoomValue.innerText = this.settings.zoomLevel + 'x';
     }
 
+    public updateGridUI(): void {
+        this.$gridInput.checked = this.settings.showGrid;
+    }
+
     public init(): void {
         if (this.initialized) {
             return;
@@ -818,5 +822,7 @@ export class Editor {
         this.undoContext = {};
         this.paletteSets.init();
         this.project?.init();
+        this.updateZoomLevelUI();
+        this.updateGridUI();
     }
 }
