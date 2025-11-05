@@ -4,6 +4,7 @@ import { ColorPaletteSetCollection, type ColorPaletteSetCollectionSerialized } f
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
+import { PixelCanvas } from './PixelCanvas.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import { findElement, findOrDie } from './utils.ts';
 
@@ -107,6 +108,15 @@ const infoContent = `
 </div>
 `;
 
+export interface UndoCheckpoint {
+    pixelData: PixelCanvas['pixelData'];
+}
+
+export interface UndoContext {
+    stack: UndoCheckpoint[];
+    current: number;
+}
+
 export class Editor {
     private project: Project | null = null;
     private readonly logger: Logger;
@@ -127,6 +137,7 @@ export class Editor {
     private settings: EditorSettings;
 
     private paletteSets: ColorPaletteSetCollection;
+    private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
 
     public constructor(options: EditorOptions) {
         this.$el = options.mountEl;
@@ -189,6 +200,47 @@ export class Editor {
         // disable events on previously active project
         this.project?.off();
 
+        let undoTimeoutId: number | null = null;
+
+        const pushUndoItem = (canvas: PixelCanvas) => {
+            let undoContext = this.undoContext[canvas.id];
+            if (!undoContext) {
+                undoContext = this.undoContext[canvas.id] = {
+                    current: -1,
+                    stack: [],
+                };
+            }
+
+            // if current is not pointing to the most item on the stack, remove all elements
+            // to the end of the stack
+            if (undoContext.current !== undoContext.stack.length - 1) {
+                this.logger.info(`slicing undo stack since pointer was not at end ` +
+                    `(${undoContext.current} vs. ${undoContext.stack.length - 1})`);
+                undoContext.stack = undoContext.stack.slice(0, undoContext.current + 1);
+            }
+
+            const pixelData = canvas.clonePixelData();
+
+            const topOfStack = undoContext.stack[undoContext.stack.length - 1];
+            const currentHash = PixelCanvas.generateHash(pixelData);
+            const topHash = topOfStack ? PixelCanvas.generateHash(topOfStack.pixelData) : null;
+
+            if (topOfStack && currentHash === topHash) {
+                // top of stack has the same state, don't want consecutive undo items to be identical
+                this.logger.info(`undo stack has identical data, not pushing`);
+                return;
+            }
+
+            undoContext.stack.push({ pixelData });
+
+            while (undoContext.stack.length > 1000) {
+                undoContext.stack.shift();
+            }
+
+            undoContext.current = undoContext.stack.length - 1;
+            this.logger.debug(`pushing onto undo stack ${undoContext.current}/${undoContext.stack.length - 1}`);
+        };
+
         this.project = project;
         this.project.off();
         this.project.on('canvas_activate', (activeCanvas) => {
@@ -208,10 +260,19 @@ export class Editor {
         this.project.on('pixel_highlight', (e) => {
             this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
         });
-        this.project.on('pixel_draw', (e) => {
+        this.project.on('pixel_draw', (e, canvas) => {
             if (e.behavior === 'user') {
                 this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
+                if (undoTimeoutId) {
+                    window.clearTimeout(undoTimeoutId);
+                    undoTimeoutId = null;
+                }
+
+                undoTimeoutId = window.setTimeout(() => pushUndoItem(canvas), 250);
             }
+        });
+        this.project.on('draw_start', (canvas) => {
+            pushUndoItem(canvas);
         });
         this.project.on('active_object_name_change', (activeCanvas) => {
             this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
@@ -387,6 +448,15 @@ export class Editor {
                 }
             }
 
+            if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+                this.applyCurrentCheckpoint(e.shiftKey);
+                return;
+            }
+            if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+                this.applyCurrentCheckpoint(true);
+                return;
+            }
+
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
                 this.settings.zoomLevel = 1;
                 this.updateZoomLevelUI();
@@ -507,7 +577,6 @@ export class Editor {
                     type: 'default',
                 });
 
-
                 modal.on('action', () => {
                     modal.destroy();
                 });
@@ -516,6 +585,30 @@ export class Editor {
 
         this.updateZoomLevelUI();
         this.initialized = true;
+    }
+
+    private applyCurrentCheckpoint(redo = false): void {
+        const canvas = this.project?.getActiveCanvas();
+        if (!canvas) {
+            return;
+        }
+
+        const undoContext = this.undoContext[canvas.id];
+        if (!undoContext) {
+            return;
+        }
+
+        undoContext.current += (redo ? 1 : -1);
+        undoContext.current = Math.max(0, Math.min(undoContext.stack.length - 1, undoContext.current));
+
+        const checkpoint = undoContext.stack[undoContext.current];
+        if (!checkpoint) {
+            this.logger.warn(`no undo checkpoint at index ${undoContext.current}`);
+            return;
+        }
+
+        this.logger.debug(`applying checkpoint[${undoContext.current}] to canvas ${canvas.id}`);
+        this.project?.applyCheckpoint(canvas, checkpoint);
     }
 
     public toJSON(): EditorSerialized {
@@ -712,6 +805,7 @@ export class Editor {
             this.setProject(project);
         }
 
+        this.undoContext = {};
         this.paletteSets.init();
         this.project?.init();
     }

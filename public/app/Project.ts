@@ -1,10 +1,14 @@
 import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
-import type { EditorSettings } from './Editor.ts';
+import type { EditorSettings, UndoCheckpoint } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
+import { Logger } from './Logger.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
-import { type CanvasOptions, PixelCanvas, type PixelCanvasSerialized, type PixelDrawingEvent } from './PixelCanvas.ts';
+import {
+    type CanvasOptions, PixelCanvas, type PixelCanvasSerialized,
+    type PixelDrawingEvent
+} from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import { findElement, findOrDie, parseTemplate } from './utils.ts';
 
@@ -84,9 +88,10 @@ export interface ProjectOptions {
 export type ProjectEventMap = {
     canvas_activate: [ PixelCanvas | null ];
     color_select: [ ColorPaletteSet, ColorPalette, ColorIndex ];
-    pixel_highlight: [ PixelDrawingEvent ];
-    pixel_draw: [ PixelDrawingEvent ];
+    pixel_highlight: [ PixelDrawingEvent, PixelCanvas ];
+    pixel_draw: [ PixelDrawingEvent, PixelCanvas ];
     active_object_name_change: [ PixelCanvas ];
+    draw_start: [ PixelCanvas ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -96,6 +101,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private readonly $container: HTMLElement;
     private initialized = false;
     private readonly editorSettings: Readonly<EditorSettings>;
+    private readonly logger: Logger;
 
     public constructor(options: ProjectOptions) {
         super();
@@ -106,6 +112,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.activeCanvas = options.activeCanvas && this.canvases.indexOf(options.activeCanvas) !== -1 ?
             options.activeCanvas :
             null;
+
+        this.logger = Logger.from(this);
     }
 
     public init(): void {
@@ -134,6 +142,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
             canvas.destroy();
             findElement(this.$container, `.project-objects`).innerHTML = '';
         });
+    }
+
+    public getActiveCanvas(): PixelCanvas | null {
+        return this.activeCanvas;
     }
 
     public activateCanvas(canvas: PixelCanvas | null): void {
@@ -183,16 +195,19 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     private wireUpCanvas(canvas: PixelCanvas): void {
         canvas.on('pixel_highlight', (...args) => {
-            this.emit('pixel_highlight', ...args);
+            this.emit('pixel_highlight', ...args, canvas);
         });
         canvas.on('pixel_draw', (...args) => {
             this.updateActiveThumbnail();
             this.updateObjectInfo();
-            this.emit('pixel_draw', ...args);
+            this.emit('pixel_draw', ...args, canvas);
         });
         canvas.on('reset', () => {
             this.updateActiveThumbnail();
             this.updateObjectInfo();
+        });
+        canvas.on('draw_start', () => {
+            this.emit('draw_start', canvas);
         });
 
         if (this.canvases.indexOf(canvas) === -1) {
@@ -457,6 +472,16 @@ export class Project extends EventEmitter<ProjectEventMap> {
         // TODO this should probably only be for canvases using this palette...
         this.canvases.forEach(canvas => canvas.render());
         this.updateAllThumbnails();
+    }
+
+    public applyCheckpoint(undoCanvas: PixelCanvas, checkpoint: UndoCheckpoint): void {
+        const canvas = this.canvases.find(canvas => canvas === undoCanvas);
+        if (!canvas) {
+            this.logger.warn(`cannot undo because PixelCanvas{${undoCanvas.id}} is not in this project`);
+            return;
+        }
+
+        canvas.setPixelData(checkpoint.pixelData);
     }
 
     public toJSON(): ProjectSerialized {

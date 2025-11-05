@@ -33,6 +33,7 @@ type PixelCanvasEventMap = {
     pixel_draw: [ PixelDrawingEvent ];
     clear: [];
     reset: [];
+    draw_start: [];
 };
 
 export interface PixelCanvasSerialized {
@@ -55,9 +56,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private pixelHeight: number;
     private readonly editorSettings: Readonly<EditorSettings>;
     private ctx: CanvasRenderingContext2D;
-    private logger: Logger;
+    private readonly logger: Logger;
     private readonly eventMap: Record<string, Array<(...x: any[]) => void>> = {};
-    private readonly pixelData: PixelInfo[][];
+    private pixelData: PixelInfo[][];
     private readonly $container: HTMLElement;
     private readonly $frameContainer: HTMLDivElement;
     private name: string;
@@ -278,9 +279,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
             if (pixelData.pixel) {
-                pixelData.pixel.palette = erasing ? null : this.editorSettings.activeColorPalette;
-                pixelData.pixel.index = erasing ? null : this.editorSettings.activeColorIndex;
-                this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, pixelData.pixel, 'user');
+                this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, pixelData.pixel, 'user', erasing);
             }
         };
 
@@ -298,6 +297,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             }
 
             this.setDrawState('drawing');
+            this.emit('draw_start');
             this.unhighlightPixel();
 
             activatePixelAtCursor(e);
@@ -462,35 +462,43 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         ctx.stroke();
     }
 
-    /**
-     * Probably should never be used publicly
-     */
-    public drawPixelFromScreenLocation(location: Coordinate, pixel: PixelInfo): boolean {
+    public drawPixelFromRowAndCol(
+        pixelRowAndCol: Coordinate,
+        pixel: PixelInfo,
+        behavior: PixelDrawingBehavior,
+        erasing = false,
+    ): boolean {
         if (this.destroyed) {
             return false;
         }
 
-        if (!pixel.palette) {
-            this.clearRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
-            return true;
+        // if it's the user actually drawing something, we use the current palette/color, otherwise,
+        // it's just an internal render, and we use the pixel's current palette/color
+        if (behavior === 'user') {
+            pixel.palette = erasing ? null : this.editorSettings.activeColorPalette;
+            pixel.index = erasing ? null : this.editorSettings.activeColorIndex;
         }
 
-        this.ctx.fillStyle = pixel.palette.getColorAt(pixel.index).hex;
-        this.ctx.fillRect(location.x, location.y, this.displayPixelWidth, this.displayPixelHeight);
+        const { x: col, y: row } = pixelRowAndCol;
+        const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
+
+        if (!pixel.palette) {
+            this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+        } else {
+            this.ctx.fillStyle = pixel.palette.getColorAt(pixel.index).hex;
+            this.ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+        }
+
+        this.emit('pixel_draw', { pixel, row, col, behavior });
 
         return true;
     }
 
-    public drawPixelFromRowAndCol(pixelRowAndCol: Coordinate, pixel: PixelInfo, behavior: PixelDrawingBehavior): boolean {
-        const { x: col, y: row } = pixelRowAndCol;
-        // this.logger.debug(`drawing ${color} pixel at ${pixelRowAndCol.x},${pixelRowAndCol.y} [${row},${col}]`);
-        const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
-        if (this.drawPixelFromScreenLocation(absoluteCoordinate, pixel)) {
-            this.emit('pixel_draw', { pixel, row, col, behavior });
-            return true;
-        }
-
-        return false;
+    public static generateHash(data: PixelInfo[][]): string {
+        return '\n' + data
+            .map(row => row.map(data =>
+                (data.palette?.id || '') + ':' + (data.index === null ? '' : data.index)).join(','))
+            .join('\n');
     }
 
     public highlightPixel(pixelRowAndCol: Coordinate): boolean {
@@ -607,6 +615,24 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public setName(newName: string): void {
         this.name = newName;
+    }
+
+    public setPixelData(pixelData: PixelInfo[][]): void {
+        this.pixelData = [];
+
+        pixelData.forEach((row) => {
+            const newRow: PixelInfo[] = [];
+            row.forEach((data) => {
+                newRow.push(data.palette ?
+                    { index: data.index, palette: data.palette } :
+                    { index: null, palette: null }
+                );
+            });
+
+            this.pixelData.push(newRow);
+        });
+
+        this.render();
     }
 
     public getUsedColors(): Array<{ palette: ColorPalette; index: ColorIndex }> {
