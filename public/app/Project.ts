@@ -121,7 +121,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
             return;
         }
 
-        this.canvases.forEach(canvas => this.wireUpCanvas(canvas));
+        this.canvases.forEach(canvas => {
+            this.wireUpCanvas(canvas);
+
+            // necessary to make the thumbnails render
+            canvas.render();
+        });
         if (this.activeCanvas) {
             this.activateCanvas(this.activeCanvas);
         } else if (this.canvases[0]) {
@@ -298,8 +303,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         this.setObjectName(canvas, canvas.getName());
-
-        canvas.render();
     }
 
     public addObject(options: CanvasOptions): PixelCanvas {
@@ -428,11 +431,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public zoomTo(): void {
-        this.canvases.forEach(canvas => canvas.setZoomLevel());
+        this.canvases.forEach(canvas => canvas.setZoomLevel(canvas === this.activeCanvas));
     }
 
     public setShowGrid(): void {
-        this.canvases.forEach(canvas => canvas.setShowGrid());
+        this.activeCanvas?.setShowGrid();
     }
 
     public setPixelDimensions(width: number | null, height: number | null): void {

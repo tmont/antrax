@@ -118,8 +118,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$hoverEl.classList.add('editor-hover');
 
         this.setCanvasDimensions();
-
-        this.render();
         this.enable();
     }
 
@@ -220,6 +218,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (this.destroyed) {
             return;
         }
+
+        this.logger.debug('showing');
 
         if (!this.$frameContainer.isConnected) {
             this.$container.appendChild(this.$frameContainer);
@@ -351,7 +351,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     private generateURLTimeoutId: number | null = null;
 
-    public generateDataURL(callback: (url: string | null) => void): boolean {
+    public generateDataURL(callback: (url: string | null) => void): void {
         if (this.generateURLTimeoutId) {
             window.clearTimeout(this.generateURLTimeoutId);
             this.generateURLTimeoutId = null;
@@ -368,8 +368,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 callback(URL.createObjectURL(blob));
             }, 'image/png');
         }, 50);
-
-        return true;
     }
 
     private setDrawState(newState: PixelCanvasDrawState): void {
@@ -580,13 +578,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.renderGrid();
     }
 
-    public setZoomLevel(): void {
+    public setZoomLevel(render = true): void {
         // if (zoomLevel <= 0 || zoomLevel > 10) {
         //     return;
         // }
 
         this.setCanvasDimensions();
-        this.render();
+        if (render) {
+            this.render();
+        }
     }
 
     public setDimensions(width: number | null, height: number | null): void {
