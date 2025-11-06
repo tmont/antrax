@@ -7,3 +7,7 @@
 .text-center {
     text-align: center;
 }
+
+.text-muted {
+    color: config.$muted-color;
+}

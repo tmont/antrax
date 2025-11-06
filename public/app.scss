@@ -190,6 +190,11 @@ p {
     font-weight: bold;
     color: white;
     text-shadow: 2px 2px 2px rgba(255, 255, 0, 0.25);
+
+    small {
+        text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.15);
+        font-size: 75%;
+    }
 }
 
 .project-header {

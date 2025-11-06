@@ -48,7 +48,11 @@ main() {
             echo
         done
 
+        local gitRevision
+        gitRevision=$(git log -n 1 --pretty='%h')
+
         perl -p -i -e "s/\\\$VERSION\\\$/${nextVersion}/" "${releaseDir}/public/index.html"
+        perl -p -i -e "s/\\\$COMMIT\\\$/${gitRevision}/" "${releaseDir}/public/index.html"
 
         echo "writing new version to package.json..."
         bun -e "import pkg from './package.json'; pkg.version = '${nextVersion}'; Bun.write('./package.json', JSON.stringify(pkg, null, '    '));"
