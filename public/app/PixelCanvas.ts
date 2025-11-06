@@ -710,6 +710,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             .reduce((flattened, palettes) => flattened.concat(palettes), []);
 
         return new PixelCanvas({
+            id: json.id,
             name: json.name,
             width: json.width,
             height: json.height,

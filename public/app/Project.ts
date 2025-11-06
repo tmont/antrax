@@ -166,7 +166,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             }
         });
 
-        this.updateObjectInfo();
+        this.updateActiveObjectInfo();
     }
 
     private findActiveProjectItem(): HTMLElement | null {
@@ -198,13 +198,18 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.emit('pixel_highlight', ...args, canvas);
         });
         canvas.on('pixel_draw', (...args) => {
-            this.updateActiveThumbnail();
-            this.updateObjectInfo();
+            if (canvas === this.activeCanvas) {
+                this.updateActiveThumbnail();
+                this.updateActiveObjectInfo();
+            }
+
             this.emit('pixel_draw', ...args, canvas);
         });
         canvas.on('reset', () => {
-            this.updateActiveThumbnail();
-            this.updateObjectInfo();
+            if (canvas === this.activeCanvas) {
+                this.updateActiveThumbnail();
+                this.updateActiveObjectInfo();
+            }
         });
         canvas.on('draw_start', () => {
             this.emit('draw_start', canvas);
@@ -346,7 +351,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         }
     }
 
-    public updateObjectInfo(): void {
+    public updateActiveObjectInfo(): void {
         const $el = this.findActiveProjectItem();
         const canvas = this.activeCanvas;
         if (!$el || !canvas) {
@@ -432,12 +437,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public setPixelDimensions(width: number | null, height: number | null): void {
         this.activeCanvas?.setPixelDimensions(width, height);
-        this.updateObjectInfo();
+        this.updateActiveObjectInfo();
     }
 
     public setCanvasDimensions(width: number | null, height: number | null): void {
         this.activeCanvas?.setDimensions(width, height);
-        this.updateObjectInfo();
+        this.updateActiveObjectInfo();
     }
 
     private getObjectsInGroup(group: ObjectGroup): PixelCanvas[] {
