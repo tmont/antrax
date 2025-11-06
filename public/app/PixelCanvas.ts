@@ -616,6 +616,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public setPixelData(pixelData: PixelInfo[][]): void {
+        const newHash = PixelCanvas.generateHash(pixelData);
+        const oldHash = PixelCanvas.generateHash(this.pixelData);
+
+        if (oldHash === newHash) {
+            this.logger.debug(`pixelData has no changes, doing nothing`);
+            return;
+        }
+
         this.pixelData = [];
 
         pixelData.forEach((row) => {
