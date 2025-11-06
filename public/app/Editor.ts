@@ -377,7 +377,7 @@ export class Editor {
                 // assume it's JSON
                 this.load(await file.text());
             } else {
-                this.load(await file.bytes());
+                this.load(await file.arrayBuffer());
             }
         });
 
@@ -661,8 +661,9 @@ export class Editor {
         const compressedStream = blobStream.pipeThrough(new CompressionStream('gzip'));
         new Response(compressedStream)
             .blob()
-            .then(blob => blob.bytes())
-            .then((bytes) => {
+            .then(blob => blob.arrayBuffer())
+            .then((buffer) => {
+                const bytes = new Uint8Array(buffer);
                 const base64 = window.btoa(String.fromCharCode(...bytes));
                 const filename = `antrax.json.gz`;
                 const anchor = document.createElement('a');
@@ -673,7 +674,7 @@ export class Editor {
             });
     }
 
-    public load(data: string | Uint8Array<ArrayBuffer> | Blob): void {
+    public load(data: string | ArrayBuffer | Blob): void {
         let json: object;
         if (typeof data === 'string') {
             try {
