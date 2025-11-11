@@ -9,6 +9,7 @@ import {
     type Coordinate,
     type Dimensions,
     type DisplayModeColorIndex,
+    type DisplayModeColorValue,
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
     type PixelInfo,
@@ -567,6 +568,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         ctx.stroke();
     }
 
+    private getColorForPixel(pixel: PixelInfo): DisplayModeColorValue | null {
+        if (pixel.modeColorIndex === null) {
+            return null;
+        }
+        const paletteSet = this.editorSettings.activeColorPaletteSet;
+        return this.displayMode.getColorAt(paletteSet, this.palette, pixel.modeColorIndex);
+    }
+
     public drawPixelFromRowAndCol(
         pixelRowAndCol: Coordinate,
         pixel: PixelInfo,
@@ -589,8 +598,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (pixel.modeColorIndex === null) {
             this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
         } else {
-            const paletteSet = this.editorSettings.activeColorPaletteSet;
-            const colorValue = this.displayMode.getColorAt(paletteSet, this.palette, pixel.modeColorIndex);
+            const colorValue = this.getColorForPixel(pixel);
             if (!colorValue) {
                 this.logger.error(`color[${pixel.modeColorIndex}] not found in display mode ${this.displayMode.name}`);
                 this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
@@ -651,11 +659,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
 
-        // this.logger.debug(`highlighting pixel at ${absoluteCoordinate.x},${absoluteCoordinate.y}`);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.setLineDash([ 2, 2 ]);
+        const dashSize = Math.max(2, Math.round(this.displayPixelWidth / 15));
+        ctx.strokeStyle = 'rgba(80, 80, 164, 0.75)';
+        ctx.setLineDash([ dashSize, dashSize ]);
+        ctx.lineWidth = Math.max(1, Math.round(this.displayPixelWidth / 25));
         ctx.strokeRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillStyle = 'rgba(164, 164, 255, 0.35)';
         ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
 
         this.emit('pixel_highlight', { pixel, row, col, behavior: 'user' });
