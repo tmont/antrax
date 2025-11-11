@@ -39,7 +39,7 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
         colors.forEach((color) => {
             const swatch = document.createElement('button');
             swatch.type = 'submit';
-            swatch.classList.add('color-swatch');
+            swatch.classList.add('color-swatch', 'selectable');
             if (color === this.activeColor) {
                 swatch.classList.add('active');
             }

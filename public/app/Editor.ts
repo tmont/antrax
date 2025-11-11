@@ -1,12 +1,22 @@
 import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
 import { ColorPaletteSet } from './ColorPaletteSet.ts';
 import { ColorPaletteSetCollection, type ColorPaletteSetCollectionSerialized } from './ColorPaletteSetCollection.ts';
+import DisplayMode from './DisplayMode.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
 import { PixelCanvas } from './PixelCanvas.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
-import { findElement, findOrDie } from './utils.ts';
+import {
+    type DisplayModeColorIndex,
+    type DisplayModeColorValue,
+    type DisplayModeName,
+    findElement,
+    findOrDie,
+    getColorValueCombinedLabel,
+    nope,
+    parseTemplate
+} from './utils.ts';
 
 export interface EditorSettings {
     showGrid: boolean;
@@ -61,26 +71,6 @@ const infoContent = `
             </tr>
         </table>
     </section>
-    <section>
-        <header>Colors &amp; palettes</header>
-        <table>
-            <tr>
-                <td><kbd>Shift</kbd> + Left click</td>
-                <td>Open palette color picker</td>
-            </tr>
-            <tr>
-                <td>Left click</td>
-                <td>Open background color picker</td>
-            </tr>
-            <tr>
-                <td>
-                    <p>Left click</p>
-                    <p><kbd>1-8</kbd> &rarr; <kbd>1-3</kbd></p>
-                </td>
-                <td>Select palette color</td>
-            </tr>
-        </table>
-    </section>
 </div>
 <div class="col">
     <section>
@@ -118,6 +108,13 @@ const infoContent = `
 </div>
 `;
 
+const colorItemTmpl = `
+<div class="color-item">
+    <div class="label"></div>
+    <div class="color selectable"></div>
+</div>
+`;
+
 export interface UndoCheckpoint {
     pixelData: PixelCanvas['pixelData'];
 }
@@ -143,6 +140,8 @@ export class Editor {
     private readonly $activeObjectName: HTMLElement;
     private readonly $canvasArea: HTMLElement;
     private readonly $projectControls: HTMLElement;
+    private readonly $canvasSidebar: HTMLElement;
+    private readonly $displayModeSelect: HTMLSelectElement;
     private initialized = false;
     private settings: EditorSettings;
 
@@ -170,6 +169,8 @@ export class Editor {
         this.$activeGroupName = findElement(this.$gutter, '.breadcrumb .active-group-name');
         this.$activeObjectName = findElement(this.$gutter, '.breadcrumb .active-object-name');
         this.$projectControls = findElement(this.$el, '.project-controls');
+        this.$canvasSidebar = findElement(this.$el, '.canvas-sidebar');
+        this.$displayModeSelect = findOrDie(this.$canvasSidebar, '#display-mode-select', node => node instanceof HTMLSelectElement);
 
         const defaultPaletteSet = options.paletteSets[0];
         if (!defaultPaletteSet) {
@@ -185,8 +186,8 @@ export class Editor {
         this.settings = options.settings || {
             pixelWidth: 8,
             pixelHeight: 8,
-            canvasWidth: 20,
-            canvasHeight: 20,
+            canvasWidth: 16,
+            canvasHeight: 16,
             showGrid: false,
             zoomLevel: 2,
             activeColorIndex: 0,
@@ -200,6 +201,7 @@ export class Editor {
         });
 
         this.setPaletteSets(this.paletteSets);
+        this.onPaletteSetChanged();
     }
 
     public createProject(name: Project['name']): Project {
@@ -258,18 +260,33 @@ export class Editor {
         this.project = project;
         this.project.off();
         this.project.on('canvas_activate', (activeCanvas) => {
-            const { width: pixelWidth, height: pixelHeight } = activeCanvas?.getPixelDimensions() || { width: 0, height: 0 };
-            const { width: canvasWidth, height: canvasHeight } = activeCanvas?.getDimensions() || { width: 0, height: 0 };
-
-            this.$pixelWidthInput.value = (pixelWidth || '').toString();
-            this.$pixelHeightInput.value = (pixelHeight || '').toString();
-            this.$canvasWidthInput.value = (canvasWidth || '').toString();
-            this.$canvasHeightInput.value = (canvasHeight || '').toString();
-
-            this.$activeGroupName.innerText = activeCanvas?.group.name || 'n/a';
+            this.$activeGroupName.innerText = activeCanvas?.group.getName() || 'n/a';
             this.$activeObjectName.innerText = activeCanvas?.getName() || 'n/a';
 
             this.$canvasCoordinates.innerText = `0,0`;
+
+            findElement(this.$canvasSidebar, '.group-name').innerText = activeCanvas?.group.getName() || '';
+            findElement(this.$canvasSidebar, '.palette-set-name').innerText = activeCanvas?.group.getPaletteSet().getName() || '';
+            findElement(this.$canvasSidebar, '.object-name').innerText = activeCanvas?.getName() || '';
+
+            if (activeCanvas) {
+                this.onPixelDimensionsChanged(activeCanvas);
+                this.onCanvasDimensionsChanged(activeCanvas);
+                this.onDisplayModeChanged(activeCanvas);
+                this.onCanvasPaletteChanged(activeCanvas);
+            }
+
+            const $displayModeSelect = findOrDie(this.$canvasSidebar, '#display-mode-select',
+                    node => node instanceof HTMLSelectElement);
+            $displayModeSelect.value = activeCanvas?.getDisplayMode()?.name || 'none';
+
+            if (activeCanvas) {
+                findElement(this.$canvasSidebar, '.no-selected-object').style.display = 'none';
+                findElement(this.$canvasSidebar, '.has-selected-object').style.display = 'block';
+            } else {
+                findElement(this.$canvasSidebar, '.no-selected-object').style.display = '';
+                findElement(this.$canvasSidebar, '.has-selected-object').style.display = '';
+            }
         });
         this.project.on('pixel_highlight', (e) => {
             this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
@@ -284,42 +301,219 @@ export class Editor {
 
                 undoTimeoutId = window.setTimeout(() => pushUndoItem(canvas), 250);
             }
+
+            this.syncDisplayModeControl();
+        });
+        this.project.on('canvas_reset', (canvas) => {
+            this.syncDisplayModeControl(false);
         });
         this.project.on('draw_start', (canvas) => {
             pushUndoItem(canvas);
         });
         this.project.on('active_object_name_change', (activeCanvas) => {
-            this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
+            const name = activeCanvas.getName() || 'n/a';
+            this.$activeObjectName.innerText = name;
+            findElement(this.$canvasSidebar, '.object-name').innerText = name;
         });
-        this.project.on('color_select', (paletteSet, palette, index) => {
-            paletteSet.setActiveColor(palette, index);
-            this.setActiveColor(paletteSet, palette, index);
+        this.project.on('pixel_dimensions_change', (activeCanvas) => {
+            this.onPixelDimensionsChanged(activeCanvas);
         });
+        this.project.on('canvas_dimensions_change', (activeCanvas) => {
+            this.onCanvasDimensionsChanged(activeCanvas);
+        });
+        this.project.on('display_mode_change', (activeCanvas) => {
+            this.onDisplayModeChanged(activeCanvas);
+        });
+        this.project.on('canvas_palette_change', (activeCanvas) => {
+            this.onCanvasPaletteChanged(activeCanvas);
+        });
+    }
+
+    private syncDisplayModeControl(hasData?: boolean): void {
+        const canvas = this.project?.getActiveCanvas();
+        hasData = typeof hasData === 'undefined' ? canvas?.hasData() || false : hasData;
+        this.$displayModeSelect.disabled = hasData;
+    }
+
+    private onPaletteSetChanged(): void {
+        const set = this.settings.activeColorPaletteSet;
+        const $select = findOrDie(this.$canvasSidebar, '.canvas-palette-select', node => node instanceof HTMLSelectElement);
+        while ($select.options.length) {
+            $select.remove(0);
+        }
+
+        set.getPalettes().forEach((palette) => {
+            const $option = document.createElement('option');
+            $option.value = palette.id.toString();
+            $option.innerText = palette.name;
+            $select.add($option, null);
+        });
+
+        this.logger.debug(`updated palette <select> with palettes from ColorPaletteSet{${set.id}}`);
+    }
+
+    private onDisplayModeChanged(canvas: PixelCanvas): void {
+        const displayMode = canvas.getDisplayMode();
+        this.logger.debug('display mode changed to', displayMode.name);
+
+        const defaultPixelDimensions = canvas.getPixelDimensions();
+        const { width, height } = displayMode.getPixelDimensions(defaultPixelDimensions);
+        this.project?.setPixelDimensions(width, height);
+
+        const canvasWidthMultiple = displayMode.pixelsPerByte;
+        if (canvasWidthMultiple > 0) {
+            const { width } = canvas.getDimensions();
+            if (width % canvasWidthMultiple !== 0) {
+                const clampedWidth = width + (canvasWidthMultiple - (width % canvasWidthMultiple));
+                this.project?.setCanvasDimensions(clampedWidth, null);
+            }
+        }
+
+        this.$pixelWidthInput.disabled = displayMode.isFixedPixelSize;
+        this.$pixelHeightInput.disabled = displayMode.isFixedPixelSize;
+
+        this.$canvasWidthInput.max = isFinite(displayMode.maxWidth) ? displayMode.maxWidth.toString() : '256';
+        this.$canvasWidthInput.step = displayMode.pixelsPerByte > 0 ? displayMode.pixelsPerByte.toString() : '1';
+        this.$canvasWidthInput.min = displayMode.pixelsPerByte > 0 ? displayMode.pixelsPerByte.toString() : '1';
+
+        const $paletteSelect = findOrDie(this.$canvasSidebar, '.canvas-palette-select', node => node instanceof HTMLSelectElement);
+        $paletteSelect.disabled = displayMode.name === 'none';
+
+        this.updateCanvasSidebarColors();
+    }
+
+    private updateCanvasSidebarColors(): void {
+        const canvas = this.project?.getActiveCanvas();
+        if (!canvas) {
+            return;
+        }
+
+        this.logger.debug('updating canvas sidebar colors');
+
+        const palette = canvas.getColorPalette();
+        const paletteSet = this.paletteSets.getPaletteSets().find(set => set.getPalettes().some(p => p === palette));
+        if (!paletteSet) {
+            throw new Error(`Could not find PaletteSet for ColorPalette{${palette.id}}`);
+        }
+
+        const displayMode = canvas.getDisplayMode();
+        const colors = displayMode.getColors(paletteSet, palette);
+
+        const $paletteList = findElement(this.$canvasSidebar, '.canvas-palette-colors');
+        $paletteList.innerHTML = '';
+
+        palette.colors.forEach((color) => {
+            const $swatch = document.createElement('div');
+            $swatch.classList.add('color-swatch');
+            $swatch.style.backgroundColor = color.hex;
+            $paletteList.appendChild($swatch);
+        });
+
+        const $colorList = findElement(this.$canvasSidebar, '.color-list');
+        $colorList.innerHTML = '';
+
+        const $colorItem = parseTemplate(colorItemTmpl);
+        const activeColor = canvas.getActiveColor();
+
+        colors.forEach((colorValue: DisplayModeColorValue, colorModeIndex) => {
+            const $item = $colorItem.cloneNode(true) as HTMLElement;
+            $item.setAttribute('data-color-value', colorModeIndex.toString());
+            if (activeColor === colorModeIndex) {
+                $item.classList.add('active');
+            }
+
+            findElement($item, '.label').innerText = getColorValueCombinedLabel(colorValue);
+
+            colorValue.forEach((color) => {
+                const $swatch = document.createElement('div');
+                $swatch.classList.add('color-swatch');
+                $swatch.style.backgroundColor = color.value === 'transparent' ?
+                    'transparent' :
+                    (
+                        color.value === 'background' ?
+                            this.settings.activeColorPaletteSet.getBackgroundColor().hex :
+                            color.value.palette.getColorAt(color.value.index).hex
+                    );
+                findElement($item, '.color').appendChild($swatch);
+            });
+
+            $item.addEventListener('click', () => {
+                this.setActiveColor(colorModeIndex);
+            });
+
+            $colorList.appendChild($item);
+        });
+    }
+
+    private onCanvasPaletteChanged(canvas: PixelCanvas): void {
+        const palette = canvas.getColorPalette();
+        const $select = findOrDie(this.$canvasSidebar, '.canvas-palette-select', node => node instanceof HTMLSelectElement);
+        const index = Array.from($select.options).findIndex(option => option.value === palette.id.toString());
+        if (index === -1) {
+            throw new Error(`Palette{${palette.id}} not found in .canvas-palette-select <option>`);
+        }
+
+        // update palette <select> and swatch list
+        $select.selectedIndex = index;
+
+        // update color list
+        this.updateCanvasSidebarColors();
+    }
+
+    private onCanvasDimensionsChanged(canvas: PixelCanvas): void {
+        if (canvas !== this.project?.getActiveCanvas()) {
+            return;
+        }
+
+        const { width, height } = canvas.getDimensions();
+        this.$canvasWidthInput.value = width.toString();
+        this.$canvasHeightInput.value = height.toString();
+
+        findElement(this.$canvasSidebar, '.object-details .canvas-size').innerText = canvas ?
+            width + '×' + height :
+            '';
+    }
+
+    private onPixelDimensionsChanged(canvas: PixelCanvas): void {
+        if (canvas !== this.project?.getActiveCanvas()) {
+            return;
+        }
+
+        const { width, height } = canvas.getPixelDimensions();
+
+        findElement(this.$canvasSidebar, '.object-details .pixel-size').innerText = canvas ?
+            (width + '×' + height) :
+            '';
+
+        this.$pixelWidthInput.value = width.toString();
+        this.$pixelHeightInput.value = height.toString();
     }
 
     public setPaletteSets(paletteSets: ColorPaletteSetCollection): void {
         this.paletteSets.off();
 
         this.paletteSets = paletteSets;
-        this.paletteSets.on('color_select', (paletteSet, palette, color, index) => {
-            this.setActiveColor(paletteSet, palette, index);
-        });
         this.paletteSets.on('color_change', (paletteSet, palette, color, index) => {
-            this.setActiveColor(paletteSet, palette, index);
             this.project?.updatePaletteColor(palette, index);
+            this.updateCanvasSidebarColors();
         });
         this.paletteSets.on('bg_select', (paletteSet, color) => {
             this.project?.setBackgroundColor(color);
         });
     }
 
-    private setActiveColor(paletteSet: ColorPaletteSet, palette: ColorPalette, index: ColorIndex): void {
-        const hex = palette.getColorAt(index).hex;
-        this.logger.info(`active color set to PaletteSet{${paletteSet.id}}, ${palette.name}[${index}] (${hex})`);
-        this.settings.activeColorPaletteSet = paletteSet;
-        this.settings.activeColorPalette = palette;
-        this.settings.activeColorIndex = index;
-        this.project?.setActiveColor(paletteSet, palette, index);
+    // private setActiveColor(paletteSet: ColorPaletteSet, palette: ColorPalette, index: ColorIndex): void {
+    private setActiveColor(colorValue: DisplayModeColorIndex): void {
+        this.logger.info(`active color set to ${colorValue}`);
+        this.project?.setActiveColor(colorValue);
+
+        const $colorList = findElement(this.$canvasSidebar, '.color-list');
+        $colorList.querySelectorAll('[data-color-value]').forEach((el) => {
+            el.classList.remove('active');
+            if (el.getAttribute('data-color-value') === colorValue.toString()) {
+                el.classList.add('active');
+            }
+        });
     }
 
     public updateZoomLevelUI(): void {
@@ -342,19 +536,27 @@ export class Editor {
         this.paletteSets.init();
         this.project.init();
 
-        const newObjBtn = findElement(this.$projectControls, '.new-object-btn');
+        this.$el.querySelectorAll('.new-object-btn').forEach((newObjBtn) => {
+            const defaultColorPalette = this.settings.activeColorPaletteSet.getPalettes()[0];
+            if (!defaultColorPalette) {
+                throw new Error(`Could not find default color palette in ` +
+                    `ColorPaletteSet{${this.settings.activeColorPaletteSet.id}}`);
+            }
 
-        newObjBtn.addEventListener('click', () => {
-            this.project?.addObject({
-                mountEl: this.$canvasArea,
-                width: this.settings.canvasWidth,
-                height: this.settings.canvasHeight,
-                pixelHeight: this.settings.pixelHeight,
-                pixelWidth: this.settings.pixelWidth,
-                editorSettings: this.settings,
-                group: new ObjectGroup({
-                    paletteSet: this.settings.activeColorPaletteSet,
-                }),
+            newObjBtn.addEventListener('click', () => {
+                this.project?.addObject({
+                    mountEl: this.$canvasArea,
+                    width: this.settings.canvasWidth,
+                    height: this.settings.canvasHeight,
+                    pixelHeight: this.settings.pixelHeight,
+                    pixelWidth: this.settings.pixelWidth,
+                    editorSettings: this.settings,
+                    displayMode: DisplayMode.ModeNone,
+                    palette: defaultColorPalette,
+                    group: new ObjectGroup({
+                        paletteSet: this.settings.activeColorPaletteSet,
+                    }),
+                });
             });
         });
 
@@ -381,23 +583,6 @@ export class Editor {
             }
         });
 
-        // ensure that the absolutely positioned canvases are correctly aligned after a window resize
-        // TODO i believe this isn't necessary anymore since the canvas is now absolutely positioned
-        window.addEventListener('resize', (() => {
-            let debounceId: number | null = null;
-
-            return () => {
-                if (debounceId) {
-                    window.clearTimeout(debounceId);
-                    debounceId = null;
-                }
-
-                window.setTimeout(() => {
-                    this.project?.onResize();
-                }, 150);
-            };
-        })());
-
         const canvasContainer = findElement(this.$el, '.canvas-container');
         let panning = false;
         let panningOrigin = { x: 0, y: 0 };
@@ -413,8 +598,6 @@ export class Editor {
             this.project?.zoomTo();
         });
 
-        let chord2: string[] = [];
-        let chordTimeoutId: number | null = null;
         document.addEventListener('keydown', (e) => {
             if (panning) {
                 return;
@@ -426,44 +609,6 @@ export class Editor {
 
             if (e.shiftKey || e.key === 'Shift') {
                 canvasContainer.classList.add('panning-start');
-            }
-
-            if (/^\d$/.test(e.key)) {
-                if (chordTimeoutId) {
-                    window.clearTimeout(chordTimeoutId);
-                    chordTimeoutId = null;
-                }
-
-                chord2.push(e.key);
-                while (chord2.length > 2) {
-                    chord2.shift();
-                }
-
-                if (chord2.length === 2) {
-                    const [ key1, key2 ] = chord2;
-                    chord2 = [];
-
-                    const paletteIndex = Number(key1);
-                    const colorIndex = Number(key2);
-                    if (paletteIndex >= 1 && paletteIndex <= 8 && (colorIndex >= 1 && colorIndex <= 3)) {
-                        // select color in palette
-                        const trueColorIndex: ColorIndex = colorIndex - 1 as any;
-                        const set = this.settings.activeColorPaletteSet;
-                        const palette = set?.getPalettes()[paletteIndex - 1];
-                        const color = palette?.getColorAt(trueColorIndex);
-                        if (set && palette && color) {
-                            this.logger.info(`setting active color to ${color.hex} due to key chord ${key1},${key2}`);
-                            this.setActiveColor(set, palette, trueColorIndex);
-                            set.setActiveColor(palette, trueColorIndex);
-                        }
-                    }
-                } else {
-                    // clear chord after a little bit of time
-                    chordTimeoutId = window.setTimeout(() => {
-                        this.logger.info('clearing key chord');
-                        chord2 = [];
-                    }, 5000);
-                }
             }
 
             if (e.ctrlKey && e.key.toLowerCase() === 'z') {
@@ -571,13 +716,13 @@ export class Editor {
                 }
             });
 
-            const max = Number(input.max) || Infinity;
-            const min = Number(input.min) || -Infinity;
-
-            let prevValue = parseInt(input.value) || 0;
+            let prevValue = parseInt(input.value) || 1;
             input.addEventListener('change', () => {
+                const max = Number(input.max) || 256;
+                const min = Number(input.min) || 1;
+                const step = Number(input.step) || 1;
                 const value = parseInt(input.value);
-                if (isNaN(value) || value > max || value < min) {
+                if (isNaN(value) || value > max || value < min || value % step !== 0) {
                     input.value = (value > max ? max : (value < min ? min : prevValue)).toString();
                     setValue(Number(input.value));
                     return;
@@ -604,6 +749,39 @@ export class Editor {
                 });
                 modal.show();
             });
+
+        const $displayModeSelect = findOrDie(this.$canvasSidebar, '#display-mode-select',
+            node => node instanceof HTMLSelectElement);
+        $displayModeSelect.addEventListener('change', () => {
+            const newDisplayMode = $displayModeSelect.value as DisplayModeName;
+            switch (newDisplayMode) {
+                case 'none':
+                case '160A':
+                case '160B':
+                case '320A':
+                case '320B':
+                case '320C':
+                case '320D':
+                    this.project?.setDisplayMode(newDisplayMode);
+                    break;
+                default:
+                    nope(newDisplayMode);
+                    throw new Error(`Unknown value in display mode <select>: "${newDisplayMode}"`);
+            }
+        });
+
+        const $paletteSelect = findOrDie(this.$canvasSidebar, '.canvas-palette-select',
+            node => node instanceof HTMLSelectElement);
+        $paletteSelect.addEventListener('change', () => {
+            const paletteId = Number($paletteSelect.value);
+            const palette = this.settings.activeColorPaletteSet.getPalettes().find(palette => palette.id === paletteId);
+            if (!palette) {
+                this.logger.error(`selected palette ${paletteId} not found in active ColorPaletteSet`);
+                return;
+            }
+
+            this.project?.setColorPalette(palette);
+        });
 
         this.updateZoomLevelUI();
         this.initialized = true;
@@ -653,7 +831,6 @@ export class Editor {
 
     public save(): void {
         const json = this.toJSON();
-        // window.localStorage.setItem('last_save', JSON.stringify(json));
         const stringified = JSON.stringify(json);
 
         const blobStream = new Blob([ stringified ]).stream();

@@ -16,6 +16,8 @@ $sidebar-padding-x: $gutter;
 $sidebar-padding-y: $gutter;
 $editor-gutter-height: 2rem;
 $editor-gutter-padding: $gutter-quarter;
+$canvas-sidebar-width: 8rem;
+
 
 $bg-color: #363636;
 $color: #B8B8B8;
@@ -44,4 +46,5 @@ $input-shadow-color: $primary-bg;
 $sidebar-bg-color: color.adjust($bg-color, $lightness: -2%);
 $border-color: color.adjust($bg-color, $lightness: 5%);
 $header-bg-color: $sidebar-bg-color;
+$canvas-sidebar-bg: color.adjust($sidebar-bg-color, $lightness: -2%);
 

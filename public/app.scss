@@ -48,6 +48,10 @@ p {
     margin: 0;
 }
 
+hr {
+    border-color: config.$border-color;
+}
+
 .app {
     display: flex;
     height: 100%;
@@ -59,25 +63,22 @@ p {
 }
 
 .main-sidebar {
+    $border-width: 2px;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
     width: config.$sidebar-width;
     background-color: config.$sidebar-bg-color;
-    border-right: 2px solid config.$border-color;
-
-    .project-controls {
-        display: flex;
-        justify-content: center;
-        gap: config.$gutter-quarter;
-    }
+    border-right: $border-width solid config.$border-color;
+    z-index: 2;
 
     .project-structure {
         display: flex;
         flex-direction: column;
         gap: config.$gutter;
-        padding: config.$sidebar-padding-y config.$sidebar-padding-x;
+        padding: config.$sidebar-padding-y 0 config.$sidebar-padding-y config.$sidebar-padding-x;
         overflow: hidden;
+        margin-right: -$border-width; // used to handle the active item
 
         .project-name {
             font-weight: bold;
@@ -87,6 +88,16 @@ p {
         .group-name {
             font-weight: bold;
             margin-bottom: config.$gutter-quarter;
+        }
+
+        .project-controls {
+            display: flex;
+            justify-content: center;
+            gap: config.$gutter-quarter;
+        }
+
+        .section-item {
+            padding-right: config.$sidebar-padding-x;
         }
 
         .project-objects {
@@ -107,7 +118,10 @@ p {
             display: flex;
             flex-direction: column;
             gap: config.$gutter-eighth;
-            padding: config.$gutter-eighth config.$gutter-quarter;
+            padding: config.$gutter-eighth config.$sidebar-padding-x config.$gutter-eighth config.$gutter-quarter;
+            border: 2px solid transparent;
+            border-right: none;
+            position: relative;
 
             &:hover {
                 &:not(&.active) {
@@ -116,7 +130,8 @@ p {
             }
 
             &.active {
-                background-color: config.$accent-bg;
+                background-color: config.$canvas-sidebar-bg;
+                border-color: config.$border-color;
 
                 a {
                     cursor: default;
@@ -136,7 +151,7 @@ p {
                 display: none;
                 flex-direction: column;
                 gap: config.$gutter-eighth;
-                font-size: 90%;
+                font-size: 80%;
 
                 .object-details {
                     display: flex;
@@ -144,12 +159,15 @@ p {
                     margin: 0 auto;
                 }
 
-                .object-color-list {
+                .canvas-palette-details {
                     display: flex;
-                    gap: config.$gutter-eighth;
-                    justify-content: center;
-                    min-height: 17px; // to make it not shift around when text is rendered
-                    flex-wrap: wrap;
+                    gap: config.$gutter-quarter;
+                    align-items: center;
+
+                    .palette-color-list {
+                        display: flex;
+                        gap: config.$gutter-eighth;
+                    }
                 }
             }
 
@@ -210,25 +228,135 @@ p {
     flex: 1;
     display: flex;
     flex-direction: column;
+    z-index: 1;
 }
 
-.canvas-container {
+.middle-content {
     flex: 1;
-    position: relative;
-    overflow: hidden;
+    display: flex;
 
-    &.panning-start {
-        &, canvas {
-            cursor: grab !important;
+    .canvas-container {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        &.panning-start {
+            &, canvas {
+                cursor: grab !important;
+            }
+        }
+        &.panning {
+            &, canvas {
+                cursor: grabbing !important;
+            }
         }
     }
-    &.panning {
-        &, canvas {
-            cursor: grabbing !important;
+
+    .canvas-sidebar {
+        flex-shrink: 0;
+        flex-basis: config.$canvas-sidebar-width;
+        border-right: 2px solid config.$border-color;
+        background-color: config.$canvas-sidebar-bg;
+        font-size: 90%;
+        padding: config.$gutter-quarter;
+
+        hr {
+            width: 100%;
+        }
+
+        .indented-list {
+            margin-left: config.$gutter-quarter;
+            display: flex;
+            flex-direction: column;
+            gap: config.$gutter-eighth;
+            font-size: 95%;
+        }
+
+        .has-selected-object {
+            display: none;
+        }
+
+        .no-selected-object {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: config.$gutter-quarter;
+            p {
+                margin-bottom: config.$gutter;
+            }
+        }
+
+        .group-name {
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(black, 0.6);
+        }
+
+        .object-name {
+            font-weight: bold;
+            text-shadow: 1px 1px 1px rgba(black, 0.6);
+        }
+
+        .object-details {
+            display: flex;
+            gap: config.$gutter-eighth;
+        }
+
+        .canvas-palette-details {
+            display: flex;
+            gap: config.$gutter-half;
+            justify-content: space-between;
+            align-items: center;
+
+            .canvas-palette-colors {
+                display: flex;
+                gap: config.$gutter-eighth;
+            }
+        }
+
+        .color-list {
+            display: flex;
+            flex-direction: column;
+            gap: config.$gutter-eighth;
+
+            .color-item {
+                display: flex;
+                justify-content: space-between;
+
+                &.active {
+                    .label {
+                        font-weight: bold;
+                        color: config.$primary-color;
+                    }
+
+                    .color.selectable {
+                        border-color: white;
+                    }
+                }
+
+                .label {
+                    text-shadow: 1px 1px 1px rgba(black, 0.5);
+                }
+                .color {
+                    display: flex;
+                    border: 1px solid transparent;
+                    border-radius: 3px;
+
+                    &.selectable {
+                        cursor: pointer;
+                        &:hover {
+                            border-color: white;
+                        }
+                    }
+
+                    .color-swatch {
+                        border-radius: 3px;
+                    }
+                }
+            }
         }
     }
 
     .canvas-area {
+        flex: 1;
         overflow: hidden;
         position: absolute;
         top: 0;

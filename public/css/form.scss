@@ -1,6 +1,6 @@
 @use "./config";
 
-input {
+input, select {
     border-radius: config.$input-radius;
     background-color: config.$input-bg-color;
     border: 1px solid config.$input-border;
@@ -18,14 +18,27 @@ input {
     &[type="checkbox"] {
         accent-color: config.$input-shadow-color;
     }
+
+    &[disabled] {
+        opacity: 0.6;
+    }
 }
 
 .form-row {
-    margin-bottom: config.$gutter-half;
+    &.form-row-h {
+        display: flex;
+        gap: config.$gutter-half;
+    }
 
     .form-control {
         width: 100%;
     }
+}
+
+.form-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: config.$gutter-half;
 }
 
 .submit-container {

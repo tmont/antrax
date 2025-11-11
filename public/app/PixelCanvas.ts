@@ -1,10 +1,19 @@
-import type { ColorIndex, ColorPalette } from './ColorPalette.ts';
+import type { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import DisplayMode from './DisplayMode.ts';
 import type { EditorSettings } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
-import type { Coordinate, Dimensions, PixelInfo, PixelInfoBg, PixelInfoSerialized } from './utils.ts';
+import {
+    type Coordinate,
+    type Dimensions,
+    type DisplayModeColorIndex,
+    type DisplayModeColorValueSerialized,
+    type DisplayModeName,
+    type PixelInfo,
+    type PixelInfoSerialized
+} from './utils.ts';
 
 export interface CanvasOptions extends Dimensions {
     id?: PixelCanvas['id'];
@@ -15,6 +24,9 @@ export interface CanvasOptions extends Dimensions {
     pixelData?: PixelInfo[][];
     group: ObjectGroup;
     editorSettings: EditorSettings;
+    displayMode: DisplayMode | DisplayModeName;
+    palette: ColorPalette;
+    activeColor?: DisplayModeColorIndex;
 }
 
 export type PixelCanvasDrawState = 'idle' | 'drawing';
@@ -34,6 +46,10 @@ type PixelCanvasEventMap = {
     clear: [];
     reset: [];
     draw_start: [];
+    pixel_dimensions_change: [];
+    canvas_dimensions_change: [];
+    display_mode_change: [];
+    palette_change: [];
 };
 
 export interface PixelCanvasSerialized {
@@ -45,6 +61,9 @@ export interface PixelCanvasSerialized {
     height: PixelCanvas['height'];
     group: ObjectGroupSerialized;
     pixelData: PixelInfoSerialized[][];
+    displayModeName: DisplayModeName;
+    paletteId: ColorPalette['id'];
+    activeColor: DisplayModeColorValueSerialized;
 }
 
 export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
@@ -65,6 +84,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public readonly id: number;
     public readonly group: ObjectGroup;
     private destroyed = false;
+    private displayMode: DisplayMode;
+    private palette: ColorPalette;
+    private activeColor: DisplayModeColorIndex;
 
     private static instanceCount = 0;
 
@@ -82,6 +104,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger = Logger.from(this);
         this.group = options.group;
         this.editorSettings = options.editorSettings;
+        this.displayMode = options.displayMode instanceof DisplayMode ?
+            options.displayMode :
+            DisplayMode.create(options.displayMode);
+        this.palette = options.palette;
+        this.activeColor = options.activeColor || 0;
+
+        this.setActiveColor(this.activeColor);
 
         this.$container = options.mountEl;
 
@@ -102,8 +131,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.pixelData = options.pixelData || [];
         this.pixelWidth = options.pixelWidth;
         this.pixelHeight = options.pixelHeight;
-
-
         this.width = options.width;
         this.height = options.height;
 
@@ -143,19 +170,20 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.name;
     }
 
+    public getActiveColor(): DisplayModeColorIndex {
+        return this.activeColor;
+    }
+
+    public setActiveColor(modeColorIndex: DisplayModeColorIndex): void {
+        this.activeColor = modeColorIndex;
+        this.logger.debug(`active color set`, modeColorIndex);
+    }
+
     public clonePixelData(): PixelInfo[][] {
         return this.pixelData.map((row) => {
             return row.map((info) => {
-                if (info.palette) {
-                    return {
-                        palette: info.palette,
-                        index: info.index,
-                    }
-                }
-
                 return {
-                    palette: null,
-                    index: null,
+                    modeColorIndex: info.modeColorIndex,
                 };
             });
         });
@@ -193,13 +221,41 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         for (let row = 0; row < this.height; row++) {
             const pixelRow = this.pixelData[row] = this.pixelData[row] || [];
             for (let col = 0; col < this.width; col++) {
-                const defaultValue: PixelInfoBg = {
-                    palette: null,
-                    index: null,
+                const defaultValue: PixelInfo = {
+                    modeColorIndex: null,
                 };
                 pixelRow[col] = reset ? defaultValue : pixelRow[col] || defaultValue;
             }
         }
+    }
+
+    public getDisplayMode(): DisplayMode {
+        return this.displayMode;
+    }
+
+    public setDisplayMode(newMode: DisplayMode | DisplayModeName): void {
+        if (typeof newMode === 'string') {
+            newMode = DisplayMode.create(newMode);
+        }
+        this.displayMode = newMode;
+        this.setActiveColor(0);
+        this.emit('display_mode_change');
+    }
+
+    public getColorPalette(): ColorPalette {
+        return this.palette;
+    }
+
+    public setColorPalette(newPalette: ColorPalette): void {
+        if (this.palette === newPalette) {
+            return;
+        }
+
+        this.logger.debug(`setting color palette to ${this.palette.name} {${this.palette.id}}`);
+
+        this.palette = newPalette;
+        this.render();
+        this.emit('palette_change');
     }
 
     public hide(): void {
@@ -412,7 +468,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 totalPixels++;
                 const pixelInfo = pixelRow[col]!;
                 if (this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, 'internal')) {
-                    pixelsDrawn += (pixelInfo.index !== null ? 1 : 0);
+                    pixelsDrawn += (pixelInfo.modeColorIndex !== null ? 1 : 0);
                 }
             }
         }
@@ -471,18 +527,42 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         // if it's the user actually drawing something, we use the current palette/color, otherwise,
         // it's just an internal render, and we use the pixel's current palette/color
         if (behavior === 'user') {
-            pixel.palette = erasing ? null : this.editorSettings.activeColorPalette;
-            pixel.index = erasing ? null : this.editorSettings.activeColorIndex;
+            pixel.modeColorIndex = erasing ? null : this.activeColor;
         }
 
         const { x: col, y: row } = pixelRowAndCol;
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
 
-        if (!pixel.palette) {
+        if (pixel.modeColorIndex === null) {
             this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
         } else {
-            this.ctx.fillStyle = pixel.palette.getColorAt(pixel.index).hex;
-            this.ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+
+            const colorValue = this.displayMode.getColorAt(this.editorSettings.activeColorPaletteSet, this.palette, pixel.modeColorIndex);
+            if (!colorValue) {
+                this.logger.error(`color[${pixel.modeColorIndex}] not found in display mode ${this.displayMode.name}`);
+                this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+            } else {
+                // not using slice() since it's probably more efficient to not copy the array since this is
+                // called in a loop. but ain't nobody got time for benchmarking, so maybe it wouldn't even
+                // matter...
+                const partsPerPixel = Math.min(colorValue.length, this.displayMode.partsPerPixel);
+                for (let i = 0; i < partsPerPixel; i++) {
+                    const color = colorValue[i];
+                    if (!color) {
+                        break;
+                    }
+
+                    const width = this.displayPixelWidth / partsPerPixel;
+                    const fudge = i * width;
+                    const x = absoluteCoordinate.x + fudge;
+                    if (color.value === 'background' || color.value === 'transparent') {
+                        this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                    } else {
+                        this.ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
+                        this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                    }
+                }
+            }
         }
 
         this.emit('pixel_draw', { pixel, row, col, behavior });
@@ -492,8 +572,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public static generateHash(data: PixelInfo[][]): string {
         return '\n' + data
-            .map(row => row.map(data =>
-                (data.palette?.id || '') + ':' + (data.index === null ? '' : data.index)).join(','))
+            .map(row => row.map(data => data.modeColorIndex === null ? '' : data.modeColorIndex))
             .join('\n');
     }
 
@@ -598,6 +677,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
         this.setCanvasDimensions();
         this.render();
+        this.emit('canvas_dimensions_change');
     }
 
     public setPixelDimensions(width: number | null, height: number | null): void {
@@ -609,6 +689,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
         this.setCanvasDimensions();
         this.render();
+        this.emit('pixel_dimensions_change');
     }
 
     public setName(newName: string): void {
@@ -629,43 +710,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         pixelData.forEach((row) => {
             const newRow: PixelInfo[] = [];
             row.forEach((data) => {
-                newRow.push(data.palette ?
-                    { index: data.index, palette: data.palette } :
-                    { index: null, palette: null }
-                );
+                newRow.push({ modeColorIndex: data.modeColorIndex });
             });
 
             this.pixelData.push(newRow);
         });
 
         this.render();
-    }
-
-    public getUsedColors(): Array<{ palette: ColorPalette; index: ColorIndex }> {
-        const colors: Array<{ palette: ColorPalette; index: ColorIndex }> = [];
-
-        const seen: Record<string, 1> = {};
-
-        this.pixelData.forEach((row) => {
-            row.forEach((pixelInfo) => {
-                if (!pixelInfo.palette) {
-                    return;
-                }
-
-                const key = `${pixelInfo.palette.id}:${pixelInfo.index}`;
-                if (seen[key]) {
-                    return;
-                }
-
-                seen[key] = 1;
-                colors.push({
-                    palette: pixelInfo.palette,
-                    index: pixelInfo.index,
-                });
-            });
-        });
-
-        return colors;
     }
 
     public toJSON(): PixelCanvasSerialized {
@@ -677,11 +728,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             name: this.name,
             id: this.id,
             group: this.group.toJSON(),
+            displayModeName: this.displayMode?.name || null,
+            paletteId: this.palette.id,
+            activeColor: this.activeColor,
             pixelData: this.pixelData.map((row) => {
                 return row.map((pixel) => {
                     return {
-                        index: pixel.index,
-                        paletteId: pixel.palette?.id || null,
+                        modeColorIndex: pixel.modeColorIndex,
                     };
                 });
             }),
@@ -696,6 +749,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         paletteSets: Readonly<ColorPaletteSet[]>,
     ): PixelCanvas {
         if (!isSerialized(json)) {
+            console.log(json);
             throw new Error('Cannot deserialize PixelCanvas, invalid JSON');
         }
 
@@ -709,6 +763,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             .map(set => set.getPalettes())
             .reduce((flattened, palettes) => flattened.concat(palettes), []);
 
+        let colorPalette = colorPalettes.find(palette => palette.id === json.paletteId);
+        if (!colorPalette) {
+            colorPalette = colorPalettes[0];
+            if (!colorPalette) {
+                throw new Error(`Could not create color palette while deserializing PixelCanvas`);
+            }
+        }
+
         return new PixelCanvas({
             id: json.id,
             name: json.name,
@@ -719,8 +781,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             editorSettings,
             mountEl,
             group,
-            pixelData: deserializePixelData(json.pixelData, colorPalettes),
+            displayMode: json.displayModeName,
+            palette: colorPalette,
+            activeColor: json.activeColor,
+            pixelData: deserializePixelData(json.pixelData),
         });
+    }
+
+    public hasData(): boolean {
+        return this.pixelData.some(row => row.some(data => data.modeColorIndex !== null));
     }
 }
 
@@ -735,7 +804,9 @@ const isSerialized = (json: any): json is PixelCanvasSerialized => {
         typeof json.width !== 'number' ||
         typeof json.height !== 'number' ||
         typeof json.pixelWidth !== 'number' ||
-        typeof json.pixelHeight !== 'number'
+        typeof json.pixelHeight !== 'number' ||
+        typeof json.displayModeName !== 'string' ||
+        typeof json.activeColor !== 'number'
     ) {
         return false;
     }
@@ -747,27 +818,10 @@ const isSerialized = (json: any): json is PixelCanvasSerialized => {
     return true;
 };
 
-const deserializePixelData = (data: PixelInfoSerialized[][], palettes: Readonly<ColorPalette[]>): PixelInfo[][] => {
-    return data.map((row, i) => {
-        return row.map((item, j): PixelInfo => {
-            let palette: ColorPalette | null = null;
-            if (item.paletteId) {
-                palette = palettes.find(palette => palette.id === item.paletteId) || null;
-                if (!palette) {
-                    console.warn(`palette ${item.paletteId} not found for pixel ${i},${j}`, palettes);
-                }
-            }
-            if (!palette || (item.index !== 0 && item.index !== 1 && item.index !== 2)) {
-                return {
-                    index: null,
-                    palette: null,
-                };
-            }
-
-            return {
-                index: item.index,
-                palette,
-            };
-        });
-    });
+const deserializePixelData = (data: PixelInfoSerialized[][]): PixelInfo[][] => {
+    return data.map((row) => row.map((item): PixelInfo => {
+        return {
+            modeColorIndex: item.modeColorIndex,
+        };
+    }));
 };

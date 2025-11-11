@@ -20,9 +20,9 @@ const tmpl = `
 <div class="color-palette-container">
     <header class="color-palette-name"></header>
     <div class="color-swatch-list">
-        <div class="color-swatch" data-index="0"></div>
-        <div class="color-swatch" data-index="1"></div>
-        <div class="color-swatch" data-index="2"></div>
+        <div class="color-swatch selectable" data-index="0"></div>
+        <div class="color-swatch selectable" data-index="1"></div>
+        <div class="color-swatch selectable" data-index="2"></div>
     </div>
 </div>
 `;
@@ -35,8 +35,8 @@ export type ColorPaletteEventMap = {
 };
 
 export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
-    public colors: [ Atari7800Color, Atari7800Color, Atari7800Color ];
-    public name: string;
+    public colors: [ Atari7800Color, Atari7800Color, Atari7800Color ]; // TODO
+    public name: string; // TODO
     private initialized = false;
     private readonly logger: Logger;
     private $el: HTMLElement | null = null;
@@ -96,10 +96,6 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
             });
 
             $swatch.addEventListener('click', (e) => {
-                if (!e.shiftKey) {
-                    return;
-                }
-
                 if (!(e.target instanceof HTMLElement)) {
                     return;
                 }
@@ -130,25 +126,6 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         this.colors.forEach((color, i) => {
             findElement($el, `[data-index="${i}"]`).style.backgroundColor = color.hex;
         });
-    }
-
-    public setActiveState(isActive: boolean, activeColorIndex: ColorIndex | null): void {
-        if (!this.$el) {
-            throw new Error(`ColorPalette has not been initialized, cannot set active state`);
-        }
-
-        this.$el.classList.remove('active');
-
-        this.$el.querySelectorAll(`[data-index]`).forEach((el) => {
-            el.classList.remove('active');
-        });
-
-        if (isActive) {
-            this.$el.classList.add('active');
-            if (activeColorIndex !== null) {
-                findElement(this.$el, `[data-index="${activeColorIndex}"]`).classList.add('active');
-            }
-        }
     }
 
     public getColorAt(index: ColorIndex): Readonly<Atari7800Color> {

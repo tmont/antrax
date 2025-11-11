@@ -1,5 +1,4 @@
 import type { ColorIndex, ColorPalette } from './ColorPalette.ts';
-import type { Atari7800Color } from './colors.ts';
 
 export const nope = (_x: never) => {};
 
@@ -13,23 +12,40 @@ export interface Coordinate {
     y: number;
 }
 
-export type PixelColor = Atari7800Color | null;
+export type DisplayModeNameLo = '160A' | '160B';
+export type DisplayModeNameHi = '320A' | '320B' | '320C' | '320D';
+export type DisplayModeName = DisplayModeNameLo | DisplayModeNameHi | 'none';
+export type PaletteIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export const isPaletteIndex = (index: number): index is PaletteIndex => index >= 0 && index <= 7;
 
-export interface PixelInfoColor {
+export interface ColorPaletteColor {
     palette: ColorPalette;
     index: ColorIndex;
 }
 
-export interface PixelInfoBg {
-    palette: null;
-    index: null;
+export type DisplayModeNonColorString = 'T' | 'BG';
+export type DisplayModeColorString = `P${PaletteIndex}C${ColorIndex}`;
+export type DisplayModeColorStringAll = DisplayModeNonColorString | DisplayModeColorString;
+export type ColorValue = 'transparent' | 'background' | ColorPaletteColor;
+
+export type DisplayModeColorIndex = number;
+
+export interface DisplayModeColor {
+    label: DisplayModeColorStringAll;
+    value: ColorValue;
 }
 
-export type PixelInfo = PixelInfoColor | PixelInfoBg;
-export interface PixelInfoSerialized {
-    paletteId: ColorPalette['id'] | null;
-    index: ColorIndex | null;
+export type DisplayModeColorValue = DisplayModeColor[];
+
+export type DisplayModeColorValueSerialized = DisplayModeColorIndex;
+
+export interface PixelInfo {
+    modeColorIndex: DisplayModeColorIndex | null; // "null" indicates there is no data for that pixel
 }
+export type PixelInfoSerialized = PixelInfo;
+
+export const getColorValueCombinedLabel = (value: DisplayModeColorValue): string =>
+    value.map(x => x.label).join('+');
 
 const parser = new DOMParser();
 export const parseTemplate = (html: string): HTMLElement => {

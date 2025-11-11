@@ -13,7 +13,7 @@
                     <span>Antrax <code>v$VERSION$</code> <small class="text-muted">(<code>$COMMIT$</code>)</small></span>
                 </div>
                 <div class="project-structure">
-                    <div class="project-controls">
+                    <div class="project-controls section-item">
                         <button type="button" class="btn btn-sm btn-success new-object-btn">
                             <i class="fa-solid fa-add"></i>
                             Object
@@ -35,8 +35,60 @@
             <div class="main-content">
                 <div class="content-header project-header"></div>
 
-                <div class="canvas-container">
-                    <div class="canvas-area"></div>
+                <div class="middle-content">
+                    <div class="canvas-sidebar">
+                        <div class="has-selected-object">
+                            <header class="group-name clamp-1"></header>
+                            <div class="indented-list">
+                                <section class="group-details">
+                                    <div class="palette-set-name clamp-1"></div>
+                                </section>
+                                <header class="object-name clamp-1"></header>
+                                <div class="indented-list">
+                                    <section class="object-details">
+                                        <div class="canvas-size"></div>
+                                        <span class="text-muted">/</span>
+                                        <div class="pixel-size"></div>
+                                    </section>
+                                    <hr/>
+                                    <section class="canvas-palette-details">
+                                        <select class="canvas-palette-select form-control"></select>
+                                        <div class="canvas-palette-colors"></div>
+                                    </section>
+                                    <hr/>
+                                    <section class="object-display-mode form-vertical">
+                                        <div class="form-row form-row-h">
+                                            <label for="display-mode-select">Mode:</label>
+                                            <select id="display-mode-select" class="form-control" autocomplete="off">
+                                                <option value="none">None</option>
+                                                <option value="160A">160A</option>
+                                                <option value="160B">160B</option>
+                                                <option value="320A">320A</option>
+                                                <option value="320B">320B</option>
+                                                <option value="320C">320C</option>
+                                                <option value="320D">320D</option>
+                                            </select>
+                                        </div>
+                                    </section>
+                                    <hr />
+                                    <div class="color-list"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="no-selected-object">
+                            <p>
+                                Select an object to the left or create a new one.
+                            </p>
+
+                            <button type="button" class="btn btn-sm btn-success new-object-btn">
+                                <i class="fa-solid fa-add"></i>
+                                Object
+                            </button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <div class="canvas-area"></div>
+                    </div>
                 </div>
 
                 <div class="canvas-gutter">

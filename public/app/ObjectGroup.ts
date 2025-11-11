@@ -1,6 +1,5 @@
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
-import type { EditorSettings } from './Editor.ts';
 import { Logger } from './Logger.ts';
 
 export interface ObjectGroupOptions {
@@ -17,7 +16,7 @@ export interface ObjectGroupSerialized {
 
 export class ObjectGroup {
     public readonly id: number;
-    public name: string;
+    private name: string;
 
     private readonly logger: Logger;
 
@@ -32,6 +31,10 @@ export class ObjectGroup {
         this.paletteSet = options.paletteSet;
 
         this.logger = Logger.from(this);
+    }
+
+    public getName(): string {
+        return this.name;
     }
 
     public getPaletteSet(): ColorPaletteSet {

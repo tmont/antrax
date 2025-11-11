@@ -30,14 +30,13 @@ const paletteSetTmpl = `
         <header class="palette-set-name"></header>
     </div>
     <div class="bg-color-container">
-        <div class="color-swatch"></div>
+        <div class="color-swatch selectable"></div>
     </div>
     <div class="palette-list"></div>
 </div>
 `;
 
 export type ColorPaletteSetEventMap = {
-    color_select: [ ColorPalette, Atari7800Color, ColorIndex ];
     bg_select: [ Atari7800Color ];
     color_change: [ ColorPalette, Atari7800Color, ColorIndex ];
 };
@@ -51,7 +50,6 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
     private initialized = false;
     private name: string;
     public readonly id: number;
-    private readonly logger: Logger;
 
     private static instanceCount = 0;
 
@@ -79,16 +77,14 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
         this.id = options.id || ColorPaletteSet.instanceCount;
         this.backgroundColor = bg || colors[3];
-        this.palettes = palettes.slice(0, 8);
+        this.palettes = palettes;
         this.name = options.name || `Palette Set ${this.id}`;
-
-        this.logger = Logger.from(this);
 
         this.$container = options.mountEl;
         this.$el = parseTemplate(paletteSetTmpl);
     }
 
-    public getPalettes(): Readonly<ColorPalette[]> {
+    public getPalettes(): ColorPalette[] {
         return this.palettes;
     }
 
@@ -112,14 +108,6 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
         this.palettes.forEach((palette) => {
             palette.init($paletteList);
-            palette.on('color_select', (color, index) => {
-                this.palettes.forEach((p) => {
-                    const isActive = p === palette;
-                    p.setActiveState(isActive, index);
-                });
-
-                this.emit('color_select', palette, color, index);
-            });
             palette.on('color_change', (color, index) => {
                 this.emit('color_change', palette, color, index);
             });
@@ -174,12 +162,6 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
         findElement(this.$el, '.bg-color-container .color-swatch').style.backgroundColor =
             this.backgroundColor.hex;
-    }
-
-    public setActiveColor(palette: ColorPalette, colorIndex: ColorIndex): void {
-        this.palettes.forEach((p) => {
-            p.setActiveState(p === palette, colorIndex);
-        });
     }
 
     public toJSON(): ColorPaletteSetSerialized {

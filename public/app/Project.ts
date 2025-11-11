@@ -10,7 +10,13 @@ import {
     type PixelDrawingEvent
 } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
-import { findElement, findOrDie, parseTemplate } from './utils.ts';
+import {
+    type DisplayModeColorIndex,
+    type DisplayModeName,
+    findElement,
+    findOrDie,
+    parseTemplate
+} from './utils.ts';
 
 // https://stackoverflow.com/a/13139830
 const emptyGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -31,20 +37,26 @@ const objectItemTmpl = `
     </div>
     <div class="object-info">
         <div class="object-details">
-            <span class="canvas-size"></span>
+            <div>
+                <span class="canvas-size"></span>
+                <span class="text-muted">/</span>
+                <span class="pixel-size"></span>
+            </div>
             <span>&middot;</span>
-            <div><span class="pixel-size"></span>px</div>
+            <div class="display-mode-name"></div>
             <span>&middot;</span>
-            <div class="palette-set-name clamp-1"></div>
+            <div class="canvas-palette-details">
+                <div class="palette-name"></div>
+                <div class="palette-color-list"></div>
+            </div>
         </div>
-        <div class="object-color-list"></div>
     </div>
 </div>
 `;
 
 const objectGroupTmpl = `
 <div class="project-item-group">
-    <header class="group-name clamp-1"></header>
+    <header class="group-name clamp-1 section-item"></header>
     <div class="indented-list group-items"></div>
 </div>
 `;
@@ -61,7 +73,7 @@ const objectOverflowTmpl = `
 `;
 
 const editObjectTmpl = `
-<form class="object-edit-container">
+<form class="object-edit-container form-vertical">
     <div class="form-row">
         <input class="object-name-input form-control" type="text" maxlength="50" minlength="1" required />
     </div>
@@ -87,11 +99,15 @@ export interface ProjectOptions {
 
 export type ProjectEventMap = {
     canvas_activate: [ PixelCanvas | null ];
-    color_select: [ ColorPaletteSet, ColorPalette, ColorIndex ];
     pixel_highlight: [ PixelDrawingEvent, PixelCanvas ];
     pixel_draw: [ PixelDrawingEvent, PixelCanvas ];
+    canvas_reset: [ PixelCanvas ];
     active_object_name_change: [ PixelCanvas ];
     draw_start: [ PixelCanvas ];
+    pixel_dimensions_change: [ PixelCanvas ];
+    canvas_dimensions_change: [ PixelCanvas ];
+    display_mode_change: [ PixelCanvas ];
+    canvas_palette_change: [ PixelCanvas ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -134,7 +150,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         }
 
         this.update();
-        this.editorSettings.activeColorPalette.setActiveState(true, this.editorSettings.activeColorIndex);
         this.updateAllThumbnails();
 
         this.initialized = true;
@@ -194,6 +209,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             width: width,
             height: height,
             pixelData: canvas.clonePixelData(),
+            displayMode: canvas.getDisplayMode(),
+            palette: canvas.getColorPalette(),
             editorSettings: this.editorSettings,
         });
     }
@@ -215,9 +232,23 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 this.updateActiveThumbnail();
                 this.updateActiveObjectInfo();
             }
+
+            this.emit('canvas_reset', canvas);
         });
         canvas.on('draw_start', () => {
             this.emit('draw_start', canvas);
+        });
+        canvas.on('display_mode_change', () => {
+            this.emit('display_mode_change', canvas);
+        });
+        canvas.on('palette_change', () => {
+            this.emit('canvas_palette_change', canvas);
+        });
+        canvas.on('pixel_dimensions_change', () => {
+            this.emit('pixel_dimensions_change', canvas);
+        });
+        canvas.on('canvas_dimensions_change', () => {
+            this.emit('canvas_dimensions_change', canvas);
         });
 
         if (this.canvases.indexOf(canvas) === -1) {
@@ -239,7 +270,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         if (!group) {
             group = parseTemplate(objectGroupTmpl);
             group.setAttribute('data-group-id', canvas.group.id.toString());
-            group.querySelector('.group-name')?.appendChild(doc.createTextNode(canvas.group.name));
+            group.querySelector('.group-name')?.appendChild(doc.createTextNode(canvas.group.getName()));
             parent.appendChild(group);
         }
 
@@ -368,38 +399,17 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         findElement($el, '.canvas-size').innerText = `${width}×${height}`;
         findElement($el, '.pixel-size').innerText = `${pixelWidth}×${pixelHeight}`;
-        findElement($el, '.palette-set-name').innerText = canvas.group.getPaletteSet().getName();
+        findElement($el, '.palette-name').innerText = canvas.getColorPalette().name;
+        findElement($el, '.display-mode-name').innerText = canvas.getDisplayMode().name;
 
-        const $colorList = findElement($el, '.object-color-list');
+        const $colorList = findElement($el, '.palette-color-list');
         $colorList.innerHTML = '';
-        const colors = canvas.getUsedColors();
-
-        if (!colors.length) {
-            $colorList.innerText = 'No colors :(';
-        } else {
-            colors.forEach((colorInfo) => {
-                const color = colorInfo.palette.getColorAt(colorInfo.index);
-                const $swatch = document.createElement('div');
-                $swatch.setAttribute('data-palette-id', colorInfo.palette.id.toString());
-                $swatch.setAttribute('data-color-index', colorInfo.index.toString());
-                $swatch.classList.add('color-swatch');
-                $swatch.style.backgroundColor = color.hex;
-                $swatch.setAttribute('title', `${colorInfo.palette.name}C${colorInfo.index} (${color.hex})`);
-                $swatch.addEventListener('click', () => {
-                    this.emit('color_select', canvas.group.getPaletteSet(), colorInfo.palette, colorInfo.index);
-                });
-
-                if (
-                    this.editorSettings.activeColorIndex === colorInfo.index &&
-                    this.editorSettings.activeColorPalette === colorInfo.palette &&
-                    this.editorSettings.activeColorPaletteSet === canvas.group.getPaletteSet()
-                ) {
-                    $swatch.classList.add('active');
-                }
-
-                $colorList.append($swatch);
-            });
-        }
+        canvas.getColorPalette().colors.forEach((color) => {
+            const $swatch = document.createElement('div');
+            $swatch.classList.add('color-swatch');
+            $swatch.style.backgroundColor = color.hex;
+            $colorList.appendChild($swatch);
+        });
     }
 
     public updateActiveThumbnail(): void {
@@ -425,11 +435,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.canvases.forEach(canvas => this.updateThumbnailForCanvas(canvas));
     }
 
-    public onResize(): void {
-        // TODO not needed any more since it's absolutely positioned?
-        this.activeCanvas?.setCanvasPosition();
-    }
-
     public zoomTo(): void {
         this.canvases.forEach(canvas => canvas.setZoomLevel(canvas === this.activeCanvas));
     }
@@ -439,35 +444,35 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public setPixelDimensions(width: number | null, height: number | null): void {
-        this.activeCanvas?.setPixelDimensions(width, height);
-        this.updateActiveObjectInfo();
+        if (this.activeCanvas) {
+            this.activeCanvas.setPixelDimensions(width, height);
+            this.updateActiveObjectInfo();
+        }
     }
 
     public setCanvasDimensions(width: number | null, height: number | null): void {
-        this.activeCanvas?.setDimensions(width, height);
-        this.updateActiveObjectInfo();
+        if (this.activeCanvas) {
+            this.activeCanvas.setDimensions(width, height);
+            this.updateActiveObjectInfo();
+        }
+    }
+
+    public setDisplayMode(newMode: DisplayModeName): void {
+        if (this.activeCanvas) {
+            this.activeCanvas.setDisplayMode(newMode);
+        }
     }
 
     private getObjectsInGroup(group: ObjectGroup): PixelCanvas[] {
         return this.canvases.filter(canvas => canvas.group === group);
     }
 
-    public setActiveColor(paletteSet: ColorPaletteSet, palette: ColorPalette, index: ColorIndex): void {
-        // TODO this should probably only be for groups with the active palette set...
-        // this.canvases.forEach(canvas => canvas.group.setActiveColor());
+    public setActiveColor(colorValue: DisplayModeColorIndex): void {
+        this.activeCanvas?.setActiveColor(colorValue);
+    }
 
-        // highlight active color swatch in object info
-        const $item = this.findActiveProjectItem();
-        if ($item) {
-            $item.querySelectorAll('.color-swatch').forEach(($swatch) => {
-                $swatch.classList.remove('active');
-            });
-
-            const $swatch = $item.querySelector(`.color-swatch[data-palette-id="${palette.id}"][data-color-index="${index}"]`);
-            if ($swatch) {
-                $swatch.classList.add('active');
-            }
-        }
+    public setColorPalette(palette: ColorPalette): void {
+        this.activeCanvas?.setColorPalette(palette);
     }
 
     public setBackgroundColor(color: Atari7800Color): void {

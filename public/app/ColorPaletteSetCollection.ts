@@ -15,7 +15,6 @@ export interface ColorPaletteSetCollectionSerialized {
 }
 
 export type ColorPaletteSetCollectionEventMap = {
-    color_select: [ ColorPaletteSet, ColorPalette, Atari7800Color, ColorIndex ];
     color_change: [ ColorPaletteSet, ColorPalette, Atari7800Color, ColorIndex ];
     bg_select: [ ColorPaletteSet, Atari7800Color ];
 }
@@ -56,9 +55,6 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
 
         this.paletteSets.forEach((paletteSet) => {
             paletteSet.init();
-            paletteSet.on('color_select', (palette, color, index) => {
-                this.emit('color_select', paletteSet, palette, color, index);
-            });
             paletteSet.on('color_change', (palette, color, index) => {
                 this.emit('color_change', paletteSet, palette, color, index);
             });
