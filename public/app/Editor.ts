@@ -55,11 +55,11 @@ const infoContent = `
         <table>
             <tr>
                 <td>Scrollwheel</td>
-                <td>Zoom in/out by <strong>0.1</strong></td>
+                <td>Zoom in/out by <strong>0.5x</strong></td>
             </tr>
             <tr>
                 <td><kbd>Shift</kbd> + Scrollwheel</td>
-                <td>Zoom in/out by <strong>0.5</strong></td>
+                <td>Zoom in/out by <strong>1x</strong></td>
             </tr>
             <tr>
                 <td><kbd>Shift</kbd> + Left click &amp; drag</td>
@@ -588,11 +588,11 @@ export class Editor {
         let panningOrigin = { x: 0, y: 0 };
 
         canvasContainer.addEventListener('wheel', (e) => {
-            const coefficient = e.shiftKey ? 0.5 : 0.1;
+            const coefficient = e.shiftKey ? 1 : 0.5;
             const delta = e.deltaY < 0 ? 1 : (e.deltaY > 0 ? -1 : 0);
             this.settings.zoomLevel += (delta * coefficient);
             this.settings.zoomLevel = Math.round(this.settings.zoomLevel * 100) / 100;
-            this.settings.zoomLevel = Math.max(0.1, Math.min(10, this.settings.zoomLevel));
+            this.settings.zoomLevel = Math.max(1, Math.min(10, this.settings.zoomLevel));
 
             this.updateZoomLevelUI();
             this.project?.zoomTo();

@@ -707,10 +707,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public setZoomLevel(render = true): void {
-        // if (zoomLevel <= 0 || zoomLevel > 10) {
-        //     return;
-        // }
-
         this.setCanvasDimensions();
         if (render) {
             this.render();
