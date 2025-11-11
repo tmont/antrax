@@ -537,13 +537,13 @@ export class Editor {
         this.project.init();
 
         this.$el.querySelectorAll('.new-object-btn').forEach((newObjBtn) => {
-            const defaultColorPalette = this.settings.activeColorPaletteSet.getPalettes()[0];
-            if (!defaultColorPalette) {
-                throw new Error(`Could not find default color palette in ` +
-                    `ColorPaletteSet{${this.settings.activeColorPaletteSet.id}}`);
-            }
-
             newObjBtn.addEventListener('click', () => {
+                const defaultColorPalette = this.settings.activeColorPaletteSet.getPalettes()[0];
+                if (!defaultColorPalette) {
+                    throw new Error(`Could not find default color palette in ` +
+                        `ColorPaletteSet{${this.settings.activeColorPaletteSet.id}}`);
+                }
+
                 this.project?.addObject({
                     mountEl: this.$canvasArea,
                     width: this.settings.canvasWidth,
