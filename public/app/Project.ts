@@ -414,17 +414,27 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         findElement($el, '.canvas-size').innerText = `${width}×${height}`;
         findElement($el, '.pixel-size').innerText = `${pixelWidth}×${pixelHeight}`;
-        findElement($el, '.palette-name').innerText = canvas.getColorPalette().name;
-        findElement($el, '.display-mode-name').innerText = canvas.getDisplayMode().name;
 
+        const displayMode = canvas.getDisplayMode();
+        findElement($el, '.display-mode-name').innerText = displayMode.name;
+
+        const $paletteName = findElement($el, '.palette-name');
         const $colorList = findElement($el, '.palette-color-list');
         $colorList.innerHTML = '';
-        canvas.getColorPalette().colors.forEach((color) => {
-            const $swatch = document.createElement('div');
-            $swatch.classList.add('color-swatch');
-            $swatch.style.backgroundColor = color.hex;
-            $colorList.appendChild($swatch);
-        });
+
+        if (displayMode.hasSinglePalette) {
+            $paletteName.innerText = canvas.getColorPalette().name;
+
+            canvas.getColorPalette().colors.forEach((color) => {
+                const $swatch = document.createElement('div');
+                $swatch.classList.add('color-swatch');
+                $swatch.style.backgroundColor = color.hex;
+                $colorList.appendChild($swatch);
+            });
+        } else {
+            $colorList.innerText = 'n/a';
+            $paletteName.innerHTML = '';
+        }
     }
 
     public updateActiveThumbnail(): void {

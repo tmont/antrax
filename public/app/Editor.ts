@@ -402,12 +402,14 @@ export class Editor {
         const $paletteList = findElement(this.$canvasSidebar, '.canvas-palette-colors');
         $paletteList.innerHTML = '';
 
-        palette.colors.forEach((color) => {
-            const $swatch = document.createElement('div');
-            $swatch.classList.add('color-swatch');
-            $swatch.style.backgroundColor = color.hex;
-            $paletteList.appendChild($swatch);
-        });
+        if (displayMode.hasSinglePalette) {
+            palette.colors.forEach((color) => {
+                const $swatch = document.createElement('div');
+                $swatch.classList.add('color-swatch');
+                $swatch.style.backgroundColor = color.hex;
+                $paletteList.appendChild($swatch);
+            });
+        }
 
         const $colorList = findElement(this.$canvasSidebar, '.color-list');
         $colorList.innerHTML = '';
