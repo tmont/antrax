@@ -81,7 +81,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private readonly editorSettings: Readonly<EditorSettings>;
     private ctx: CanvasRenderingContext2D;
     private readonly logger: Logger;
-    private readonly eventMap: Record<string, Array<(...x: any[]) => void>> = {};
+    private readonly eventMap: Array<[ EventTarget, string, (...args: any[]) => void ]> = [];
     private pixelData: PixelInfo[][];
     private readonly $container: HTMLElement;
     private readonly $frameContainer: HTMLDivElement;
@@ -361,11 +361,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        // TODO
-        // remove event listeners
-        // for (const [ eventName, listeners ] of Object.entries(this.eventMap)) {
-        //
-        // }
+        while (this.eventMap.length) {
+            const item = this.eventMap.pop();
+            if (!item) {
+                break;
+            }
+
+            const [ target, eventName, listener ] = item;
+            target.removeEventListener(eventName, listener);
+        }
     }
 
     public enable(): void {
@@ -405,7 +409,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             this.unhighlightPixel();
 
             activatePixelAtCursor(e);
-            this.$el.addEventListener('mousemove', onMouseMove);
+            this.addEvent(this.$el, 'mousemove', onMouseMove);
         };
 
         const onMouseUp = () => {
@@ -443,14 +447,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             this.unhighlightPixel();
         };
 
-        this.eventMap['mousedown'] = [ onMouseDown ];
-        this.eventMap['mousemove'] = [ onMouseMove ];
-        this.eventMap['mouseup'] = [ onMouseUp ];
+        this.addEvent(this.$el, 'mousedown', onMouseDown);
+        this.addEvent(this.$el, 'mousemove', onHover);
+        this.addEvent(this.$el, 'mouseout', onMouseOut);
+        this.addEvent(this.$el.ownerDocument, 'mouseup', onMouseUp);
+    }
 
-        this.$el.addEventListener('mousedown', onMouseDown);
-        this.$el.addEventListener('mousemove', onHover);
-        this.$el.addEventListener('mouseout', onMouseOut);
-        this.$el.ownerDocument.addEventListener('mouseup', onMouseUp);
+    private addEvent(target: EventTarget, name: string, listener: (...args: any[]) => void): void {
+        target.addEventListener(name, listener);
+        this.eventMap.push([ target, name, listener ]);
     }
 
     private generateURLTimeoutId: number | null = null;
