@@ -263,6 +263,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     private fillPixelDataArray(reset = false): void {
+        if (reset) {
+            this.pixelData = [];
+        }
         for (let row = 0; row < this.height; row++) {
             const pixelRow = this.pixelData[row] = this.pixelData[row] || [];
             for (let col = 0; col < this.width; col++) {
