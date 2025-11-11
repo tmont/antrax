@@ -66,6 +66,11 @@ export interface PixelCanvasSerialized {
     activeColor: DisplayModeColorValueSerialized;
 }
 
+const isColorDark = (r: number, g: number, b: number): boolean => {
+    const lum = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return lum <= 50;
+};
+
 export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private width: number;
     private height: number;
@@ -95,6 +100,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private readonly $hoverEl: HTMLCanvasElement;
 
     private drawState: PixelCanvasDrawState = 'idle';
+
+    private static lightTransparentPattern: CanvasPattern | null = null;
+    private static darkTransparentPattern: CanvasPattern | null = null;
 
     public constructor(options: CanvasOptions) {
         super();
@@ -146,6 +154,43 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.setCanvasDimensions();
         this.enable();
+    }
+
+    private getTransparentPattern(): CanvasPattern {
+        const bg = this.group.getBackgroundColor();
+        const isDark = isColorDark(bg.r, bg.g, bg.b);
+        let pattern = isDark ? PixelCanvas.lightTransparentPattern : PixelCanvas.darkTransparentPattern;
+
+        if (!pattern) {
+            const $canvas = document.createElement('canvas');
+            $canvas.width = 6;
+            $canvas.height = 7;
+
+            const ctx = $canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error(`could not retrieve pattern context`);
+            }
+            // ctx.fillStyle = isDark ? 'rgba(64, 64, 64, 0.1)' : 'rgba(0, 0, 0, 0.15)';
+            // ctx.fillRect(0, 0, $canvas.width, $canvas.height);
+            ctx.strokeStyle = isDark ? 'rgba(160, 160, 160, 0.35)' : 'rgba(0, 0, 0, 0.35)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(0, 0);
+            ctx.lineTo($canvas.width, $canvas.height);
+            ctx.stroke();
+
+            pattern = this.ctx.createPattern($canvas, 'repeat');
+            if (!pattern) {
+                throw new Error(`could not create transparent pattern`);
+            }
+
+            if (isDark) {
+                PixelCanvas.lightTransparentPattern = pattern;
+            } else {
+                PixelCanvas.darkTransparentPattern = pattern;
+            }
+        }
+
+        return pattern;
     }
 
     public getPixelDimensions(): Dimensions {
@@ -536,8 +581,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (pixel.modeColorIndex === null) {
             this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
         } else {
-
-            const colorValue = this.displayMode.getColorAt(this.editorSettings.activeColorPaletteSet, this.palette, pixel.modeColorIndex);
+            const paletteSet = this.editorSettings.activeColorPaletteSet;
+            const colorValue = this.displayMode.getColorAt(paletteSet, this.palette, pixel.modeColorIndex);
             if (!colorValue) {
                 this.logger.error(`color[${pixel.modeColorIndex}] not found in display mode ${this.displayMode.name}`);
                 this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
@@ -555,8 +600,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     const width = this.displayPixelWidth / partsPerPixel;
                     const fudge = i * width;
                     const x = absoluteCoordinate.x + fudge;
-                    if (color.value === 'background' || color.value === 'transparent') {
+                    if (color.value === 'background') {
                         this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                    } else if (color.value === 'transparent') {
+                        this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        this.ctx.fillStyle = this.getTransparentPattern();
+                        this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     } else {
                         this.ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
                         this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
