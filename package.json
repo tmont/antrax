@@ -1,6 +1,6 @@
 {
     "name": "antrax",
-    "version": "0.0.8",
+    "version": "0.0.10",
     "private": true,
     "devDependencies": {
         "@fortawesome/fontawesome-free": "7.1.0",

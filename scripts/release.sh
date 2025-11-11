@@ -39,6 +39,10 @@ main() {
           "${rootDir}/public/images/" \
           "${releaseDir}/public"
 
+        local changelogContent
+        changelogContent=$(pandoc -f markdown-auto_identifiers -t html "${rootDir}/CHANGELOG.md")
+
+
         local nextVersion= currentVersion
         currentVersion=$(bun -e "import pkg from './package.json'; console.log(pkg.version);")
 
@@ -53,6 +57,7 @@ main() {
 
         perl -p -i -e "s/\\\$VERSION\\\$/${nextVersion}/" "${releaseDir}/public/index.html"
         perl -p -i -e "s/\\\$COMMIT\\\$/${gitRevision}/" "${releaseDir}/public/index.html"
+        perl -p -i -e "s^\\\$CHANGELOG\\\$^${changelogContent}^" "${releaseDir}/public/index.html"
 
         echo "writing new version to package.json..."
         bun -e "import pkg from './package.json'; pkg.version = '${nextVersion}'; Bun.write('./package.json', JSON.stringify(pkg, null, '    '));"

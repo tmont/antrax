@@ -93,12 +93,17 @@
 
                 <div class="canvas-gutter">
                     <div class="global-info gutter-list">
-                        <div>
-                            <a class="help-link" href="#" title="Help and keyboard shortcuts" style="font-size: 0.9rem">
-                                <i class="fa-solid fa-circle-info"></i>
-                            </a>
-                        </div>
+                        <div class="link-list">
+                            <a class="help-link" href="#" title="Help and keyboard shortcuts">
+                                <i class="fa-solid fa-circle-question"></i></a>
 
+                            <a class="changelog-link" href="#" title="Changelog">
+                                <i class="fa-solid fa-list"></i></a>
+                        </div>
+                    </div>
+                    <div class="divider"></div>
+
+                    <div class="gutter-list">
                         <div class="breadcrumb">
                             <span class="active-group-name clamp-1">n/a</span>
                             <span class="breadcrumb-divider"><i class="fa-solid fa-chevron-right"></i></span>
@@ -143,6 +148,70 @@
         </div>
 
         <div class="modal-overlay"></div>
+
+        <template id="modal-content-help">
+            <div class="col">
+                <section>
+                    <header>Canvas interactions</header>
+                    <table>
+                        <tr>
+                            <td>Scrollwheel</td>
+                            <td>Zoom in/out by <strong>0.5x</strong></td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift</kbd> + Scrollwheel</td>
+                            <td>Zoom in/out by <strong>1x</strong></td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift</kbd> + Left click &amp; drag</td>
+                            <td>Pan canvas</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd> + Left click</td>
+                            <td>Erase pixel</td>
+                        </tr>
+                    </table>
+                </section>
+            </div>
+            <div class="col">
+                <section>
+                    <header>Keyboard shortcuts</header>
+                    <table>
+                        <tr>
+                            <td><kbd>G</kbd></td>
+                            <td>Toggle grid</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>P</kbd></td>
+                            <td>Update pixel dimensions</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>C</kbd></td>
+                            <td>Update canvas dimensions</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
+                            <td>Reset zoom level to <strong>1x</strong></td>
+                        </tr>
+                        <tr>
+                            <td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td>
+                            <td>Undo last draw action</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <p><kbd>Ctrl</kbd> + <kbd>Y</kbd></p>
+                                <p><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></p>
+                            </td>
+                            <td>Redo last draw action</td>
+                        </tr>
+                    </table>
+                </section>
+            </div>
+        </template>
+
+        <template id="modal-content-changelog">
+            <div class="changelog-content">$CHANGELOG$</div>
+        </template>
 
         <script src="/app.js"></script>
     </body>

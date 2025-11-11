@@ -1,0 +1,30 @@
+@use "./config";
+
+.changelog-content {
+    max-height: 70vh;
+    overflow: auto;
+    width: 50em;
+    font-size: 90%;
+
+    h2 {
+        padding-bottom: config.$gutter-eighth;
+        border-bottom: 1px solid config.$border-color;
+        margin: 0 0 config.$gutter-quarter 0;
+
+        &:not(:first-child) {
+            margin-top: config.$gutter-quarter;
+        }
+    }
+
+    ul {
+        margin: 0;
+    }
+
+    li {
+        padding: config.$gutter-eighth;
+    }
+
+    code {
+        color: config.$code-color;
+    }
+}

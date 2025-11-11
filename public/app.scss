@@ -10,6 +10,7 @@
 @use "./css/config.scss";
 
 @use "./css/button.scss";
+@use "./css/changelog.scss";
 @use "./css/color-picker.scss";
 @use "./css/dropdown.scss";
 @use "./css/form.scss";
@@ -374,12 +375,28 @@ hr {
     border-top: 2px solid config.$border-color;
     background-color: config.$sidebar-bg-color;
     font-size: 80%;
+    padding-left: config.$gutter;
 
     .gutter-list {
         display: flex;
         gap: config.$gutter;
         align-items: center;
         padding: config.$editor-gutter-padding;
+    }
+
+    .link-list {
+        font-size: 0.9rem;
+        display: flex;
+        gap: config.$gutter-half;
+        a {
+            opacity: 0.75;
+            transition: opacity linear 100ms;
+            text-shadow: 1px 1px 1px rgba(black, 0.35);
+
+            &:hover {
+                opacity: 1;
+            }
+        }
     }
 
     .zoom-level-label {

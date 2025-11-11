@@ -19,7 +19,7 @@ export interface ModalOptionsText extends ModalOptionsBase {
 }
 
 export interface ModalOptionsHtml extends ModalOptionsBase {
-    contentHtml: string;
+    contentHtml: Node;
 }
 
 export type ModalOptions = ModalOptionsText | ModalOptionsHtml;
@@ -38,7 +38,7 @@ type ModalEventMap = {
 };
 
 const hasHtmlContent = (options: ModalOptions): options is ModalOptionsHtml =>
-    typeof (options as ModalOptionsHtml).contentHtml === 'string';
+    (options as ModalOptionsHtml).contentHtml instanceof Node;
 
 export class Modal extends EventEmitter<ModalEventMap> {
     public static current: Modal | null = null;
@@ -103,7 +103,7 @@ export class Modal extends EventEmitter<ModalEventMap> {
         });
 
         if (hasHtmlContent(options)) {
-            $body.innerHTML = options.contentHtml;
+            $body.appendChild(options.contentHtml);
         } else {
             $body.innerText = options.contentText;
         }

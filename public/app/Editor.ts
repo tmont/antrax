@@ -48,66 +48,6 @@ export interface EditorSerialized {
     paletteSetCollection: ColorPaletteSetCollectionSerialized;
 }
 
-const infoContent = `
-<div class="col">
-    <section>
-        <header>Canvas interactions</header>
-        <table>
-            <tr>
-                <td>Scrollwheel</td>
-                <td>Zoom in/out by <strong>0.5x</strong></td>
-            </tr>
-            <tr>
-                <td><kbd>Shift</kbd> + Scrollwheel</td>
-                <td>Zoom in/out by <strong>1x</strong></td>
-            </tr>
-            <tr>
-                <td><kbd>Shift</kbd> + Left click &amp; drag</td>
-                <td>Pan canvas</td>
-            </tr>
-            <tr>
-                <td><kbd>Ctrl</kbd> + Left click</td>
-                <td>Erase pixel</td>
-            </tr>
-        </table>
-    </section>
-</div>
-<div class="col">
-    <section>
-        <header>Keyboard shortcuts</header>
-        <table>
-            <tr>
-                <td><kbd>G</kbd></td>
-                <td>Toggle grid</td>
-            </tr>
-            <tr>
-                <td><kbd>P</kbd></td>
-                <td>Update pixel dimensions</td>
-            </tr>
-            <tr>
-                <td><kbd>C</kbd></td>
-                <td>Update canvas dimensions</td>
-            </tr>
-            <tr>
-                <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
-                <td>Reset zoom level to <strong>1x</strong></td>
-            </tr>
-            <tr>
-                <td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td>
-                <td>Undo last draw action</td>
-            </tr>
-            <tr>
-                <td>
-                    <p><kbd>Ctrl</kbd> + <kbd>Y</kbd></p>
-                    <p><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></p>
-                </td>
-                <td>Redo last draw action</td>
-            </tr>
-        </table>
-    </section>
-</div>
-`;
-
 const colorItemTmpl = `
 <div class="color-item">
     <div class="label"></div>
@@ -735,14 +675,36 @@ export class Editor {
             });
         });
 
+        const infoContent = findOrDie(document, '#modal-content-help', node => node instanceof HTMLTemplateElement)
+            .content;
+
         findOrDie(document, '.help-link', node => node instanceof HTMLAnchorElement)
             .addEventListener('click', (e) => {
                 e.preventDefault();
 
                 const modal = Modal.create({
-                    contentHtml: infoContent,
+                    contentHtml: infoContent.cloneNode(true),
                     actions: 'ok',
                     title: 'Info',
+                    type: 'default',
+                });
+
+                modal.on('action', () => {
+                    modal.destroy();
+                });
+                modal.show();
+            });
+
+        const changelogContent = findOrDie(document, '#modal-content-changelog', node => node instanceof HTMLTemplateElement)
+            .content;
+        findOrDie(document, '.changelog-link', node => node instanceof HTMLAnchorElement)
+            .addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const modal = Modal.create({
+                    contentHtml: changelogContent.cloneNode(true),
+                    actions: 'ok',
+                    title: 'Changelog',
                     type: 'default',
                 });
 
