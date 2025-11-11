@@ -212,10 +212,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
             displayMode: canvas.getDisplayMode(),
             palette: canvas.getColorPalette(),
             editorSettings: this.editorSettings,
-        });
+        }, canvas);
     }
 
-    private wireUpCanvas(canvas: PixelCanvas): void {
+    private wireUpCanvas(canvas: PixelCanvas, insertAfter?: PixelCanvas): void {
         canvas.on('pixel_highlight', (...args) => {
             this.emit('pixel_highlight', ...args, canvas);
         });
@@ -252,19 +252,29 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         if (this.canvases.indexOf(canvas) === -1) {
-            this.canvases.push(canvas);
+            if (insertAfter) {
+                const index = this.canvases.indexOf(insertAfter);
+                if (index !== -1) {
+                    this.logger.debug(`inserting new canvas at index`, index);
+                    this.canvases.splice(index + 1, 0, canvas);
+                } else {
+                    this.canvases.push(canvas);
+                }
+            } else {
+                this.canvases.push(canvas);
+            }
         }
 
-        const el = parseTemplate(objectItemTmpl);
+        const newItem = parseTemplate(objectItemTmpl);
         const parent = findElement(this.$container, `.project-objects`);
 
-        findElement(el, '.item-name').addEventListener('click', (e) => {
+        findElement(newItem, '.item-name').addEventListener('click', (e) => {
             e.preventDefault();
             this.activateCanvas(canvas);
         });
 
         const doc = this.$container.ownerDocument;
-        el.setAttribute('data-canvas-id', canvas.id.toString());
+        newItem.setAttribute('data-canvas-id', canvas.id.toString());
 
         let group = parent.querySelector(`.project-item-group[data-group-id="${canvas.group.id}"]`);
         if (!group) {
@@ -274,8 +284,13 @@ export class Project extends EventEmitter<ProjectEventMap> {
             parent.appendChild(group);
         }
 
-        findElement(group, '.group-items').appendChild(el);
-        findElement(el, '.clone-object-btn').addEventListener('click', () => {
+        if (insertAfter) {
+            const sibling = findElement(group, `.group-items .project-item[data-canvas-id="${insertAfter.id}"`);
+            sibling.insertAdjacentElement('afterend', newItem);
+        } else {
+            findElement(group, '.group-items').appendChild(newItem);
+        }
+        findElement(newItem, '.clone-object-btn').addEventListener('click', () => {
             this.cloneObject(canvas);
         });
 
@@ -284,7 +299,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             content: overflowContent,
             dropdown: true,
         });
-        const $overflow = findElement(el, '.overflow-btn');
+        const $overflow = findElement(newItem, '.overflow-btn');
 
         const editForm = parseTemplate(editObjectTmpl);
         const editPopover = new Popover({
@@ -292,7 +307,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             title: 'Change object name',
         });
 
-        const objectName = findElement(el, '.item-name');
+        const objectName = findElement(newItem, '.item-name');
         const input = findOrDie(editForm, '.object-name-input', node => node instanceof HTMLInputElement);
         editForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -336,9 +351,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.setObjectName(canvas, canvas.getName());
     }
 
-    public addObject(options: CanvasOptions): PixelCanvas {
+    public addObject(options: CanvasOptions, insertAfter?: PixelCanvas): PixelCanvas {
         const canvas = new PixelCanvas(options);
-        this.wireUpCanvas(canvas);
+        this.wireUpCanvas(canvas, insertAfter);
         this.activateCanvas(canvas);
         return canvas;
     }
