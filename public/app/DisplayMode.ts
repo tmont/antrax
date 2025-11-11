@@ -308,6 +308,7 @@ class DisplayMode {
                     [ c1, c3 ],
                     [ c2, bg ],
                     [ c2, c1 ],
+                    [ c2, c2 ],
                     [ c2, c3 ],
                     [ c3, bg ],
                     [ c3, c1 ],
