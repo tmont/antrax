@@ -441,6 +441,7 @@ export class Editor {
         });
         this.paletteSets.on('bg_select', (paletteSet, color) => {
             this.project?.setBackgroundColor(color);
+            this.updateCanvasSidebarColors();
         });
     }
 
