@@ -1,3 +1,8 @@
+## v0.0.12 (2025-11-12)
+- Implemented codegen export for 160A and 160B
+- Added toasts
+- Added SSL cert
+
 ## v0.0.11 (2025-11-11)
 - Canvas is filled transparent instead of background color by default
 - Erasing a pixel now colors it transparent instead of background color
