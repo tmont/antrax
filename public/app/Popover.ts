@@ -1,5 +1,5 @@
 import { EventEmitter } from './EventEmitter.ts';
-import { findElement, parseTemplate } from './utils.ts';
+import { findElement, nope, parseTemplate } from './utils.ts';
 
 export type PopoverEventMap = {
     hide: [];
@@ -19,11 +19,17 @@ const tmpl = `
 export interface PopoverOptions {
     title?: string;
     dropdown?: boolean;
-    content: HTMLElement;
+    content: string | HTMLElement;
+    arrow?: boolean;
+    toast?: boolean;
+    timeoutMs?: number;
+    type?: 'default' | 'danger' | 'success';
 }
 
 export class Popover extends EventEmitter<PopoverEventMap> {
     private readonly $el: HTMLElement;
+    private readonly isToast: boolean;
+    private readonly timeoutMs: number;
 
     public constructor(options: PopoverOptions) {
         super();
@@ -39,11 +45,42 @@ export class Popover extends EventEmitter<PopoverEventMap> {
             this.$el.classList.add('no-header');
         }
 
+        this.isToast = options.toast === true;
+        this.timeoutMs = options.timeoutMs || 5000;
+
+        if (options.arrow === false || this.isToast) {
+            findElement(this.$el, '.arrow').remove();
+        }
+
+        if (this.isToast) {
+            this.$el.classList.add('toast');
+        }
+
         if (options.dropdown) {
             this.$el.classList.add('dropdown');
         }
 
-        findElement(this.$el, '.popover-content').appendChild(options.content);
+        const type = options.type || 'default';
+        switch (type) {
+            case 'default':
+                break;
+            case 'danger':
+                this.$el.classList.add('danger');
+                break;
+            case 'success':
+                this.$el.classList.add('success');
+                break;
+            default:
+                nope(type);
+                break;
+        }
+
+        const $content = findElement(this.$el, '.popover-content');
+        if (options.content instanceof HTMLElement) {
+            $content.appendChild(options.content);
+        } else {
+            $content.innerText = options.content;
+        }
     }
 
     public hide(): void {
@@ -51,46 +88,64 @@ export class Popover extends EventEmitter<PopoverEventMap> {
         this.emit('hide');
     }
 
-    public show($target: HTMLElement): void {
-        const position = $target.getBoundingClientRect();
-
-        this.$el.style.left = position.left + 'px';
-        this.$el.style.top = (position.top + position.height) + 'px';
-
-        findElement(this.$el, '.arrow').style.left = (position.width / 2) + 'px';
-
-        const parent = document.body;
+    public show($target?: HTMLElement | null): void {
+        const parent = this.isToast ? findElement(document, '.toast-container') : document.body;
         if (this.$el.parentNode !== parent) {
             parent.appendChild(this.$el);
 
-            const onKeyDown = (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    this.hide();
-                }
-            };
-
-            const onMouseDown = (e: Event) => {
-                if (!(e.target instanceof Node)) {
-                    return;
+            if (!this.isToast) {
+                const position = $target?.getBoundingClientRect() || { left: 0, top: 0, height: 0, width: 0 };
+                this.$el.style.left = position.left + 'px';
+                this.$el.style.top = (position.top + position.height) + 'px';
+                const $arrow = this.$el.querySelector('.arrow') as HTMLElement;
+                if ($arrow) {
+                    $arrow.style.left = (position.width / 2) + 'px';
                 }
 
-                if (!this.$el.contains(e.target)) {
-                    this.hide();
-                }
-            };
+                const onKeyDown = (e: KeyboardEvent) => {
+                    if (e.key === 'Escape') {
+                        this.hide();
+                    }
+                };
 
-            document.addEventListener('keydown', onKeyDown);
+                const onMouseDown = (e: Event) => {
+                    if (!(e.target instanceof Node)) {
+                        return;
+                    }
 
-            // needs to be in event loop or else initial click hides it immediately, which seems
-            // semi-impossible, but whatever.
-            window.requestAnimationFrame(() => {
-                document.addEventListener('mousedown', onMouseDown);
-            });
+                    if (!this.$el.contains(e.target)) {
+                        this.hide();
+                    }
+                };
 
-            this.on('hide', () => {
-                document.removeEventListener('keydown', onKeyDown);
-                document.removeEventListener('mousedown', onMouseDown);
-            });
+                document.addEventListener('keydown', onKeyDown);
+
+                // needs to be in event loop or else initial click hides it immediately, which seems
+                // semi-impossible, but whatever.
+                window.requestAnimationFrame(() => {
+                    document.addEventListener('mousedown', onMouseDown);
+                });
+
+                this.on('hide', () => {
+                    document.removeEventListener('keydown', onKeyDown);
+                    document.removeEventListener('mousedown', onMouseDown);
+                });
+            } else {
+                window.setTimeout(() => this.hide(), this.timeoutMs);
+            }
         }
+    }
+
+    public static toast(options: Pick<PopoverOptions, 'title' | 'content' | 'type'>): Popover {
+        const popover = new Popover({
+            ...options,
+            toast: true,
+            arrow: false,
+            dropdown: false,
+        });
+
+        popover.show();
+
+        return popover;
     }
 }

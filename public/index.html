@@ -147,6 +147,8 @@
             </div>
         </div>
 
+        <div class="toast-container"></div>
+
         <div class="modal-overlay"></div>
 
         <template id="modal-content-help">
@@ -211,6 +213,63 @@
 
         <template id="modal-content-changelog">
             <div class="changelog-content">$CHANGELOG$</div>
+        </template>
+
+        <template id="modal-content-export-form">
+            <div class="export-form" style="width: 30em">
+                <table class="form">
+                    <tr>
+                        <th>Indent char:</th>
+                        <td colspan="3">
+                            <input type="radio" id="export-indent-tab" value="tab" name="export-indent" autocomplete="off"/>
+                            <label for="export-indent-tab">TAB</label>
+                            <input type="radio" id="export-indent-spaces-4" value="4 spaces" name="export-indent" autocomplete="off" checked/>
+                            <label for="export-indent-spaces-4">4 spaces</label>
+                            <input type="radio" id="export-indent-spaces-2" value="2 spaces" name="export-indent" autocomplete="off" />
+                            <label for="export-indent-spaces-2">2 spaces</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="export-byte-offset">Address offset:</label></th>
+                        <td>
+                            <input type="text"
+                                   class="form-control"
+                                   id="export-byte-offset"
+                                   value="$C000"
+                                   autocomplete="off"
+                                   pattern="^(\$[a-fA-F0-9]+)|(%[01]+)|(\d+)$"
+                                   required />
+                        </td>
+                        <th><label for="export-byte-offset-radix">Format:</label></th>
+                        <td>
+                            <select id="export-byte-offset-radix">
+                                <option value="2">Binary</option>
+                                <option value="10">Decimal</option>
+                                <option value="16" selected>Hex</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="export-byte-radix">Byte format:</label></th>
+                        <td>
+                            <select id="export-byte-radix">
+                                <option value="2" selected>Binary</option>
+                                <option value="10">Decimal</option>
+                                <option value="16">Hex</option>
+                            </select>
+                        </td>
+                        <th><label for="export-label-colon">Label colon:</label></th>
+                        <td>
+                            <input type="checkbox" id="export-label-colon" value="1" autocomplete="off"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">
+                            <textarea rows="20" class="form-control export-code code" readonly></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </template>
 
         <script src="/app.js"></script>

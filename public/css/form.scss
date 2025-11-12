@@ -1,6 +1,6 @@
 @use "./config";
 
-input, select {
+input, select, textarea {
     border-radius: config.$input-radius;
     background-color: config.$input-bg-color;
     border: 1px solid config.$input-border;
@@ -15,7 +15,7 @@ input, select {
         }
     }
 
-    &[type="checkbox"] {
+    &[type="checkbox"], &[type="radio"] {
         accent-color: config.$input-shadow-color;
     }
 
@@ -28,11 +28,21 @@ input, select {
     &.form-row-h {
         display: flex;
         gap: config.$gutter-half;
-    }
+        flex-wrap: wrap;
 
-    .form-control {
-        width: 100%;
+        .form-group {
+            display: flex;
+            gap: config.$gutter-quarter;
+        }
     }
+}
+
+textarea.code {
+    color: config.$code-color;
+}
+
+.form-control {
+    width: 100%;
 }
 
 .form-vertical {

@@ -1,6 +1,6 @@
 @use "./config";
 
-$modal-z-index: 100;
+$modal-z-index: config.$z-index-modal-overlay;
 
 .modal-overlay {
     display: none;
@@ -46,7 +46,13 @@ $modal-z-index: 100;
         background-color: config.$accent-bg;
         border-top: 2px solid config.$border-color;
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
+
+        .actions-container {
+            display: flex;
+            gap: config.$gutter-eighth;
+            align-items: center;
+        }
     }
 
     .modal-body {
@@ -65,21 +71,6 @@ $modal-z-index: 100;
                 color: config.$accent-color;
                 margin-bottom: config.$gutter-quarter;
                 text-shadow: 1px 1px 1px black;
-            }
-        }
-    }
-
-    table {
-        font-size: 85%;
-        border-collapse: collapse;
-        width: 100%;
-        background-color: config.$sidebar-bg-color;
-        td {
-            padding: config.$gutter-half;
-            border: 1px solid config.$border-color;
-
-            p {
-                margin-bottom: config.$gutter-eighth;
             }
         }
     }

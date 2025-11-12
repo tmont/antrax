@@ -5,8 +5,11 @@ import {
     type DisplayModeColor,
     type DisplayModeColorString,
     type DisplayModeColorValue,
-    type DisplayModeName, isPaletteIndex,
-    nope, type PaletteIndex
+    type DisplayModeName,
+    isPaletteIndex,
+    nope,
+    type PaletteIndex,
+    type PixelInfo
 } from './utils.ts';
 
 class DisplayMode {
@@ -302,6 +305,8 @@ class DisplayMode {
 
                 return [
                     [ t, t ],
+                    [ bg, c2 ],
+                    [ bg, c3 ],
                     [ c1, c2 ],
                     [ c1, c3 ],
                     [ c2, bg ],
@@ -312,8 +317,6 @@ class DisplayMode {
                     [ c3, c1 ],
                     [ c3, c2 ],
                     [ c3, c3 ],
-                    [ bg, c2 ],
-                    [ bg, c3 ],
                 ];
             }
             case '320C': {
@@ -391,6 +394,61 @@ class DisplayMode {
                 nope(this.name);
                 throw new Error(`Invalid type "${this.name}"`);
         }
+    }
+
+    public convertPixelsToBytes(pixels: PixelInfo[], paletteIndex: PaletteIndex): number[] {
+        const bytes: number[] = [];
+        const pixelsPerByte = this.pixelsPerByte;
+        if (pixels.length % pixelsPerByte !== 0) {
+            throw new Error(`width is not a multiple of ${pixelsPerByte} (${pixels.length})`);
+        }
+
+        for (let i = 0; i < pixels.length; i += pixelsPerByte) {
+            const chunk = pixels.slice(i, i + pixelsPerByte);
+
+            switch (this.name) {
+                case '160A':
+                case '320A': {
+                    const byte = chunk
+                        .map((pixel, i) => {
+                            const index = (pixel.modeColorIndex || 0) % 4;
+                            return index << (6 - (i * 2));
+                        })
+                        .reduce((result, value) => result | value, 0);
+                    bytes.push(byte);
+                    break;
+                }
+                case '160B': {
+                    const byte = chunk
+                        .map((pixel, i) => {
+                            let index = pixel.modeColorIndex || 0;
+                            if (index === 0) {
+                                return 0;
+                            }
+
+                            // we don't present the other three transparent options (what would be indices 1,2,3)
+                            index += 3;
+
+                            // 0,1,2,3  -> 0, 0,1,2,3
+                            // 4,5,6    -> 0, 1,2,3
+                            // 7,8,9    -> 1, 1,2,3
+                            // 10,11,12 -> 2, 1,2,3
+                            // 13,14,15 -> 3, 1,2,3
+
+                            const color = (((index - 1) % 3) + 1) << 4; // 10 -> (9 % 3) + 1 -> 1
+                            const palette = Math.floor((index - 4) / 3); // 10 -> (6 / 3) -> 2
+                            return (color | palette) << (2 - (i * 2));
+                        })
+                        .reduce((result, value) => result | value, 0);
+                    bytes.push(byte);
+                    break;
+                }
+                default:
+                    throw new Error(`display mode "${this.name}" is not supported yet`);
+            }
+        }
+
+        return bytes;
     }
 }
 

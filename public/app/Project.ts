@@ -4,13 +4,18 @@ import type { Atari7800Color } from './colors.ts';
 import type { EditorSettings, UndoCheckpoint } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
+import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
 import {
-    type CanvasOptions, PixelCanvas, type PixelCanvasSerialized,
+    type CanvasOptions,
+    type CodeGenerationOptions,
+    PixelCanvas,
+    type PixelCanvasSerialized,
     type PixelDrawingEvent
 } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
+    type AssemblyNumberFormatRadix,
     type DisplayModeColorIndex,
     type DisplayModeName,
     findElement,
@@ -66,7 +71,7 @@ const objectOverflowTmpl = `
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
     <li class="dropdown-item"><a href="#" data-action="clone"><i class="fa-solid fa-fw fa-clone icon"></i>Clone</a></li>
     <li class="dropdown-item"><a href="#" data-action="clear"><i class="fa-solid fa-fw fa-eraser icon"></i>Clear</a></li>
-    <li class="dropdown-item disabled"><a href="#" data-action="export"><i class="fa-solid fa-fw fa-file-export icon"></i>Export</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export"><i class="fa-solid fa-fw fa-file-export icon"></i>Export</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
 </ul>
@@ -315,6 +320,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             editPopover.hide();
         });
 
+        const $copySuccess = parseTemplate('<div><i class="fa-solid fa-check"></i> Code copied!</div>');
+        const $copyError = parseTemplate('<div><i class="fa-solid fa-exclamation-triangle"></i> Failed to copy :(</div>');
         overflowContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
             anchor.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -333,8 +340,103 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     case 'clone':
                         this.cloneObject(canvas);
                         break;
-                    case 'export':
+                    case 'export': {
+                        const exportId = 'export';
+                        const content = findOrDie(document, '#modal-content-export-form',
+                                node => node instanceof HTMLTemplateElement).content;
+
+                        const $el = content.cloneNode(true) as ParentNode;
+                        const $codeTextarea = findOrDie($el, '.export-code', node => node instanceof HTMLTextAreaElement);
+                        const $indentTabInput = findOrDie($el, '#export-indent-tab', node => node instanceof HTMLInputElement);
+                        const $indent4SpacesInput = findOrDie($el, '#export-indent-spaces-4', node => node instanceof HTMLInputElement);
+                        const $indent2SpacesInput = findOrDie($el, '#export-indent-spaces-2', node => node instanceof HTMLInputElement);
+                        const $offsetInput = findOrDie($el, '#export-byte-offset', node => node instanceof HTMLInputElement);
+                        const $offsetRadixInput = findOrDie($el, '#export-byte-offset-radix', node => node instanceof HTMLSelectElement);
+                        const $byteRadixInput = findOrDie($el, '#export-byte-radix', node => node instanceof HTMLSelectElement);
+                        const $labelColonInput = findOrDie($el, '#export-label-colon', node => node instanceof HTMLInputElement);
+
+                        const generateCode = (): boolean => {
+                            const offsetRadix = Number($offsetRadixInput.value) as AssemblyNumberFormatRadix;
+
+                            let byteOffset: number;
+                            let byteOffsetRaw = $offsetInput.value;
+                            if (byteOffsetRaw.startsWith('$')) {
+                                byteOffset = parseInt(byteOffsetRaw.substring(1), 16);
+                            } else if (byteOffsetRaw.startsWith('%')) {
+                                byteOffset = parseInt(byteOffsetRaw.substring(1), 2);
+                            } else {
+                                byteOffset = parseInt(byteOffsetRaw, 10);
+                            }
+
+                            const options: CodeGenerationOptions = {
+                                byteOffset: byteOffset || 0,
+                                byteOffsetRadix: offsetRadix,
+                                indentChar: $indentTabInput.checked ?
+                                    '\t' :
+                                    ($indent2SpacesInput.checked ? '  ' : '    '),
+                                labelColon: $labelColonInput.checked,
+                                byteRadix: Number($byteRadixInput.value) as AssemblyNumberFormatRadix,
+                            };
+
+                            try {
+                                $codeTextarea.value = canvas.generateCode(options);
+                                return true;
+                            } catch (e) {
+                                Popover.toast({
+                                    content: `Code generation failure: ${(e as Error).message}`,
+                                    type: 'danger',
+                                });
+                            }
+
+                            return false;
+                        };
+
+                        if (!generateCode()) {
+                            return;
+                        }
+
+                        [ $indentTabInput, $indent2SpacesInput, $indent4SpacesInput, $offsetInput, $offsetRadixInput, $byteRadixInput, $labelColonInput ]
+                            .forEach((input) => {
+                                input.addEventListener('change', generateCode);
+                            });
+
+                        const exportModal = Modal.create({
+                            type: 'default',
+                            title: 'Export object',
+                            actions: [
+                                'cancel',
+                                {
+                                    id: exportId,
+                                    align: 'end',
+                                    labelHtml: '<i class="fa-solid fa-copy"></i> Copy',
+                                    type: 'primary',
+                                },
+                            ],
+                            contentHtml: $el,
+                        });
+
+                        exportModal.show();
+                        exportModal.on('action', async (action) => {
+                            if (action.id === exportId) {
+                                this.logger.debug('exporting!');
+                                try {
+                                    await navigator.clipboard.writeText($codeTextarea.value);
+                                    this.logger.info(`successfully wrote to clipboard`);
+                                    Popover.toast({
+                                        type: 'success',
+                                        content: $copySuccess,
+                                    });
+                                } catch (e) {
+                                    this.logger.error(`failed to write to clipboard`, e);
+                                    Popover.toast({
+                                        type: 'danger',
+                                        content: $copyError,
+                                    });
+                                }
+                            }
+                        });
                         break;
+                    }
                     case 'delete':
                         this.removeObject(canvas);
                         break;

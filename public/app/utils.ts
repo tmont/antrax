@@ -69,3 +69,17 @@ export const findOrDie = <T>(ancestor: ParentNode, selector: string, predicate: 
 export const findElement = (ancestor: ParentNode, selector: string): HTMLElement => {
     return findOrDie(ancestor, selector, node => node instanceof HTMLElement);
 };
+export type AssemblyNumberFormatRadix = 2 | 10 | 16;
+export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatRadix): string => {
+    switch (radix) {
+        case 16:
+            return '$' + (value.toString(16)).toUpperCase();
+        case 10:
+            return value.toString();
+        case 2:
+            return '%' + (0x100 | value).toString(2).substring(1);
+        default:
+            nope(radix);
+            return value.toString();
+    }
+};

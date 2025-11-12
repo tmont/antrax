@@ -6,12 +6,15 @@ import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import {
+    type AssemblyNumberFormatRadix,
     type Coordinate,
     type Dimensions,
     type DisplayModeColorIndex,
     type DisplayModeColorValue,
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
+    formatAssemblyNumber,
+    isPaletteIndex,
     type PixelInfo,
     type PixelInfoSerialized
 } from './utils.ts';
@@ -39,6 +42,14 @@ export interface PixelDrawingEvent {
     row: number;
     col: number;
     behavior: PixelDrawingBehavior;
+}
+
+export interface CodeGenerationOptions {
+    indentChar: string;
+    labelColon: boolean;
+    byteOffset: number;
+    byteOffsetRadix: AssemblyNumberFormatRadix;
+    byteRadix: AssemblyNumberFormatRadix;
 }
 
 type PixelCanvasEventMap = {
@@ -774,6 +785,40 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         });
 
         this.render();
+    }
+
+    public generateCode(options: CodeGenerationOptions): string {
+        const indent = options.indentChar;
+        const safeLabel = (name: string): string => name.replace(/[^a-z0-9]/ig, '');
+
+        const paletteIndex = this.group.getPaletteSet().getPalettes().indexOf(this.palette);
+        if (!isPaletteIndex(paletteIndex)) {
+            throw new Error(`Could not determine palette index`);
+        }
+
+        const code: string[] = [];
+        let byteOffset = options.byteOffset;
+
+        const pixelData = this.pixelData.slice(0, this.height);
+
+        for (let i = pixelData.length - 1; i >= 0; i--) {
+            const row = pixelData[i]!.slice(0, this.width);
+            const coefficient = pixelData.length - i - 1;
+
+            const offset = byteOffset + (0x100 * coefficient);
+            code.push(`${indent}ORG ${formatAssemblyNumber(offset, options.byteOffsetRadix)} ; line ${i + 1}`);
+            code.push('');
+
+            const comment = i === pixelData.length - 1 ? '' : '; ';
+            code.push(`${comment}${safeLabel(this.name)}${options.labelColon ? ':' : ''}`);
+
+            const bytes = this.displayMode.convertPixelsToBytes(row, paletteIndex);
+            bytes.forEach(byte => code.push(`${indent}.byte ${formatAssemblyNumber(byte, options.byteRadix)}`));
+
+            code.push('');
+        }
+
+        return code.join('\n');
     }
 
     public toJSON(): PixelCanvasSerialized {

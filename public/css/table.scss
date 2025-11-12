@@ -1,0 +1,27 @@
+@use "./config";
+
+table {
+    font-size: 85%;
+    border-collapse: collapse;
+    width: 100%;
+    background-color: config.$sidebar-bg-color;
+
+    td, th {
+        padding: config.$gutter-half;
+        border: 1px solid config.$border-color;
+
+        p {
+            margin-bottom: config.$gutter-eighth;
+        }
+    }
+
+    &.form {
+        td, th {
+            border: none;
+            padding: config.$gutter-quarter;
+        }
+        th {
+            text-align: right;
+        }
+    }
+}

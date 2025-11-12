@@ -18,16 +18,19 @@ $editor-gutter-height: 2rem;
 $editor-gutter-padding: $gutter-quarter;
 $canvas-sidebar-width: 8rem;
 
+$z-index-modal-overlay: 100;
+$z-index-popover: 50;
+$z-index-toast: 150;
 
 $bg-color: #363636;
 $color: #B8B8B8;
 $muted-color: #646464;
 
-$success-bg: #356c35;
-$success-border: #499649;
-$danger-bg: #8d3e3e;
+$success-bg: #366b36;
+$success-border: #438843;
+$danger-bg: #803838;
 $danger-color: #d08c8c;
-$danger-border: #b24f4f;
+$danger-border: #9f4747;
 $primary-color: #c96ac9;
 $primary-bg: #793679;
 $primary-border: #9f479f;

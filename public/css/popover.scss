@@ -1,10 +1,22 @@
 @use "sass:math";
 @use "./config";
 
+.toast-container {
+    display: flex;
+    flex-direction: column;
+    gap: config.$gutter;
+    position: fixed;
+    top: 0;
+    right: 0;
+    padding: config.$gutter;
+    z-index: config.$z-index-toast;
+    max-width: 25em;
+}
+
 .popover {
     position: absolute;
     transform: translateX((-1.25 * config.$gutter)) translateY(config.$gutter);
-    z-index: 100;
+    z-index: config.$z-index-popover;
     border: 2px solid config.$border-color;
     border-radius: 4px;
     box-shadow:
@@ -26,6 +38,24 @@
         box-shadow: inherit;
         transform: translateX($arrow-size) rotate(45deg) translateX(-50%);
         z-index: -1;
+    }
+
+    &.toast {
+        position: static;
+        transform: none;
+    }
+
+    &.success {
+        border-color: config.$success-border;
+        &, .popover-content {
+            background-color: config.$success-bg;
+        }
+    }
+    &.danger {
+        border-color: config.$danger-border;
+        &, .popover-content {
+            background-color: config.$danger-bg;
+        }
     }
 
     &.no-header {
