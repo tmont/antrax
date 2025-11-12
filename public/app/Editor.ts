@@ -337,7 +337,7 @@ export class Editor {
         }
 
         const displayMode = canvas.getDisplayMode();
-        const colors = displayMode.getColors(paletteSet, palette);
+        const colors = canvas.getColors();
 
         const $paletteList = findElement(this.$canvasSidebar, '.canvas-palette-colors');
         $paletteList.innerHTML = '';
@@ -446,6 +446,14 @@ export class Editor {
     }
 
     private setActiveColor(colorValue: DisplayModeColorIndex): void {
+        const canvas = this.project?.getActiveCanvas();
+        if (!canvas) {
+            return;
+        }
+
+        const colorCount = canvas.getColors().length;
+        colorValue = ((colorValue % colorCount) + colorCount) % colorCount;
+
         this.logger.info(`active color set to ${colorValue}`);
         this.project?.setActiveColor(colorValue);
 
@@ -530,14 +538,28 @@ export class Editor {
         let panningOrigin = { x: 0, y: 0 };
 
         canvasContainer.addEventListener('wheel', (e) => {
-            const coefficient = e.shiftKey ? 1 : 0.5;
-            const delta = e.deltaY < 0 ? 1 : (e.deltaY > 0 ? -1 : 0);
-            this.settings.zoomLevel += (delta * coefficient);
-            this.settings.zoomLevel = Math.round(this.settings.zoomLevel * 100) / 100;
-            this.settings.zoomLevel = Math.max(1, Math.min(10, this.settings.zoomLevel));
+            if (e.deltaY === 0) {
+                return;
+            }
 
-            this.updateZoomLevelUI();
-            this.project?.zoomTo();
+            const dir = e.deltaY < 0 ? 1 : -1;
+
+            if (e.shiftKey) {
+                const coefficient = 1;
+                this.settings.zoomLevel += (dir * coefficient);
+                this.settings.zoomLevel = Math.round(this.settings.zoomLevel * 100) / 100;
+                this.settings.zoomLevel = Math.max(1, Math.min(10, this.settings.zoomLevel));
+
+                this.updateZoomLevelUI();
+                this.project?.zoomTo();
+                return;
+            }
+
+            // select prev/next color
+            const activeCanvas = this.project?.getActiveCanvas();
+            if (activeCanvas) {
+                this.setActiveColor(activeCanvas.getActiveColor() - dir);
+            }
         });
 
         document.addEventListener('keydown', (e) => {

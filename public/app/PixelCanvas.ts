@@ -282,6 +282,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.displayMode;
     }
 
+    public getColors(): DisplayModeColorValue[] {
+        return this.displayMode.getColors(this.group.getPaletteSet(), this.palette);
+    }
+
     public setDisplayMode(newMode: DisplayMode | DisplayModeName): void {
         if (typeof newMode === 'string') {
             newMode = DisplayMode.create(newMode);
