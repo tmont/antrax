@@ -1,12 +1,24 @@
+## v0.0.11 (2025-11-11)
+- Canvas is filled transparent instead of background color by default
+- Erasing a pixel now colors it transparent instead of background color
+- Transparent pixels now use a checkerboard pattern instead of diagonal texture
+- Scrollwheel now selects adjacent color instead of zooming
+- Canvas sidebar colors now update when background color is changed
+- Fixed canvas width clamping for hires modes
+- Fixed display mode colors
+    - `none`: added `BG`
+    - `320B`: masks colors to palettes 0 or 4
+    - `320C`: was a placeholder, now it's not
+
 ## v0.0.10 (2025-11-11)
 - Atari 7800 display mode support
     - `none` is just free draw
-    - The others are almost certainly inaccurate in some way, but they 
+    - The others are almost certainly inaccurate in some way, but they
       are functional
     - Pixel dimensions inputs are disabled when __display mode__ is not `none`
     - Canvas dimensions are clamped to only allowed multiples when
       __display mode__ is not `none`
-- Individual palettes are now assigned directly to objects (when __display mode__ 
+- Individual palettes are now assigned directly to objects (when __display mode__
   is not `none`)
 - Palettes in the header now open color picker on click (no more Shift+click)
 - Added canvas sidebar showing currently active object information
