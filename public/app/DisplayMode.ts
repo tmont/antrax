@@ -79,10 +79,10 @@ class DisplayMode {
                 return 2;
             case '320A':
             case '320D':
-                return 8;
+                return 4;
             case '320B':
             case '320C':
-                return 4;
+                return 2;
             default:
                 nope(this.name);
                 throw new Error(`Invalid type "${this.name}"`);
