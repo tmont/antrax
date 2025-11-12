@@ -225,11 +225,6 @@ class DisplayMode {
         }
 
         const palettes = paletteSet.getPalettes();
-        if (!palettes[0] || !palettes[1] || !palettes[2] || !palettes[3] ||
-            !palettes[4] || !palettes[5] || !palettes[6] || !palettes[7] || !palettes[paletteIndex]
-        ) {
-            throw new Error(`PaletteSet must have at least eight palettes`);
-        }
 
         const t: DisplayModeColor = {
             label: 'T',
