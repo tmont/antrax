@@ -67,11 +67,6 @@ export interface PixelCanvasSerialized {
     activeColor: DisplayModeColorValueSerialized;
 }
 
-const isColorDark = (r: number, g: number, b: number): boolean => {
-    const lum = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return lum <= 50;
-};
-
 export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private width: number;
     private height: number;
@@ -95,6 +90,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private activeColor: DisplayModeColorIndex;
 
     private static instanceCount = 0;
+    private static transparentPatternMap: Record<number, CanvasPattern> = {};
 
     private readonly $el: HTMLCanvasElement;
     private readonly $gridEl: HTMLCanvasElement;
@@ -102,8 +98,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     private drawState: PixelCanvasDrawState = 'idle';
 
-    private static lightTransparentPattern: CanvasPattern | null = null;
-    private static darkTransparentPattern: CanvasPattern | null = null;
+    public static readonly transparentColor1 = 'rgba(208, 208, 208, 0.5)';
+    public static readonly transparentColor2 = 'rgba(255, 255, 255, 0.5)';
 
     public constructor(options: CanvasOptions) {
         super();
@@ -158,37 +154,32 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     private getTransparentPattern(): CanvasPattern {
-        const bg = this.group.getBackgroundColor();
-        const isDark = isColorDark(bg.r, bg.g, bg.b);
-        let pattern = isDark ? PixelCanvas.lightTransparentPattern : PixelCanvas.darkTransparentPattern;
+        const key = this.editorSettings.zoomLevel;
+        let pattern = PixelCanvas.transparentPatternMap[key] || null;
 
         if (!pattern) {
             const $canvas = document.createElement('canvas');
-            $canvas.width = 6;
-            $canvas.height = 7;
+            $canvas.width = Math.max(2, this.displayPixelWidth);
+            $canvas.height = Math.max(2, this.displayPixelWidth); // use height instead?
 
             const ctx = $canvas.getContext('2d');
             if (!ctx) {
                 throw new Error(`could not retrieve pattern context`);
             }
-            // ctx.fillStyle = isDark ? 'rgba(64, 64, 64, 0.1)' : 'rgba(0, 0, 0, 0.15)';
-            // ctx.fillRect(0, 0, $canvas.width, $canvas.height);
-            ctx.strokeStyle = isDark ? 'rgba(160, 160, 160, 0.35)' : 'rgba(0, 0, 0, 0.35)';
-            ctx.lineWidth = 1;
-            ctx.moveTo(0, 0);
-            ctx.lineTo($canvas.width, $canvas.height);
-            ctx.stroke();
+
+            ctx.fillStyle = PixelCanvas.transparentColor1;
+            ctx.fillRect(0, 0, $canvas.width / 2, $canvas.height / 2);
+            ctx.fillRect($canvas.width / 2, $canvas.height / 2, $canvas.width / 2, $canvas.height / 2);
+            ctx.fillStyle = PixelCanvas.transparentColor2;
+            ctx.fillRect($canvas.width / 2, 0, $canvas.width / 2, $canvas.height / 2);
+            ctx.fillRect(0, $canvas.height / 2, $canvas.width / 2, $canvas.height / 2);
 
             pattern = this.ctx.createPattern($canvas, 'repeat');
             if (!pattern) {
                 throw new Error(`could not create transparent pattern`);
             }
 
-            if (isDark) {
-                PixelCanvas.lightTransparentPattern = pattern;
-            } else {
-                PixelCanvas.darkTransparentPattern = pattern;
-            }
+            PixelCanvas.transparentPatternMap[key] = pattern;
         }
 
         return pattern;
@@ -490,7 +481,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public clear(): void {
-        this.logger.info(`clearing canvas with color ${this.group.getBackgroundColor().hex}`);
+        this.logger.info(`clearing canvas`);
         this.clearRect(0, 0, this.displayWidth, this.displayHeight);
         this.emit('clear');
     }
@@ -506,7 +497,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        this.ctx.fillStyle = this.group.getBackgroundColor().hex;
+        this.ctx.clearRect(x, y, width, height);
+        this.ctx.fillStyle = this.getTransparentPattern();
         this.ctx.fillRect(x, y, width, height);
     }
 
@@ -621,11 +613,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     const fudge = i * width;
                     const x = absoluteCoordinate.x + fudge;
                     if (color.value === 'background') {
-                        this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        this.ctx.fillStyle = this.group.getBackgroundColor().hex;
+                        this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     } else if (color.value === 'transparent') {
                         this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
-                        this.ctx.fillStyle = this.getTransparentPattern();
-                        this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     } else {
                         this.ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
                         this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);

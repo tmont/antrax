@@ -255,15 +255,17 @@ class DisplayMode {
 
         switch (this.name) {
             case 'none':
-                return palettes
-                    .map((palette, i) => {
-                        if (!isPaletteIndex(i)) {
-                            throw new Error();
-                        }
+                return [ [ bg ] ].concat(
+                    palettes
+                        .map((palette, i) => {
+                            if (!isPaletteIndex(i)) {
+                                throw new Error();
+                            }
 
-                        return mapPalette(palette, i);
-                    })
-                    .reduce((arr, colors) => arr.concat(colors), []);
+                            return mapPalette(palette, i);
+                        })
+                        .reduce((arr, colors) => arr.concat(colors), [])
+                );
             case '160A':
                 return [
                     [ t ],

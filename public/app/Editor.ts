@@ -376,6 +376,16 @@ export class Editor {
                             this.settings.activeColorPaletteSet.getBackgroundColor().hex :
                             color.value.palette.getColorAt(color.value.index).hex
                     );
+
+                if (color.value === 'transparent') {
+                    // https://stackoverflow.com/a/65129916
+                    const color1 = PixelCanvas.transparentColor1;
+                    const color2 = PixelCanvas.transparentColor2;
+                    $swatch.style.backgroundImage = `repeating-conic-gradient(${color1} 0 25%, ${color2} 0 50%)`;
+                    $swatch.style.backgroundPosition = '0 50%';
+                    $swatch.style.backgroundSize = '8px 8px';
+                }
+
                 findElement($item, '.color').appendChild($swatch);
             });
 
