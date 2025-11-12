@@ -1,5 +1,5 @@
 ## v0.0.12 (2025-11-12)
-- Implemented codegen export for 160A and 160B
+- Implemented codegen export for 160A, 160B and 320A
 - Added toasts
 - Added SSL cert
 
