@@ -445,7 +445,6 @@ export class Editor {
         });
     }
 
-    // private setActiveColor(paletteSet: ColorPaletteSet, palette: ColorPalette, index: ColorIndex): void {
     private setActiveColor(colorValue: DisplayModeColorIndex): void {
         this.logger.info(`active color set to ${colorValue}`);
         this.project?.setActiveColor(colorValue);
