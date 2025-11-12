@@ -189,6 +189,29 @@ class DisplayMode {
         return colors[index] || null;
     }
 
+    private getColorValuesForPalette(
+        paletteIndex: PaletteIndex,
+        palettes: ColorPalette[],
+        mask = 0b111,
+    ): [ DisplayModeColor, DisplayModeColor, DisplayModeColor ] {
+        const effectiveIndex: PaletteIndex = (paletteIndex & mask) as any;
+        const effectivePalette: ColorPalette = palettes[effectiveIndex]!;
+
+        const colorIndexes: [ ColorIndex, ColorIndex, ColorIndex ] = [ 0, 1, 2 ];
+        return colorIndexes
+            .map((colorIndex) => {
+                const key0: DisplayModeColorString = `P${effectiveIndex}C${colorIndex}`;
+                const c1: DisplayModeColor = {
+                    label: key0,
+                    value: {
+                        palette: effectivePalette,
+                        index: colorIndex,
+                    },
+                };
+                return c1;
+            }) as [ DisplayModeColor, DisplayModeColor, DisplayModeColor ];
+    }
+
     public getColors(
         paletteSet: ColorPaletteSet,
         palette: ColorPalette,
@@ -215,37 +238,10 @@ class DisplayMode {
             value: 'background',
         };
 
-        const activePalette = palettes[paletteIndex];
-
-        const key0: DisplayModeColorString = `P${paletteIndex}C0`;
-        const c1: DisplayModeColor = {
-            label: key0,
-            value: {
-                palette: activePalette,
-                index: 0,
-            },
-        };
-
-        const key1: DisplayModeColorString = `P${paletteIndex}C1`;
-        const c2: DisplayModeColor = {
-            label: key1,
-            value: {
-                palette: activePalette,
-                index: 1,
-            },
-        };
-
-        const key2: DisplayModeColorString = `P${paletteIndex}C2`;
-        const c3: DisplayModeColor = {
-            label: key2,
-            value: {
-                palette: activePalette,
-                index: 2,
-            },
-        };
+        const [ c1, c2, c3 ] = this.getColorValuesForPalette(paletteIndex, palettes);
 
         const mapPalette = (palette: ColorPalette, paletteIndex: PaletteIndex): DisplayModeColorValue[] => {
-            return palette.colors.map((color, index): DisplayModeColorValue => {
+            return palette.colors.map((_, index): DisplayModeColorValue => {
                 const colorIndex = index as ColorIndex;
                 return [ {
                     label: `P${paletteIndex}C${colorIndex}`,
@@ -276,12 +272,11 @@ class DisplayMode {
                     [ c3 ],
                 ];
             case '160B': {
-                const startIndex: 0 | 4 = (paletteIndex & 0b100) as any;
-                return [
-                    [ t ],
-                ].concat(
+                const mask = 0b100;
+                const startIndex: 0 | 4 = (paletteIndex & mask) as any;
+                return [ [ t ] ].concat(
                     palettes
-                        .slice(startIndex, startIndex + 4)
+                        .slice(startIndex, startIndex + mask)
                         .map((palette, i) => {
                             const paletteIndex = startIndex + i;
                             if (!isPaletteIndex(paletteIndex)) {
@@ -294,14 +289,15 @@ class DisplayMode {
                 );
             }
             case '320A':
-            case '320C':
                 return [
                     [ t, t ],
                     [ bg, c2 ],
                     [ c2, bg ],
                     [ c2, c2 ],
                 ];
-            case '320B':
+            case '320B': {
+                const [ c1, c2, c3 ] = this.getColorValuesForPalette(paletteIndex, palettes, 0b100);
+
                 return [
                     [ t, t ],
                     [ c1, c2 ],
@@ -317,35 +313,39 @@ class DisplayMode {
                     [ bg, c2 ],
                     [ bg, c3 ],
                 ];
+            }
+            case '320C': {
+                const mask = 0b100;
+                const startIndex: 0 | 4 = (paletteIndex & mask) as any;
+
+                return [ [ t, t ] ].concat(
+                    palettes
+                        .slice(startIndex, startIndex + mask)
+                        .map((palette, i) => {
+                            const paletteIndex = startIndex + i;
+                            if (!isPaletteIndex(paletteIndex)) {
+                                throw new Error();
+                            }
+
+                            const c1: DisplayModeColor = {
+                                label: `P${paletteIndex}C1`,
+                                value: {
+                                    index: 1,
+                                    palette,
+                                },
+                            };
+
+                            return [
+                                [ c1, c1 ],
+                                [ c1, bg ],
+                                [ bg, c1 ],
+                            ];
+                        })
+                        .reduce((arr, colors) => arr.concat(colors), [])
+                );
+            }
             case '320D': {
-                const effectiveIndex: 0 | 4 = (paletteIndex & 0b100) as any;
-                const effectivePalette: ColorPalette = palettes[effectiveIndex]!;
-                const key0: DisplayModeColorString = `P${effectiveIndex}C0`;
-                const c1: DisplayModeColor = {
-                    label: key0,
-                    value: {
-                        palette: effectivePalette,
-                        index: 0,
-                    },
-                };
-
-                const key1: DisplayModeColorString = `P${effectiveIndex}C1`;
-                const c2: DisplayModeColor = {
-                    label: key1,
-                    value: {
-                        palette: effectivePalette,
-                        index: 1,
-                    },
-                };
-
-                const key2: DisplayModeColorString = `P${effectiveIndex}C2`;
-                const c3: DisplayModeColor = {
-                    label: key2,
-                    value: {
-                        palette: effectivePalette,
-                        index: 2,
-                    },
-                };
+                const [ c1, c2, c3 ] = this.getColorValuesForPalette(paletteIndex, palettes, 0b100);
 
                 switch (paletteIndex) {
                     case 0:
@@ -359,7 +359,7 @@ class DisplayMode {
                     case 1:
                     case 5:
                         return [
-                            [ t, t ], // T+T/C1?
+                            [ t, t ],
                             [ bg, c3 ],
                             [ c2, c1 ],
                             [ c2, c3 ],
@@ -367,7 +367,7 @@ class DisplayMode {
                     case 2:
                     case 6:
                         return [
-                            [ t, t ], // T/C1+T
+                            [ t, t ],
                             [ c1, c2 ],
                             [ c3, bg ],
                             [ c3, c2 ],
@@ -375,7 +375,7 @@ class DisplayMode {
                     case 3:
                     case 7:
                         return [
-                            [ t, t ], // T/C1+T/C1?
+                            [ t, t ],
                             [ c1, c3 ],
                             [ c3, c1 ],
                             [ c3, c3 ],
