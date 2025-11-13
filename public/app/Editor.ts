@@ -1,4 +1,3 @@
-import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
 import { ColorPaletteSet } from './ColorPaletteSet.ts';
 import { ColorPaletteSetCollection, type ColorPaletteSetCollectionSerialized } from './ColorPaletteSetCollection.ts';
 import DisplayMode from './DisplayMode.ts';
@@ -21,19 +20,11 @@ import {
 export interface EditorSettings {
     showGrid: boolean;
     zoomLevel: number;
-    pixelWidth: number;
-    pixelHeight: number;
-    canvasWidth: number;
-    canvasHeight: number;
     activeColorPaletteSet: ColorPaletteSet;
-    activeColorPalette: ColorPalette;
-    activeColorIndex: ColorIndex;
 }
 
-export interface EditorSettingsSerialized extends
-    Pick<EditorSettings, 'showGrid' | 'zoomLevel' | 'pixelWidth' | 'pixelHeight' | 'canvasWidth' | 'canvasHeight' | 'activeColorIndex'> {
+export interface EditorSettingsSerialized extends Pick<EditorSettings, 'showGrid' | 'zoomLevel'> {
     activeColorPaletteSetId: ColorPaletteSet['id'];
-    activeColorPaletteId: ColorPalette['id'];
 }
 
 export interface EditorOptions {
@@ -117,21 +108,9 @@ export class Editor {
             throw new Error(`paletteSets cannot be empty`);
         }
 
-        const defaultPalette = defaultPaletteSet.getPalettes()[0];
-
-        if (!defaultPalette) {
-            throw new Error(`could not find default color palette in set ${defaultPaletteSet.id}`);
-        }
-
         this.settings = options.settings || {
-            pixelWidth: 8,
-            pixelHeight: 8,
-            canvasWidth: 16,
-            canvasHeight: 16,
             showGrid: false,
             zoomLevel: 2,
-            activeColorIndex: 0,
-            activeColorPalette: defaultPalette,
             activeColorPaletteSet: defaultPaletteSet,
         };
 
@@ -244,7 +223,7 @@ export class Editor {
 
             this.syncDisplayModeControl();
         });
-        this.project.on('canvas_reset', (canvas) => {
+        this.project.on('canvas_reset', () => {
             this.syncDisplayModeControl(false);
         });
         this.project.on('draw_start', (canvas) => {
@@ -506,10 +485,10 @@ export class Editor {
 
                 this.project?.addObject({
                     mountEl: this.$canvasArea,
-                    width: this.settings.canvasWidth,
-                    height: this.settings.canvasHeight,
-                    pixelHeight: this.settings.pixelHeight,
-                    pixelWidth: this.settings.pixelWidth,
+                    width: 16,
+                    height: 16,
+                    pixelHeight: 8,
+                    pixelWidth: 8,
                     editorSettings: this.settings,
                     displayMode: DisplayMode.ModeNone,
                     palette: defaultColorPalette,
@@ -812,13 +791,7 @@ export class Editor {
             project: this.project?.toJSON() || null,
             paletteSetCollection: this.paletteSets.toJSON(),
             settings: {
-                activeColorIndex: this.settings.activeColorIndex,
-                activeColorPaletteId: this.settings.activeColorPalette.id,
                 activeColorPaletteSetId: this.settings.activeColorPaletteSet.id,
-                canvasWidth: this.settings.canvasWidth,
-                canvasHeight: this.settings.canvasHeight,
-                pixelWidth: this.settings.pixelWidth,
-                pixelHeight: this.settings.pixelHeight,
                 showGrid: this.settings.showGrid,
                 zoomLevel: this.settings.zoomLevel,
             },
@@ -910,15 +883,9 @@ export class Editor {
             return false;
         }
         const expectedKeys: Record<keyof EditorSettingsSerialized, 'number' | 'boolean'> = {
-            activeColorPaletteId: 'number',
             activeColorPaletteSetId: 'number',
-            canvasHeight: 'number',
-            canvasWidth: 'number',
-            pixelHeight: 'number',
-            pixelWidth: 'number',
             showGrid: 'boolean',
             zoomLevel: 'number',
-            activeColorIndex: 'number',
         };
 
         for (const [ key, type ] of Object.entries(expectedKeys)) {
@@ -947,41 +914,20 @@ export class Editor {
         }
 
         let activeColorPaletteSet = paletteSets.find(set => set.id === json.settings.activeColorPaletteSetId);
-        let activeColorPalette: ColorPalette | null = null;
-        if (activeColorPaletteSet) {
-            activeColorPalette = activeColorPaletteSet
-                .getPalettes()
-                .find(palette => palette.id === json.settings.activeColorPaletteId) || null;
-
-            if (!activeColorPalette) {
-                this.logger.warn(`ColorPalette{${json.settings.activeColorPaletteId}} not found ` +
-                    `in ColorPaletteSet{${json.settings.activeColorPaletteSetId}}`);
-            }
-        } else {
+        if (!activeColorPaletteSet) {
             this.logger.warn(`ColorPaletteSet{${json.settings.activeColorPaletteSetId}} not found`);
             activeColorPaletteSet = paletteSets[0];
             if (!activeColorPaletteSet) {
                 throw new Error(`no ColorPaletteSets, this is a developer error`);
             }
-            activeColorPalette = activeColorPaletteSet.getPalettes()[0] || null;
-        }
-
-        if (!activeColorPalette) {
-            throw new Error(`ColorPaletteSet{${activeColorPaletteSet.id}} does not have any palettes`);
         }
 
         this.paletteSets.destroy();
         this.project?.destroy();
 
         this.settings = {
-            activeColorIndex: json.settings.activeColorIndex,
             zoomLevel: json.settings.zoomLevel,
             showGrid: json.settings.showGrid,
-            canvasWidth: json.settings.canvasWidth,
-            canvasHeight: json.settings.canvasHeight,
-            pixelWidth: json.settings.pixelWidth,
-            pixelHeight: json.settings.pixelHeight,
-            activeColorPalette,
             activeColorPaletteSet,
         };
 
