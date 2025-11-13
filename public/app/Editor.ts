@@ -21,10 +21,12 @@ export interface EditorSettings {
     showGrid: boolean;
     zoomLevel: number;
     activeColorPaletteSet: ColorPaletteSet;
+    uncoloredPixelBehavior: 'transparent' | 'background';
 }
 
 export interface EditorSettingsSerialized extends Pick<EditorSettings, 'showGrid' | 'zoomLevel'> {
     activeColorPaletteSetId: ColorPaletteSet['id'];
+    uncoloredPixelBehavior?: EditorSettings['uncoloredPixelBehavior'];
 }
 
 export interface EditorOptions {
@@ -61,6 +63,7 @@ export class Editor {
     private readonly $el: HTMLElement;
     private readonly $gutter: HTMLElement;
     private readonly $gridInput: HTMLInputElement;
+    private readonly $transparentInput: HTMLInputElement;
     private readonly $zoomValue: HTMLElement;
     private readonly $pixelWidthInput: HTMLInputElement;
     private readonly $pixelHeightInput: HTMLInputElement;
@@ -91,6 +94,7 @@ export class Editor {
         this.$gutter = findElement(this.$el, '.canvas-gutter');
         this.$canvasArea = findElement(this.$el, '.canvas-area');
         this.$gridInput = findOrDie(this.$gutter, '#option-show-grid', node => node instanceof HTMLInputElement);
+        this.$transparentInput = findOrDie(this.$gutter, '#option-show-transparent', node => node instanceof HTMLInputElement);
         this.$zoomValue = findElement(this.$gutter, '.zoom-level-value');
         this.$pixelWidthInput = findOrDie(this.$gutter, '#option-pixel-width', node => node instanceof HTMLInputElement);
         this.$pixelHeightInput = findOrDie(this.$gutter, '#option-pixel-height', node => node instanceof HTMLInputElement);
@@ -112,6 +116,7 @@ export class Editor {
             showGrid: false,
             zoomLevel: 2,
             activeColorPaletteSet: defaultPaletteSet,
+            uncoloredPixelBehavior: 'transparent',
         };
 
         this.paletteSets = new ColorPaletteSetCollection({
@@ -357,12 +362,7 @@ export class Editor {
                     );
 
                 if (color.value === 'transparent') {
-                    // https://stackoverflow.com/a/65129916
-                    const color1 = PixelCanvas.transparentColor1;
-                    const color2 = PixelCanvas.transparentColor2;
-                    $swatch.style.backgroundImage = `repeating-conic-gradient(${color1} 0 25%, ${color2} 0 50%)`;
-                    $swatch.style.backgroundPosition = '0 50%';
-                    $swatch.style.backgroundSize = '8px 8px';
+                    $swatch.classList.add('transparent-checkerboard');
                 }
 
                 findElement($item, '.color').appendChild($swatch);
@@ -589,6 +589,12 @@ export class Editor {
                 // must prevent default so that we don't type a "c" in the input
                 e.preventDefault();
                 this.$canvasWidthInput.focus();
+            } else if (e.key.toLowerCase() === 't') {
+                this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'transparent' ?
+                    'background' :
+                    'transparent';
+                this.$transparentInput.checked = this.settings.uncoloredPixelBehavior === 'transparent';
+                this.project?.setUncoloredPixelBehavior();
             }
         });
 
@@ -642,9 +648,14 @@ export class Editor {
         });
 
         // gutter stuff
-        this.$gridInput.addEventListener('change', () =>{
+        this.$gridInput.addEventListener('change', () => {
             this.settings.showGrid = this.$gridInput.checked;
             this.project?.setShowGrid();
+        });
+
+        this.$transparentInput.addEventListener('change', () => {
+            this.settings.uncoloredPixelBehavior = this.$transparentInput.checked ? 'transparent' : 'background';
+            this.project?.setUncoloredPixelBehavior();
         });
 
         findElement(this.$gutter, '.zoom-level-label').addEventListener('click', () => {
@@ -794,6 +805,7 @@ export class Editor {
                 activeColorPaletteSetId: this.settings.activeColorPaletteSet.id,
                 showGrid: this.settings.showGrid,
                 zoomLevel: this.settings.zoomLevel,
+                uncoloredPixelBehavior: this.settings.uncoloredPixelBehavior,
             },
         };
     }
@@ -875,23 +887,22 @@ export class Editor {
         return true;
     }
 
-    private validateSettings(settings: unknown): settings is EditorSettings {
+    private validateSettings(settings: any): settings is EditorSettings {
         if (typeof settings !== 'object') {
             return false;
         }
         if (!settings) {
             return false;
         }
-        const expectedKeys: Record<keyof EditorSettingsSerialized, 'number' | 'boolean'> = {
-            activeColorPaletteSetId: 'number',
-            showGrid: 'boolean',
-            zoomLevel: 'number',
-        };
 
-        for (const [ key, type ] of Object.entries(expectedKeys)) {
-            if (typeof (settings as any)[key] !== type) {
-                return false;
-            }
+        if (
+            (typeof settings.uncoloredPixelBehavior !== 'string' &&
+                typeof settings.uncoloredPixelBehavior !== 'undefined') ||
+            typeof settings.showGrid !== 'boolean' ||
+            typeof settings.zoomLevel !== 'number' ||
+            typeof settings.activePaletteId !== 'number'
+        ) {
+            return false;
         }
 
         return true;
@@ -929,9 +940,14 @@ export class Editor {
             zoomLevel: json.settings.zoomLevel,
             showGrid: json.settings.showGrid,
             activeColorPaletteSet,
+            uncoloredPixelBehavior: json.settings.uncoloredPixelBehavior || 'transparent',
         };
 
-        const paletteSetCollection = ColorPaletteSetCollection.fromJSON(json.paletteSetCollection, this.settings, paletteSets);
+        const paletteSetCollection = ColorPaletteSetCollection.fromJSON(
+            json.paletteSetCollection,
+            this.settings,
+            paletteSets,
+        );
         this.setPaletteSets(paletteSetCollection);
 
         const projectJson = json.project;

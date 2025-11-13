@@ -255,7 +255,7 @@ class DisplayMode {
 
         switch (this.name) {
             case 'none':
-                return [ [ bg ] ].concat(
+                return [ [ t ], [ bg ] ].concat(
                     palettes
                         .map((palette, i) => {
                             if (!isPaletteIndex(i)) {

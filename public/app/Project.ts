@@ -570,6 +570,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.activeCanvas?.setShowGrid();
     }
 
+    public setUncoloredPixelBehavior(): void {
+        this.canvases.forEach(canvas => canvas.setUncoloredPixelBehavior());
+        this.updateAllThumbnails();
+    }
+
     public setPixelDimensions(width: number | null, height: number | null): void {
         if (this.activeCanvas) {
             this.activeCanvas.setPixelDimensions(width, height);

@@ -366,6 +366,16 @@ hr {
     }
 }
 
+.transparent-checkerboard {
+    // https://stackoverflow.com/a/65129916
+    // duplicated in PixelCanvas.transparentColor1 and PixelCanvas.transparentColor2
+    $color1: rgba(208, 208, 208, 0.5);
+    $color2: rgba(255, 255, 255, 0.5);
+    background-image: repeating-conic-gradient($color1 0 25%, $color2 0 50%);
+    background-position: 0 50%;
+    background-size: 8px 8px;
+}
+
 .canvas-gutter {
     display: flex;
     flex-shrink: 0;

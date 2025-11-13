@@ -508,7 +508,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         this.ctx.clearRect(x, y, width, height);
-        this.ctx.fillStyle = this.getTransparentPattern();
+        this.ctx.fillStyle = this.editorSettings.uncoloredPixelBehavior === 'transparent' ?
+            this.getTransparentPattern() :
+            this.group.getBackgroundColor().hex;
         this.ctx.fillRect(x, y, width, height);
     }
 
@@ -733,6 +735,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (render) {
             this.render();
         }
+    }
+
+    public setUncoloredPixelBehavior(): void {
+        this.render();
     }
 
     public setDimensions(width: number | null, height: number | null): void {

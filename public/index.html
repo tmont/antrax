@@ -114,12 +114,20 @@
 
                         <div style="display: flex; align-items: center; gap: 0.25rem">
                             <input type="checkbox" id="option-show-grid" autocomplete="off"/>
-                            <label for="option-show-grid"><ins>G</ins>rid</label>
+                            <label for="option-show-grid" title="toggle grid"><ins>G</ins>rid</label>
                         </div>
                         <div>
                             <label class="zoom-level-label" title="Click to reset zoom">
                                 <i class="fa-solid fa-magnifying-glass"></i>
                                 <span class="zoom-level-value">1x</span>
+                            </label>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.25rem">
+                            <input type="checkbox" id="option-show-transparent" autocomplete="off" checked />
+                            <label for="option-show-transparent"
+                                   style="display: block"
+                                   title="toggle transparent checkerboard pattern">
+                                <div class="color-swatch transparent-checkerboard"></div>
                             </label>
                         </div>
                     </div>
@@ -190,6 +198,10 @@
                         <tr>
                             <td><kbd>C</kbd></td>
                             <td>Update canvas dimensions</td>
+                        </tr>
+                        <tr>
+                            <td><kbd>T</kbd></td>
+                            <td>Toggle transparent checkerboard</td>
                         </tr>
                         <tr>
                             <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
