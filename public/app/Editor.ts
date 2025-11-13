@@ -589,6 +589,16 @@ export class Editor {
                 return;
             }
 
+            if (e.key.toLowerCase() === 'w' || e.key.toLowerCase() === 's' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+                // select prev/next color
+                const activeCanvas = this.project?.getActiveCanvas();
+                if (activeCanvas) {
+                    const dir = e.key.toLowerCase() === 'w' || e.code === 'ArrowUp' ? -1 : 1;
+                    this.setActiveColor(activeCanvas.getActiveColor() + dir);
+                }
+                return;
+            }
+
             if (e.key.toLowerCase() === 'g') {
                 this.settings.showGrid = !this.settings.showGrid;
                 this.project?.setShowGrid();
