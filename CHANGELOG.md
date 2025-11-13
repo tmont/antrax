@@ -1,3 +1,10 @@
+## v0.0.13 (2025-11-12)
+- Implemented codegen for remaining display modes (except `none`)
+- Added image export
+- Improved performance for large canvases (kind of)
+- Added row/column headers to color picker
+- Added global option to toggle transparent checkerboard pattern
+
 ## v0.0.12 (2025-11-12)
 - Implemented codegen export for 160A, 160B and 320A
 - Added toasts
