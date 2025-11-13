@@ -2,7 +2,7 @@ import { type Atari7800Color, colors } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Popover, type PopoverEventMap } from './Popover.ts';
-import { findOrDie, parseTemplate } from './utils.ts';
+import { findOrDie, parseTemplate, zeroPad } from './utils.ts';
 
 const tmpl = `<div class="color-picker"><form></form></div>`;
 
@@ -36,7 +36,24 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
         const $el = parseTemplate(tmpl);
         const $form = findOrDie($el, 'form', node => node instanceof HTMLFormElement);
 
-        colors.forEach((color) => {
+        // note: this all assumes there are 256 colors (e.g. 16*16)
+
+        // column headers
+        for (let i = 0; i < 17; i++) {
+            const $span = document.createElement('span');
+            $span.innerText = i === 0 ? '' : ((i - 1) % 16).toString(16).toUpperCase();
+            $form.appendChild($span);
+        }
+
+        colors.forEach((color, i) => {
+            if (i % 16 === 0) {
+                // row header, except for first column
+                const row = Math.floor(i / 16).toString(16).toUpperCase();
+                const $span = document.createElement('span');
+                $span.innerText = row;
+                $form.appendChild($span);
+            }
+
             const swatch = document.createElement('button');
             swatch.type = 'submit';
             swatch.classList.add('color-swatch', 'selectable');
@@ -45,7 +62,8 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
             }
             swatch.setAttribute('data-color-index', color.index.toString());
             swatch.style.backgroundColor = color.hex;
-            swatch.setAttribute('title', `[${color.index}] ${color.hex}`);
+            swatch.setAttribute('title',
+                `$${zeroPad(color.index.toString(16).toUpperCase(), 2)} (${color.hex})`);
             $form.appendChild(swatch);
         });
 

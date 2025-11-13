@@ -83,3 +83,5 @@ export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatR
             return value.toString();
     }
 };
+
+export const zeroPad = (x: string, len: number): string => '0'.repeat(Math.max(0, len - x.length)) + x;
