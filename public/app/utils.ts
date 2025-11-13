@@ -76,8 +76,10 @@ export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatR
             return '$' + (value.toString(16)).toUpperCase();
         case 10:
             return value.toString();
-        case 2:
-            return '%' + (0x100 | value).toString(2).substring(1);
+        case 2: {
+            const bin = value.toString(2);
+            return '%' + zeroPad(value.toString(2), bin.length + ((8 - (bin.length % 8)) % 8));
+        }
         default:
             nope(radix);
             return value.toString();
