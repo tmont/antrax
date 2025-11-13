@@ -301,12 +301,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.cloneObject(canvas);
         });
 
-        const overflowContent = parseTemplate(objectOverflowTmpl);
+        const $overflowContent = parseTemplate(objectOverflowTmpl);
         const overflowPopover = new Popover({
-            content: overflowContent,
+            content: $overflowContent,
             dropdown: true,
         });
-        const $overflow = findElement(newItem, '.overflow-btn');
+        const $overflowBtn = findElement(newItem, '.overflow-btn');
 
         const editForm = parseTemplate(editObjectTmpl);
         const editPopover = new Popover({
@@ -324,7 +324,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         const $copySuccess = parseTemplate('<div><i class="fa-solid fa-check"></i> Code copied!</div>');
         const $copyError = parseTemplate('<div><i class="fa-solid fa-exclamation-triangle"></i> Failed to copy :(</div>');
-        overflowContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
+        $overflowContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
             anchor.addEventListener('click', (e) => {
                 e.preventDefault();
 
@@ -461,8 +461,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
             });
         });
 
-        $overflow.addEventListener('click', () => {
-            overflowPopover.show($overflow);
+        $overflowBtn.addEventListener('click', () => {
+            // disable "Export ASM" option if it's not supported
+            const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
+            $exportAsm.classList.toggle('disabled', !canvas.getDisplayMode().canExportToASM);
+
+            overflowPopover.show($overflowBtn);
         });
 
         this.setObjectName(canvas, canvas.getName());

@@ -185,6 +185,23 @@ class DisplayMode {
         }
     }
 
+    public get canExportToASM(): boolean {
+        switch (this.name) {
+            case 'none':
+                return false;
+            case '160A':
+            case '160B':
+            case '320A':
+            case '320B':
+            case '320C':
+            case '320D':
+                return true;
+            default:
+                nope(this.name);
+                throw new Error(`Invalid type "${this.name}"`);
+        }
+    }
+
     public getColorAt(
         paletteSet: ColorPaletteSet,
         palette: ColorPalette,
