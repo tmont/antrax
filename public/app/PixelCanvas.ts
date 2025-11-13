@@ -546,6 +546,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        const start = Date.now();
         this.logger.debug('rendering');
         this.clear();
         this.renderBg();
@@ -566,6 +567,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger.debug(`drew ${pixelsDrawn}/${totalPixels} pixel${pixelsDrawn === 1 ? '' : 's'}`);
 
         this.renderGrid();
+        this.logger.debug(`rendering complete in ${Date.now() - start}ms`);
     }
 
     public renderBg(): void {
@@ -642,22 +644,36 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return false;
         }
 
+        const isUserAction = behavior === 'user';
+
         // if it's the user actually drawing something, we use the current palette/color, otherwise,
         // it's just an internal render, and we use the pixel's current palette/color
-        if (behavior === 'user') {
+        if (isUserAction) {
             pixel.modeColorIndex = erasing ? null : this.activeColor;
         }
+
+        // NOTE: all the "if (isUserAction)" stuff is for performance reasons, apparently
+        // calling a function that does the same conditional is significantly slower than just
+        // doing it inline. and since this is called in a loop during render() it gets called
+        // a lot.
+        // basically we only need to manually clear a pixel if it's initiated by the user
+        // i.e. a drawing action, regular renders do a full clear of the canvas before
+        // drawing so subsequent clearRect() calls aren't needed.
 
         const { x: col, y: row } = pixelRowAndCol;
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
 
         if (pixel.modeColorIndex === null) {
-            this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+            if (isUserAction) {
+                this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+            }
         } else {
             const colorValue = this.getColorForPixel(pixel);
             if (!colorValue) {
                 this.logger.error(`color[${pixel.modeColorIndex}] not found in display mode ${this.displayMode.name}`);
-                this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+                if (isUserAction) {
+                    this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+                }
             } else {
                 // not using slice() since it's probably more efficient to not copy the array since this is
                 // called in a loop. but ain't nobody got time for benchmarking, so maybe it wouldn't even
@@ -676,7 +692,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                         this.ctx.fillStyle = this.group.getBackgroundColor().hex;
                         this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     } else if (color.value === 'transparent') {
-                        this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        if (isUserAction) {
+                            this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        }
                     } else {
                         this.ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
                         this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
@@ -685,7 +703,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             }
         }
 
-        this.emit('pixel_draw', { pixel, row, col, behavior });
+        if (isUserAction) {
+            // important to not emit for internal drawing actions for performance reasons
+            this.emit('pixel_draw', { pixel, row, col, behavior });
+        }
 
         return true;
     }
