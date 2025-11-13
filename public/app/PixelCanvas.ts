@@ -14,7 +14,6 @@ import {
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
     formatAssemblyNumber,
-    isPaletteIndex,
     type PixelInfo,
     type PixelInfoSerialized
 } from './utils.ts';
@@ -791,11 +790,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const indent = options.indentChar;
         const safeLabel = (name: string): string => name.replace(/[^a-z0-9]/ig, '');
 
-        const paletteIndex = this.group.getPaletteSet().getPalettes().indexOf(this.palette);
-        if (!isPaletteIndex(paletteIndex)) {
-            throw new Error(`Could not determine palette index`);
-        }
-
         const code: string[] = [];
         let byteOffset = options.byteOffset;
 
@@ -812,7 +806,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             const comment = i === pixelData.length - 1 ? '' : '; ';
             code.push(`${comment}${safeLabel(this.name)}${options.labelColon ? ':' : ''}`);
 
-            const bytes = this.displayMode.convertPixelsToBytes(row, paletteIndex);
+            const bytes = this.displayMode.convertPixelsToBytes(row);
             bytes.forEach(byte => code.push(`${indent}.byte ${formatAssemblyNumber(byte, options.byteRadix)}`));
 
             code.push('');

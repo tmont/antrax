@@ -21,6 +21,8 @@ class DisplayMode {
     public static readonly Mode320C = new DisplayMode('320C');
     public static readonly Mode320D = new DisplayMode('320D');
 
+    public kangarooMode = false;
+
     private constructor(public readonly name: DisplayModeName) {}
 
     public static create(name: DisplayModeName): DisplayMode {
@@ -391,7 +393,7 @@ class DisplayMode {
         }
     }
 
-    public convertPixelsToBytes(pixels: PixelInfo[], paletteIndex: PaletteIndex): number[] {
+    public convertPixelsToBytes(pixels: PixelInfo[]): number[] {
         const bytes: number[] = [];
         const pixelsPerByte = this.pixelsPerByte;
         if (pixels.length % pixelsPerByte !== 0) {
@@ -402,8 +404,14 @@ class DisplayMode {
             const chunk = pixels.slice(i, i + pixelsPerByte);
 
             switch (this.name) {
+                case 'none':
+                    throw new Error(`display mode "${this.name}" cannot be exported`);
                 case '160A':
-                case '320A': {
+                case '320A':
+                case '320D': {
+                    // https://sites.google.com/site/atari7800wiki/graphics-modes/palette-sprite-bits/160a
+                    // https://sites.google.com/site/atari7800wiki/graphics-modes/palette-sprite-bits/320a
+                    // https://sites.google.com/site/atari7800wiki/graphics-modes/palette-sprite-bits/320d
                     const byte = chunk
                         .map((pixel, i) => {
                             const index = (pixel.modeColorIndex || 0) % 4;
@@ -413,7 +421,10 @@ class DisplayMode {
                     bytes.push(byte);
                     break;
                 }
-                case '160B': {
+                case '160B':
+                case '320C': {
+                    // https://sites.google.com/site/atari7800wiki/graphics-modes/palette-sprite-bits/160b
+                    // https://sites.google.com/site/atari7800wiki/graphics-modes/palette-sprite-bits/320c
                     const byte = chunk
                         .map((pixel, i) => {
                             let index = pixel.modeColorIndex || 0;
@@ -421,25 +432,44 @@ class DisplayMode {
                                 return 0;
                             }
 
-                            // we don't present the other three transparent options (what would be indices 1,2,3)
+                            // we don't present the other three transparent options ever
                             index += 3;
 
-                            // 0,1,2,3  -> 0, 0,1,2,3
-                            // 4,5,6    -> 0, 1,2,3
-                            // 7,8,9    -> 1, 1,2,3
-                            // 10,11,12 -> 2, 1,2,3
-                            // 13,14,15 -> 3, 1,2,3
+                            const hi = (((index - 1) % 3) + 1) << 4;
+                            const lo = Math.floor((index - 4) / 3);
 
-                            const color = (((index - 1) % 3) + 1) << 4; // 10 -> (9 % 3) + 1 -> 1
-                            const palette = Math.floor((index - 4) / 3); // 10 -> (6 / 3) -> 2
-                            return (color | palette) << (2 - (i * 2));
+                            return (hi | lo) << (2 - (i * 2));
+                        })
+                        .reduce((result, value) => result | value, 0);
+                    bytes.push(byte);
+                    break;
+                }
+                case '320B': {
+                    // https://sites.google.com/site/atari7800wiki/graphics-modes/palette-sprite-bits/320b
+                    const byte = chunk
+                        .map((pixel, i) => {
+                            let index = pixel.modeColorIndex || 0;
+                            if (index === 0) {
+                                return 0;
+                            }
+
+                            if (!this.kangarooMode) {
+                                // we don't present the other three transparent options unless we're in kangaroo mode
+                                index += 3;
+                            }
+
+                            const hi = Math.floor(index / 4) << 4;
+                            const lo = index % 4;
+
+                            return (hi | lo) << (2 - (i * 2));
                         })
                         .reduce((result, value) => result | value, 0);
                     bytes.push(byte);
                     break;
                 }
                 default:
-                    throw new Error(`display mode "${this.name}" is not supported yet`);
+                    nope(this.name);
+                    throw new Error(`invalid name "${this.name}"`);
             }
         }
 
