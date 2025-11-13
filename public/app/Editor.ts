@@ -900,7 +900,7 @@ export class Editor {
                 typeof settings.uncoloredPixelBehavior !== 'undefined') ||
             typeof settings.showGrid !== 'boolean' ||
             typeof settings.zoomLevel !== 'number' ||
-            typeof settings.activePaletteId !== 'number'
+            typeof settings.activeColorPaletteSetId !== 'number'
         ) {
             return false;
         }
