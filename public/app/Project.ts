@@ -71,7 +71,9 @@ const objectOverflowTmpl = `
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
     <li class="dropdown-item"><a href="#" data-action="clone"><i class="fa-solid fa-fw fa-clone icon"></i>Clone</a></li>
     <li class="dropdown-item"><a href="#" data-action="clear"><i class="fa-solid fa-fw fa-eraser icon"></i>Clear</a></li>
-    <li class="dropdown-item"><a href="#" data-action="export"><i class="fa-solid fa-fw fa-file-export icon"></i>Export</a></li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-image"><i class="fa-solid fa-fw fa-image icon"></i>Export image</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
 </ul>
@@ -340,7 +342,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     case 'clone':
                         this.cloneObject(canvas);
                         break;
-                    case 'export': {
+                    case 'export-image':
+                        canvas.generateDataURL((url) => {
+                            if (!url) {
+                                Popover.toast({
+                                    content: 'Failed to generate image :(',
+                                    type: 'danger',
+                                });
+                                return;
+                            }
+
+                            window.open(url);
+                        }, 'full');
+                        break;
+                    case 'export-asm': {
                         const exportId = 'export';
                         const content = findOrDie(document, '#modal-content-export-form',
                                 node => node instanceof HTMLTemplateElement).content;

@@ -32,6 +32,8 @@ export interface CanvasOptions extends Dimensions {
     activeColor?: DisplayModeColorIndex;
 }
 
+export type GeneratedImageSize = 'thumbnail' | 'full';
+
 export type PixelCanvasDrawState = 'idle' | 'drawing';
 
 export type PixelDrawingBehavior = 'user' | 'internal';
@@ -476,7 +478,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     private generateURLTimeoutId: number | null = null;
 
-    public generateDataURL(callback: (url: string | null) => void): void {
+    public generateDataURL(callback: (url: string | null) => void, size: GeneratedImageSize = 'thumbnail'): void {
         if (this.generateURLTimeoutId) {
             window.clearTimeout(this.generateURLTimeoutId);
             this.generateURLTimeoutId = null;
@@ -488,9 +490,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             $canvas.width = this.$el.width;
             $canvas.height = this.$el.height;
 
-            const maxSize = 128;
-            const maxLength = Math.max(this.$el.width, this.$el.height);
-            const scaleFactor = Math.min(1, maxSize / maxLength);
+            let scaleFactor = 1;
+            if (size === 'thumbnail') {
+                const maxSize = 128;
+                const maxLength = Math.max(this.$el.width, this.$el.height);
+                scaleFactor = Math.min(1, maxSize / maxLength);
+            }
 
             $canvas.width = Math.round(scaleFactor * this.$el.width);
             $canvas.height = Math.round(scaleFactor * this.$el.height);
