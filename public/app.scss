@@ -307,10 +307,19 @@ hr {
             gap: config.$gutter-half;
             justify-content: space-between;
             align-items: center;
+            height: 1.7em; // nailed it, purely to prevent it from shifting around when elements are hidden
 
             .canvas-palette-colors {
                 display: flex;
                 gap: config.$gutter-eighth;
+            }
+
+            .palette-not-allowed {
+                flex: 1;
+                display: none;
+                text-align: center;
+                color: config.$muted-color;
+                font-style: italic;
             }
         }
 

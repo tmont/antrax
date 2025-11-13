@@ -325,14 +325,23 @@ export class Editor {
 
         const $paletteList = findElement(this.$canvasSidebar, '.canvas-palette-colors');
         $paletteList.innerHTML = '';
+        const $paletteNotAllowed = findElement(this.$canvasSidebar, '.palette-not-allowed');
+        const $paletteSelect = findElement(this.$canvasSidebar, '.canvas-palette-select');
 
         if (displayMode.hasSinglePalette) {
+            $paletteNotAllowed.style.display = '';
+            $paletteList.style.display = '';
+            $paletteSelect.style.display = '';
             palette.colors.forEach((color) => {
                 const $swatch = document.createElement('div');
                 $swatch.classList.add('color-swatch');
                 $swatch.style.backgroundColor = color.hex;
                 $paletteList.appendChild($swatch);
             });
+        } else {
+            $paletteList.style.display = 'none';
+            $paletteSelect.style.display = 'none';
+            $paletteNotAllowed.style.display = 'block';
         }
 
         const $colorList = findElement(this.$canvasSidebar, '.color-list');
