@@ -222,15 +222,15 @@ class DisplayMode {
         const colorIndexes: [ ColorIndex, ColorIndex, ColorIndex ] = [ 0, 1, 2 ];
         return colorIndexes
             .map((colorIndex) => {
-                const key0: DisplayModeColorString = `P${effectiveIndex}C${colorIndex}`;
-                const c1: DisplayModeColor = {
-                    label: key0,
+                const key: DisplayModeColorString = `P${effectiveIndex}C${colorIndex}`;
+                const color: DisplayModeColor = {
+                    label: key,
                     value: {
                         palette: effectivePalette,
                         index: colorIndex,
                     },
                 };
-                return c1;
+                return color;
             }) as [ DisplayModeColor, DisplayModeColor, DisplayModeColor ];
     }
 
@@ -346,7 +346,7 @@ class DisplayMode {
                                 throw new Error();
                             }
 
-                            const c1: DisplayModeColor = {
+                            const c2: DisplayModeColor = {
                                 label: `P${paletteIndex}C1`,
                                 value: {
                                     index: 1,
@@ -355,9 +355,9 @@ class DisplayMode {
                             };
 
                             return [
-                                [ c1, c1 ],
-                                [ c1, bg ],
-                                [ bg, c1 ],
+                                [ c2, c2 ],
+                                [ c2, bg ],
+                                [ bg, c2 ],
                             ];
                         })
                         .reduce((arr, colors) => arr.concat(colors), [])
