@@ -29,6 +29,7 @@ input, select, textarea {
         display: flex;
         gap: config.$gutter-half;
         flex-wrap: wrap;
+        align-items: center;
 
         .form-group {
             display: flex;
