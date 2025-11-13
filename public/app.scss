@@ -445,10 +445,14 @@ canvas {
         cursor: crosshair;
     }
 
-    &.editor-grid, &.editor-hover {
+    &.editor-grid, &.editor-hover, &.editor-bg {
         pointer-events: none;
         position: absolute;
         image-rendering: pixelated;
+    }
+
+    &.editor-bg {
+        z-index: -1;
     }
 }
 

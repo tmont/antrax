@@ -105,6 +105,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private readonly $el: HTMLCanvasElement;
     private readonly $gridEl: HTMLCanvasElement;
     private readonly $hoverEl: HTMLCanvasElement;
+    private readonly $bgEl: HTMLCanvasElement;
 
     private drawState: PixelCanvasDrawState = 'idle';
 
@@ -158,6 +159,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.$hoverEl = document.createElement('canvas');
         this.$hoverEl.classList.add('editor-hover');
+
+        this.$bgEl = document.createElement('canvas');
+        this.$bgEl.classList.add('editor-bg');
 
         this.setCanvasDimensions();
         this.enable();
@@ -244,8 +248,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.displayWidth = this.width * this.displayPixelWidth;
         this.displayHeight = this.height * this.displayPixelHeight;
 
-        this.$el.width = this.$gridEl.width = this.$hoverEl.width = this.displayWidth;
-        this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.displayHeight;
+        this.$el.width = this.$gridEl.width = this.$hoverEl.width = this.$bgEl.width = this.displayWidth;
+        this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.$bgEl.height = this.displayHeight;
 
         this.setCanvasPosition();
         this.fillPixelDataArray();
@@ -260,8 +264,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const borderTopWidth = parseInt(computedStyle?.getPropertyValue('border-top-width'), 10);
         const borderLeftWidth = parseInt(computedStyle?.getPropertyValue('border-left-width'), 10);
 
-        this.$gridEl.style.top = this.$hoverEl.style.top = (this.$el.offsetTop + borderTopWidth) + 'px';
-        this.$gridEl.style.left = this.$hoverEl.style.left = (this.$el.offsetLeft + borderLeftWidth) + 'px';
+        this.$gridEl.style.top = this.$hoverEl.style.top = this.$bgEl.style.top = (this.$el.offsetTop + borderTopWidth) + 'px';
+        this.$gridEl.style.left = this.$hoverEl.style.left = this.$bgEl.style.left = (this.$el.offsetLeft + borderLeftWidth) + 'px';
     }
 
     private fillPixelDataArray(reset = false): void {
@@ -322,6 +326,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$el.style.display = 'none';
         this.$hoverEl.style.display = 'none';
         this.$gridEl.style.display = 'none';
+        this.$bgEl.style.display = 'none';
     }
 
     public show(): void {
@@ -340,10 +345,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (!this.$hoverEl.isConnected) {
             this.$el.insertAdjacentElement('afterend', this.$hoverEl);
         }
+        if (!this.$bgEl.isConnected) {
+            this.$el.insertAdjacentElement('afterend', this.$bgEl);
+        }
 
         this.$el.style.display = '';
         this.$hoverEl.style.display = '';
         this.$gridEl.style.display = '';
+        this.$bgEl.style.display = '';
         this.setCanvasPosition();
 
         this.render();
@@ -359,6 +368,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$el.remove();
         this.$hoverEl.remove();
         this.$gridEl.remove();
+        this.$bgEl.remove();
         this.destroyed = true;
     }
 
@@ -473,7 +483,28 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         this.generateURLTimeoutId = window.setTimeout(() => {
-            this.$el.toBlob((blob) => {
+            const $canvas = document.createElement('canvas');
+
+            $canvas.width = this.$el.width;
+            $canvas.height = this.$el.height;
+
+            const maxSize = 128;
+            const maxLength = Math.max(this.$el.width, this.$el.height);
+            const scaleFactor = Math.min(1, maxSize / maxLength);
+
+            $canvas.width = Math.round(scaleFactor * this.$el.width);
+            $canvas.height = Math.round(scaleFactor * this.$el.height);
+
+            const ctx = $canvas.getContext('2d');
+            if (!ctx) {
+                callback(null);
+                return;
+            }
+
+            ctx.drawImage(this.$bgEl, 0, 0, $canvas.width, $canvas.height);
+            ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
+
+            $canvas.toBlob((blob) => {
                 if (!blob) {
                     callback(null);
                     return;
@@ -508,10 +539,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         this.ctx.clearRect(x, y, width, height);
-        this.ctx.fillStyle = this.editorSettings.uncoloredPixelBehavior === 'transparent' ?
-            this.getTransparentPattern() :
-            this.group.getBackgroundColor().hex;
-        this.ctx.fillRect(x, y, width, height);
     }
 
     public render(): void {
@@ -521,6 +548,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.logger.debug('rendering');
         this.clear();
+        this.renderBg();
 
         let pixelsDrawn = 0;
         let totalPixels = 0;
@@ -538,6 +566,26 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger.debug(`drew ${pixelsDrawn}/${totalPixels} pixel${pixelsDrawn === 1 ? '' : 's'}`);
 
         this.renderGrid();
+    }
+
+    public renderBg(): void {
+        if (this.destroyed) {
+            return;
+        }
+
+        const ctx = this.$bgEl.getContext('2d');
+        if (!ctx) {
+            this.logger.error('no bg canvas context');
+            return;
+        }
+
+        this.logger.debug('rendering bg');
+
+        ctx.clearRect(0, 0, this.$bgEl.width, this.$bgEl.height);
+        ctx.fillStyle = this.editorSettings.uncoloredPixelBehavior === 'transparent' ?
+            this.getTransparentPattern() :
+            this.group.getBackgroundColor().hex;
+        ctx.fillRect(0, 0, this.$bgEl.width, this.$bgEl.height);
     }
 
     public renderGrid(): void {
@@ -738,7 +786,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public setUncoloredPixelBehavior(): void {
-        this.render();
+        this.renderBg();
     }
 
     public setDimensions(width: number | null, height: number | null): void {
