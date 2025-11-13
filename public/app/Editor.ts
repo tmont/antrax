@@ -586,24 +586,44 @@ export class Editor {
                 this.settings.zoomLevel = 1;
                 this.updateZoomLevelUI();
                 this.project?.zoomTo();
-            } else if (e.key.toLowerCase() === 'g') {
+                return;
+            }
+
+            if (e.key.toLowerCase() === 'g') {
                 this.settings.showGrid = !this.settings.showGrid;
                 this.project?.setShowGrid();
                 this.$gridInput.checked = this.settings.showGrid;
-            } else if (e.key.toLowerCase() === 'p') {
+                return;
+            }
+
+            if (e.key.toLowerCase() === 'p') {
                 // must prevent default so that we don't type a "p" in the input
                 e.preventDefault();
                 this.$pixelWidthInput.focus();
-            } else if (e.key.toLowerCase() === 'c') {
+                return;
+            }
+
+            if (e.key.toLowerCase() === 'c') {
                 // must prevent default so that we don't type a "c" in the input
                 e.preventDefault();
                 this.$canvasWidthInput.focus();
-            } else if (e.key.toLowerCase() === 't') {
+                return;
+            }
+
+            if (e.key.toLowerCase() === 't') {
                 this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'transparent' ?
                     'background' :
                     'transparent';
                 this.$transparentInput.checked = this.settings.uncoloredPixelBehavior === 'transparent';
                 this.project?.setUncoloredPixelBehavior();
+                return;
+            }
+
+            if (/^\d$/.test(e.key)) {
+                const value = parseInt(e.key, 10);
+                this.settings.zoomLevel = value === 0 ? 10 : value;
+                this.updateZoomLevelUI();
+                this.project?.zoomTo();
             }
         });
 
