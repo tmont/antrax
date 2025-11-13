@@ -60,7 +60,7 @@ main() {
         perl -p -i -e "s^\\\$CHANGELOG\\\$^${changelogContent}^" "${releaseDir}/public/index.html"
 
         echo "writing new version to package.json..."
-        bun -e "import pkg from './package.json'; pkg.version = '${nextVersion}'; Bun.write('./package.json', JSON.stringify(pkg, null, '    '));"
+        bun -e "import pkg from './package.json'; pkg.version = '${nextVersion}'; Bun.write('./package.json', JSON.stringify(pkg, null, '    ') + '\n');"
     )
 
     local envFile="${rootDir}/.dev/.env"
