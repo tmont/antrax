@@ -247,23 +247,18 @@
                         </td>
                     </tr>
                     <tr>
-                        <th><label for="export-byte-offset">Address offset:</label></th>
+                        <th><label for="export-address">Address:</label></th>
                         <td>
                             <input type="text"
                                    class="form-control"
-                                   id="export-byte-offset"
+                                   id="export-address"
                                    value="$C000"
                                    autocomplete="off"
-                                   pattern="^(\$[a-fA-F0-9]+)|(%[01]+)|(\d+)$"
                                    required />
                         </td>
-                        <th><label for="export-byte-offset-radix">Format:</label></th>
+                        <th><label for="export-address-named">Named:</label></th>
                         <td>
-                            <select id="export-byte-offset-radix">
-                                <option value="2">Binary</option>
-                                <option value="10">Decimal</option>
-                                <option value="16" selected>Hex</option>
-                            </select>
+                            <input type="checkbox" id="export-address-named" autocomplete="off" />
                         </td>
                     </tr>
                     <tr>
@@ -277,7 +272,7 @@
                         </td>
                         <th><label for="export-label-colon">Label colon:</label></th>
                         <td>
-                            <input type="checkbox" id="export-label-colon" value="1" autocomplete="off"/>
+                            <input type="checkbox" id="export-label-colon" autocomplete="off"/>
                         </td>
                     </tr>
                     <tr>

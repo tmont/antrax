@@ -45,12 +45,25 @@ export interface PixelDrawingEvent {
     behavior: PixelDrawingBehavior;
 }
 
-export interface CodeGenerationOptions {
+export interface CodeGenerationOptionsBase {
     indentChar: string;
     labelColon: boolean;
-    byteOffset: number;
-    byteOffsetRadix: AssemblyNumberFormatRadix;
+    addressOffsetRadix: AssemblyNumberFormatRadix;
     byteRadix: AssemblyNumberFormatRadix;
+}
+
+export interface CodeGenerationOptionsLabel extends CodeGenerationOptionsBase {
+    addressLabel: string;
+}
+
+export interface CodeGenerationOptionsOffset extends CodeGenerationOptionsBase {
+    addressOffset: number;
+}
+
+export type CodeGenerationOptions = CodeGenerationOptionsLabel | CodeGenerationOptionsOffset;
+
+const hasAddressLabel = (options: CodeGenerationOptions): options is CodeGenerationOptionsLabel => {
+    return !!((options as CodeGenerationOptionsLabel).addressLabel || '').trim();
 }
 
 type PixelCanvasEventMap = {
@@ -881,7 +894,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const safeLabel = (name: string): string => name.replace(/[^a-z0-9]/ig, '');
 
         const code: string[] = [];
-        let byteOffset = options.byteOffset;
+        let addressOffset = 0;
+        let addressLabel = '';
+
+        if (hasAddressLabel(options)) {
+            addressLabel = options.addressLabel;
+        } else {
+            addressOffset = options.addressOffset || 0;
+        }
 
         const pixelData = this.pixelData.slice(0, this.height);
 
@@ -889,8 +909,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             const row = pixelData[i]!.slice(0, this.width);
             const coefficient = pixelData.length - i - 1;
 
-            const offset = byteOffset + (0x100 * coefficient);
-            code.push(`${indent}ORG ${formatAssemblyNumber(offset, options.byteOffsetRadix)} ; line ${i + 1}`);
+            const offset = addressOffset + (0x100 * coefficient);
+            const offsetFormatted = formatAssemblyNumber(offset, options.addressOffsetRadix);
+
+            const address = addressLabel ? `${addressLabel} + ${offsetFormatted}` : offsetFormatted;
+
+            code.push(`${indent}ORG ${address} ; line ${i + 1}`);
             code.push('');
 
             const comment = i === pixelData.length - 1 ? '' : '; ';

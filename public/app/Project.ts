@@ -9,6 +9,7 @@ import { ObjectGroup } from './ObjectGroup.ts';
 import {
     type CanvasOptions,
     type CodeGenerationOptions,
+    type CodeGenerationOptionsBase,
     PixelCanvas,
     type PixelCanvasSerialized,
     type PixelDrawingEvent
@@ -365,33 +366,44 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         const $indentTabInput = findOrDie($el, '#export-indent-tab', node => node instanceof HTMLInputElement);
                         const $indent4SpacesInput = findOrDie($el, '#export-indent-spaces-4', node => node instanceof HTMLInputElement);
                         const $indent2SpacesInput = findOrDie($el, '#export-indent-spaces-2', node => node instanceof HTMLInputElement);
-                        const $offsetInput = findOrDie($el, '#export-byte-offset', node => node instanceof HTMLInputElement);
-                        const $offsetRadixInput = findOrDie($el, '#export-byte-offset-radix', node => node instanceof HTMLSelectElement);
+                        const $addressInput = findOrDie($el, '#export-address', node => node instanceof HTMLInputElement);
+                        const $addressNamedInput = findOrDie($el, '#export-address-named', node => node instanceof HTMLInputElement);
                         const $byteRadixInput = findOrDie($el, '#export-byte-radix', node => node instanceof HTMLSelectElement);
                         const $labelColonInput = findOrDie($el, '#export-label-colon', node => node instanceof HTMLInputElement);
 
                         const generateCode = (): boolean => {
-                            const offsetRadix = Number($offsetRadixInput.value) as AssemblyNumberFormatRadix;
-
-                            let byteOffset: number;
-                            let byteOffsetRaw = $offsetInput.value;
-                            if (byteOffsetRaw.startsWith('$')) {
-                                byteOffset = parseInt(byteOffsetRaw.substring(1), 16);
-                            } else if (byteOffsetRaw.startsWith('%')) {
-                                byteOffset = parseInt(byteOffsetRaw.substring(1), 2);
-                            } else {
-                                byteOffset = parseInt(byteOffsetRaw, 10);
-                            }
-
-                            const options: CodeGenerationOptions = {
-                                byteOffset: byteOffset || 0,
-                                byteOffsetRadix: offsetRadix,
+                            const baseOptions: CodeGenerationOptionsBase = {
+                                addressOffsetRadix: 16,
                                 indentChar: $indentTabInput.checked ?
                                     '\t' :
                                     ($indent2SpacesInput.checked ? '  ' : '    '),
                                 labelColon: $labelColonInput.checked,
                                 byteRadix: Number($byteRadixInput.value) as AssemblyNumberFormatRadix,
                             };
+
+                            let byteOffsetRaw = $addressInput.value;
+                            let options: CodeGenerationOptions;
+
+                            if ($addressNamedInput.checked) {
+                                options = {
+                                    ...baseOptions,
+                                    addressLabel: byteOffsetRaw,
+                                };
+                            } else {
+                                let byteOffset: number;
+                                if (byteOffsetRaw.startsWith('$')) {
+                                    byteOffset = parseInt(byteOffsetRaw.substring(1), 16);
+                                } else if (byteOffsetRaw.startsWith('%')) {
+                                    byteOffset = parseInt(byteOffsetRaw.substring(1), 2);
+                                } else {
+                                    byteOffset = parseInt(byteOffsetRaw, 10);
+                                }
+
+                                options = {
+                                    ...baseOptions,
+                                    addressOffset: byteOffset,
+                                };
+                            }
 
                             try {
                                 $codeTextarea.value = canvas.generateCode(options);
@@ -410,7 +422,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                             return;
                         }
 
-                        [ $indentTabInput, $indent2SpacesInput, $indent4SpacesInput, $offsetInput, $offsetRadixInput, $byteRadixInput, $labelColonInput ]
+                        [ $indentTabInput, $indent2SpacesInput, $indent4SpacesInput, $addressInput, $addressNamedInput, $byteRadixInput, $labelColonInput ]
                             .forEach((input) => {
                                 input.addEventListener('change', generateCode);
                             });
