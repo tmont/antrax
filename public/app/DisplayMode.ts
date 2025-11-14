@@ -317,18 +317,22 @@ class DisplayMode {
             case '320B': {
                 const [ c1, c2, c3 ] = this.getColorValuesForPalette(paletteIndex, palettes, 0b100);
 
+                // note: these are reordered from the tables so that they are in bit order
                 return [
                     [ t, t ],
+
                     [ bg, c2 ],
                     [ bg, c3 ],
                     [ c1, c2 ],
                     [ c1, c3 ],
+
                     [ c2, bg ],
-                    [ c2, c1 ],
-                    [ c2, c2 ],
-                    [ c2, c3 ],
                     [ c3, bg ],
                     [ c3, c1 ],
+                    [ c2, c1 ],
+
+                    [ c2, c2 ],
+                    [ c2, c3 ],
                     [ c3, c2 ],
                     [ c3, c3 ],
                 ];
