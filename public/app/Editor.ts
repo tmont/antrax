@@ -11,7 +11,10 @@ import {
     type DisplayModeColorValue,
     type DisplayModeName,
     findElement,
+    findInput,
     findOrDie,
+    findSelect,
+    findTemplateContent,
     getColorValueCombinedLabel,
     nope,
     parseTemplate
@@ -93,19 +96,19 @@ export class Editor {
 
         this.$gutter = findElement(this.$el, '.canvas-gutter');
         this.$canvasArea = findElement(this.$el, '.canvas-area');
-        this.$gridInput = findOrDie(this.$gutter, '#option-show-grid', node => node instanceof HTMLInputElement);
-        this.$transparentInput = findOrDie(this.$gutter, '#option-show-transparent', node => node instanceof HTMLInputElement);
+        this.$gridInput = findInput(this.$gutter, '#option-show-grid');
+        this.$transparentInput = findInput(this.$gutter, '#option-show-transparent');
         this.$zoomValue = findElement(this.$gutter, '.zoom-level-value');
-        this.$pixelWidthInput = findOrDie(this.$gutter, '#option-pixel-width', node => node instanceof HTMLInputElement);
-        this.$pixelHeightInput = findOrDie(this.$gutter, '#option-pixel-height', node => node instanceof HTMLInputElement);
-        this.$canvasWidthInput = findOrDie(this.$gutter, '#option-canvas-width', node => node instanceof HTMLInputElement);
-        this.$canvasHeightInput = findOrDie(this.$gutter, '#option-canvas-height', node => node instanceof HTMLInputElement);
+        this.$pixelWidthInput = findInput(this.$gutter, '#option-pixel-width');
+        this.$pixelHeightInput = findInput(this.$gutter, '#option-pixel-height');
+        this.$canvasWidthInput = findInput(this.$gutter, '#option-canvas-width');
+        this.$canvasHeightInput = findInput(this.$gutter, '#option-canvas-height');
         this.$canvasCoordinates = findElement(this.$gutter, '.current-coordinates');
         this.$activeGroupName = findElement(this.$gutter, '.breadcrumb .active-group-name');
         this.$activeObjectName = findElement(this.$gutter, '.breadcrumb .active-object-name');
         this.$projectControls = findElement(this.$el, '.project-controls');
         this.$canvasSidebar = findElement(this.$el, '.canvas-sidebar');
-        this.$displayModeSelect = findOrDie(this.$canvasSidebar, '#display-mode-select', node => node instanceof HTMLSelectElement);
+        this.$displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
 
         const defaultPaletteSet = options.paletteSets[0];
         if (!defaultPaletteSet) {
@@ -200,8 +203,7 @@ export class Editor {
                 this.onCanvasPaletteChanged(activeCanvas);
             }
 
-            const $displayModeSelect = findOrDie(this.$canvasSidebar, '#display-mode-select',
-                    node => node instanceof HTMLSelectElement);
+            const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
             $displayModeSelect.value = activeCanvas?.getDisplayMode()?.name || 'none';
 
             if (activeCanvas) {
@@ -261,7 +263,7 @@ export class Editor {
 
     private onPaletteSetChanged(): void {
         const set = this.settings.activeColorPaletteSet;
-        const $select = findOrDie(this.$canvasSidebar, '.canvas-palette-select', node => node instanceof HTMLSelectElement);
+        const $select = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         while ($select.options.length) {
             $select.remove(0);
         }
@@ -300,7 +302,7 @@ export class Editor {
         this.$canvasWidthInput.step = displayMode.pixelsPerByte > 0 ? displayMode.pixelsPerByte.toString() : '1';
         this.$canvasWidthInput.min = displayMode.pixelsPerByte > 0 ? displayMode.pixelsPerByte.toString() : '1';
 
-        const $paletteSelect = findOrDie(this.$canvasSidebar, '.canvas-palette-select', node => node instanceof HTMLSelectElement);
+        const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         $paletteSelect.disabled = displayMode.name === 'none';
 
         this.updateCanvasSidebarColors();
@@ -387,7 +389,7 @@ export class Editor {
 
     private onCanvasPaletteChanged(canvas: PixelCanvas): void {
         const palette = canvas.getColorPalette();
-        const $select = findOrDie(this.$canvasSidebar, '.canvas-palette-select', node => node instanceof HTMLSelectElement);
+        const $select = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         const index = Array.from($select.options).findIndex(option => option.value === palette.id.toString());
         if (index === -1) {
             throw new Error(`Palette{${palette.id}} not found in .canvas-palette-select <option>`);
@@ -512,7 +514,7 @@ export class Editor {
             this.save();
         });
 
-        const $loadFileInput = findOrDie(this.$projectControls, '.load-btn input[type="file"]', node => node instanceof HTMLInputElement);
+        const $loadFileInput = findInput(this.$projectControls, '.load-btn input[type="file"]');
         $loadFileInput.addEventListener('change', async () => {
             const { files } = $loadFileInput;
             const file = files?.[0];
@@ -821,8 +823,7 @@ export class Editor {
             });
         });
 
-        const infoContent = findOrDie(document, '#modal-content-help', node => node instanceof HTMLTemplateElement)
-            .content;
+        const infoContent = findTemplateContent(document, '#modal-content-help');
 
         findOrDie(document, '.help-link', node => node instanceof HTMLAnchorElement)
             .addEventListener('click', (e) => {
@@ -841,8 +842,7 @@ export class Editor {
                 modal.show();
             });
 
-        const changelogContent = findOrDie(document, '#modal-content-changelog', node => node instanceof HTMLTemplateElement)
-            .content;
+        const changelogContent = findTemplateContent(document, '#modal-content-changelog');
         findOrDie(document, '.changelog-link', node => node instanceof HTMLAnchorElement)
             .addEventListener('click', (e) => {
                 e.preventDefault();
@@ -860,8 +860,7 @@ export class Editor {
                 modal.show();
             });
 
-        const $displayModeSelect = findOrDie(this.$canvasSidebar, '#display-mode-select',
-            node => node instanceof HTMLSelectElement);
+        const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
         $displayModeSelect.addEventListener('change', () => {
             const newDisplayMode = $displayModeSelect.value as DisplayModeName;
             switch (newDisplayMode) {
@@ -880,8 +879,7 @@ export class Editor {
             }
         });
 
-        const $paletteSelect = findOrDie(this.$canvasSidebar, '.canvas-palette-select',
-            node => node instanceof HTMLSelectElement);
+        const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         $paletteSelect.addEventListener('change', () => {
             const paletteId = Number($paletteSelect.value);
             const palette = this.settings.activeColorPaletteSet.getPalettes().find(palette => palette.id === paletteId);

@@ -67,7 +67,7 @@ export class Modal extends EventEmitter<ModalEventMap> {
 
     public static create(options: ModalOptions): Modal {
         if (!Modal.$overlay) {
-            Modal.$overlay = findOrDie(document.body, '.modal-overlay', node => node instanceof HTMLElement);
+            Modal.$overlay = findElement(document.body, '.modal-overlay');
             Modal.$overlay.addEventListener('click', () => {
                 Modal.current?.destroy();
                 Modal.current?.emit('close');

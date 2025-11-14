@@ -20,7 +20,10 @@ import {
     type DisplayModeColorIndex,
     type DisplayModeName,
     findElement,
+    findInput,
     findOrDie,
+    findSelect,
+    findTemplateContent,
     parseTemplate
 } from './utils.ts';
 
@@ -316,7 +319,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         const objectName = findElement(newItem, '.item-name');
-        const input = findOrDie(editForm, '.object-name-input', node => node instanceof HTMLInputElement);
+        const input = findInput(editForm, '.object-name-input');
         editForm.addEventListener('submit', (e) => {
             e.preventDefault();
             this.setObjectName(canvas, input.value);
@@ -358,18 +361,17 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         break;
                     case 'export-asm': {
                         const exportId = 'export';
-                        const content = findOrDie(document, '#modal-content-export-form',
-                                node => node instanceof HTMLTemplateElement).content;
+                        const content = findTemplateContent(document, '#modal-content-export-form');
 
                         const $el = content.cloneNode(true) as ParentNode;
                         const $codeTextarea = findOrDie($el, '.export-code', node => node instanceof HTMLTextAreaElement);
-                        const $indentTabInput = findOrDie($el, '#export-indent-tab', node => node instanceof HTMLInputElement);
-                        const $indent4SpacesInput = findOrDie($el, '#export-indent-spaces-4', node => node instanceof HTMLInputElement);
-                        const $indent2SpacesInput = findOrDie($el, '#export-indent-spaces-2', node => node instanceof HTMLInputElement);
-                        const $addressInput = findOrDie($el, '#export-address', node => node instanceof HTMLInputElement);
-                        const $addressNamedInput = findOrDie($el, '#export-address-named', node => node instanceof HTMLInputElement);
-                        const $byteRadixInput = findOrDie($el, '#export-byte-radix', node => node instanceof HTMLSelectElement);
-                        const $labelColonInput = findOrDie($el, '#export-label-colon', node => node instanceof HTMLInputElement);
+                        const $indentTabInput = findInput($el, '#export-indent-tab');
+                        const $indent4SpacesInput = findInput($el, '#export-indent-spaces-4');
+                        const $indent2SpacesInput = findInput($el, '#export-indent-spaces-2');
+                        const $addressInput = findInput($el, '#export-address');
+                        const $addressNamedInput = findInput($el, '#export-address-named');
+                        const $byteRadixInput = findSelect($el, '#export-byte-radix');
+                        const $labelColonInput = findInput($el, '#export-label-colon');
 
                         const generateCode = (): boolean => {
                             const baseOptions: CodeGenerationOptionsBase = {

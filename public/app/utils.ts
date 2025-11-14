@@ -66,9 +66,15 @@ export const findOrDie = <T>(ancestor: ParentNode, selector: string, predicate: 
     return child;
 };
 
-export const findElement = (ancestor: ParentNode, selector: string): HTMLElement => {
-    return findOrDie(ancestor, selector, node => node instanceof HTMLElement);
-};
+export const findElement = (ancestor: ParentNode, selector: string): HTMLElement =>
+    findOrDie(ancestor, selector, node => node instanceof HTMLElement);
+export const findInput = (ancestor: ParentNode, selector: string): HTMLInputElement =>
+    findOrDie(ancestor, selector, node => node instanceof HTMLInputElement);
+export const findSelect = (ancestor: ParentNode, selector: string): HTMLSelectElement =>
+    findOrDie(ancestor, selector, node => node instanceof HTMLSelectElement);
+export const findTemplateContent = (ancestor: ParentNode, selector: string): DocumentFragment =>
+    findOrDie(ancestor, selector, node => node instanceof HTMLTemplateElement).content;
+
 export type AssemblyNumberFormatRadix = 2 | 10 | 16;
 export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatRadix): string => {
     switch (radix) {
