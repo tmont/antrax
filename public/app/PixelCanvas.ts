@@ -215,6 +215,16 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         };
     }
 
+    public getHTMLRect(): Dimensions & Coordinate {
+        const { width, height, x, y } = this.$el.getBoundingClientRect();
+        return {
+            x,
+            y,
+            width,
+            height,
+        };
+    }
+
     public getContainer(): HTMLElement {
         return this.$container;
     }

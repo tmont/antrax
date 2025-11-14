@@ -535,6 +535,68 @@ export class Editor {
         let panning = false;
         let panningOrigin = { x: 0, y: 0 };
 
+        // need to keep track of this when zooming by key press instead of mousewheel
+        const currentMouseCoords = {
+            x: 0,
+            y: 0,
+        };
+
+        const adjustCanvasPositionRelativeToCursor = (
+            canvas: PixelCanvas,
+            clientX: number,
+            clientY: number,
+            oldWidth: number,
+            oldHeight: number,
+        ): void => {
+            // shift canvas so that the pixel you're hovering over remains under your cursor even
+            // at the new canvas size. if the cursor is not over the canvas, maintain the exact
+            // distance from the nearest edge.
+
+            const parent = this.$canvasArea.offsetParent;
+            if (!parent) {
+                return;
+            }
+
+            const canvasRect = canvas.getHTMLRect();
+            const { top: containerTop, left: containerLeft } = parent.getBoundingClientRect();
+
+            const clientXRelative = clientX - containerLeft;
+            const clientYRelative = clientY - containerTop;
+
+            const computedStyle = window.getComputedStyle(this.$canvasArea);
+            const canvasLeft = parseInt(computedStyle.getPropertyValue('left'));
+            const canvasTop = parseInt(computedStyle.getPropertyValue('top'));
+
+            let deltaX: number;
+            let deltaY: number;
+            if (clientX < canvasRect.x) {
+                // maintain x position with left edge of canvas
+                deltaX = 0;
+            } else if (clientX > canvasRect.x + oldWidth) {
+                // maintain x position with right edge of canvas
+                deltaX = canvasRect.width - oldWidth;
+            } else {
+                const distanceFromTopLeftX = clientXRelative - canvasLeft;
+                const ratioX = distanceFromTopLeftX / oldWidth;
+                deltaX = (ratioX * canvasRect.width) - distanceFromTopLeftX;
+            }
+
+            if (clientY < canvasRect.y) {
+                // maintain y position with top edge of canvas
+                deltaY = 0;
+            } else if (clientY > canvasRect.y + oldHeight) {
+                // maintain y position with bottom edge of canvas
+                deltaY = canvasRect.height - oldHeight;
+            } else {
+                const distanceFromTopLeftY = clientYRelative - canvasTop;
+                const ratioY = distanceFromTopLeftY / oldHeight;
+                deltaY = (ratioY * canvasRect.height) - distanceFromTopLeftY;
+            }
+
+            this.$canvasArea.style.left = (canvasLeft - deltaX) + 'px';
+            this.$canvasArea.style.top = (canvasTop - deltaY) + 'px';
+        };
+
         canvasContainer.addEventListener('wheel', (e) => {
             if (e.deltaY === 0) {
                 return;
@@ -543,13 +605,18 @@ export class Editor {
             const dir = e.deltaY < 0 ? 1 : -1;
 
             if (e.shiftKey) {
-                const coefficient = 1;
-                this.settings.zoomLevel += (dir * coefficient);
-                this.settings.zoomLevel = Math.round(this.settings.zoomLevel * 100) / 100;
-                this.settings.zoomLevel = Math.max(1, Math.min(10, this.settings.zoomLevel));
+                const canvas = this.project?.getActiveCanvas();
+                const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || { width: 0, height: 0 };
+
+                this.settings.zoomLevel = Math.max(1, Math.min(10, this.settings.zoomLevel + dir));
 
                 this.updateZoomLevelUI();
                 this.project?.zoomTo();
+
+                if (canvas) {
+                    adjustCanvasPositionRelativeToCursor(canvas, e.clientX, e.clientY, oldWidth, oldHeight);
+                }
+
                 return;
             }
 
@@ -583,9 +650,14 @@ export class Editor {
             }
 
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
+                const canvas = this.project?.getActiveCanvas();
+                const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
                 this.settings.zoomLevel = 1;
                 this.updateZoomLevelUI();
                 this.project?.zoomTo();
+                if (canvas) {
+                    adjustCanvasPositionRelativeToCursor(canvas, currentMouseCoords.x, currentMouseCoords.y, width, height);
+                }
                 return;
             }
 
@@ -630,10 +702,20 @@ export class Editor {
             }
 
             if (/^\d$/.test(e.key)) {
+                const canvas = this.project?.getActiveCanvas();
+                const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || {
+                    width: 0,
+                    height: 0
+                };
+
                 const value = parseInt(e.key, 10);
                 this.settings.zoomLevel = value === 0 ? 10 : value;
                 this.updateZoomLevelUI();
                 this.project?.zoomTo();
+
+                if (canvas) {
+                    adjustCanvasPositionRelativeToCursor(canvas, currentMouseCoords.x, currentMouseCoords.y, oldWidth, oldHeight);
+                }
             }
         });
 
@@ -657,6 +739,9 @@ export class Editor {
         });
 
         document.addEventListener('mousemove', (e) => {
+            currentMouseCoords.x = e.clientX;
+            currentMouseCoords.y = e.clientY;
+
             if (!panning) {
                 return;
             }
