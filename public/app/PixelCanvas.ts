@@ -912,7 +912,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             const offset = addressOffset + (0x100 * coefficient);
             const offsetFormatted = formatAssemblyNumber(offset, options.addressOffsetRadix);
 
-            const address = addressLabel ? `${addressLabel} + ${offsetFormatted}` : offsetFormatted;
+            const address = addressLabel ? `${addressLabel}${offset !== 0 ? ' + ' + offsetFormatted : ''}` : offsetFormatted;
 
             code.push(`${indent}ORG ${address} ; line ${i + 1}`);
             code.push('');
