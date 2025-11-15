@@ -631,12 +631,20 @@ export class Editor {
             }
         });
 
+        const ignoredInputs: Record<string, 1> = {
+            text: 1,
+            number: 1,
+        };
+
         document.addEventListener('keydown', (e) => {
             if (panning) {
                 return;
             }
 
-            if (e.target instanceof HTMLInputElement) {
+            if (
+                (e.target instanceof HTMLInputElement && ignoredInputs[e.target.type]) ||
+                e.target instanceof HTMLTextAreaElement
+            ) {
                 return;
             }
 
