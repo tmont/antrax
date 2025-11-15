@@ -653,6 +653,11 @@ export class Editor {
                 return;
             }
 
+            if (e.ctrlKey) {
+                // let default behavior of browser propagate (e.g. Ctrl+C, Ctrl+W, etc.)
+                return;
+            }
+
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
                 const canvas = this.project?.getActiveCanvas();
                 const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
