@@ -233,6 +233,9 @@ export class Editor {
         this.project.on('canvas_reset', () => {
             this.syncDisplayModeControl(false);
         });
+        this.project.on('canvas_render', () => {
+            this.syncDisplayModeControl();
+        });
         this.project.on('draw_start', (canvas) => {
             pushUndoItem(canvas);
         });

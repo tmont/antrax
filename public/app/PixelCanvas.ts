@@ -75,6 +75,7 @@ type PixelCanvasEventMap = {
     clear: [];
     reset: [];
     draw_start: [];
+    render: [];
     pixel_dimensions_change: [];
     canvas_dimensions_change: [];
     display_mode_change: [];
@@ -349,6 +350,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        this.logger.debug('hiding');
         this.disable();
 
         this.$el.style.display = 'none';
@@ -599,6 +601,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.renderGrid();
         this.logger.debug(`rendering complete in ${Date.now() - start}ms`);
+        this.emit('render');
     }
 
     public renderBg(): void {
@@ -842,27 +845,45 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public setDimensions(width: number | null, height: number | null): void {
-        if (width !== null) {
+        let changed = false;
+        if (width !== null && this.width !== width) {
             this.width = width;
+            changed = true;
         }
-        if (height !== null) {
+        if (height !== null && this.height !== height) {
             this.height = height;
+            changed = true;
         }
-        this.setCanvasDimensions();
-        this.render();
-        this.emit('canvas_dimensions_change');
+
+        if (changed) {
+            this.logger.debug(`updated dimensions to ${this.width}x${this.height}`);
+            this.setCanvasDimensions();
+            this.render();
+            this.emit('canvas_dimensions_change');
+        }
     }
 
     public setPixelDimensions(width: number | null, height: number | null): void {
-        if (width !== null) {
+        if (this.destroyed) {
+            return;
+        }
+
+        let changed = false;
+        if (width !== null && this.pixelWidth !== width) {
             this.pixelWidth = width;
+            changed = true;
         }
-        if (height !== null) {
+        if (height !== null && this.pixelHeight !== height) {
             this.pixelHeight = height;
+            changed = true;
         }
-        this.setCanvasDimensions();
-        this.render();
-        this.emit('pixel_dimensions_change');
+
+        if (changed) {
+            this.logger.debug(`updated pixel dimensions to ${this.pixelWidth}x${this.pixelHeight}`);
+            this.setCanvasDimensions();
+            this.render();
+            this.emit('pixel_dimensions_change');
+        }
     }
 
     public setName(newName: string): void {

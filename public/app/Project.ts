@@ -113,6 +113,7 @@ export type ProjectEventMap = {
     pixel_highlight: [ PixelDrawingEvent, PixelCanvas ];
     pixel_draw: [ PixelDrawingEvent, PixelCanvas ];
     canvas_reset: [ PixelCanvas ];
+    canvas_render: [ PixelCanvas ];
     active_object_name_change: [ PixelCanvas ];
     draw_start: [ PixelCanvas ];
     pixel_dimensions_change: [ PixelCanvas ];
@@ -180,6 +181,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public activateCanvas(canvas: PixelCanvas | null): void {
+        if (canvas) {
+            this.logger.debug('activating canvas', canvas.id);
+        }
+
         if (this.activeCanvas) {
             this.activeCanvas.hide();
         }
@@ -233,17 +238,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         canvas.on('pixel_draw', (...args) => {
             if (canvas === this.activeCanvas) {
                 this.updateActiveThumbnail();
-                this.updateActiveObjectInfo();
             }
 
             this.emit('pixel_draw', ...args, canvas);
         });
         canvas.on('reset', () => {
-            if (canvas === this.activeCanvas) {
-                this.updateActiveThumbnail();
-                this.updateActiveObjectInfo();
-            }
-
             this.emit('canvas_reset', canvas);
         });
         canvas.on('draw_start', () => {
@@ -260,6 +259,13 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
         canvas.on('canvas_dimensions_change', () => {
             this.emit('canvas_dimensions_change', canvas);
+        });
+        canvas.on('render', () => {
+            if (canvas === this.activeCanvas) {
+                this.updateActiveObjectInfo();
+            }
+
+            this.emit('canvas_render', canvas);
         });
 
         if (this.canvases.indexOf(canvas) === -1) {
