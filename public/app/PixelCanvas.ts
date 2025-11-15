@@ -959,8 +959,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const widthInBytes = this.width / (this.displayMode.pixelsPerByte);
 
         // lower 5 bits of 2's complement of the width in bytes
-        const widthPart = (~widthInBytes + 1) & 0b11111;
-        const byte2 = formatAssemblyNumber((paletteIndex << 5) | widthPart, 2);
+        const widthBitsMask = (2 ** DisplayMode.encodedWidthBits) - 1;
+        const widthBits = (~widthInBytes + 1) & widthBitsMask;
+        const byte2 = formatAssemblyNumber((paletteIndex << DisplayMode.encodedWidthBits) | widthBits, 2);
 
         code.push(`${indent}.byte ${lowByte}`);
         code.push(`${indent}.byte ${byte2}`);

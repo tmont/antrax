@@ -289,7 +289,9 @@ export class Editor {
         const canvasWidthMultiple = displayMode.pixelsPerByte;
         if (canvasWidthMultiple > 0) {
             const { width } = canvas.getDimensions();
-            if (width % canvasWidthMultiple !== 0) {
+            if (width > displayMode.maxWidth) {
+                this.project?.setCanvasDimensions(displayMode.maxWidth, null);
+            } else if (width % canvasWidthMultiple !== 0) {
                 const clampedWidth = width + (canvasWidthMultiple - (width % canvasWidthMultiple));
                 this.project?.setCanvasDimensions(clampedWidth, null);
             }

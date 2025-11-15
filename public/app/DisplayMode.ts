@@ -21,6 +21,8 @@ class DisplayMode {
     public static readonly Mode320C = new DisplayMode('320C');
     public static readonly Mode320D = new DisplayMode('320D');
 
+    public static readonly encodedWidthBits = 5;
+
     public kangarooMode = false;
 
     private constructor(public readonly name: DisplayModeName) {}
@@ -67,7 +69,7 @@ class DisplayMode {
             case '320B':
             case '320C':
             case '320D':
-                return 160;
+                return this.pixelsPerByte * (2 ** DisplayMode.encodedWidthBits);
             default:
                 nope(this.name);
                 throw new Error(`Invalid type "${this.name}"`);
