@@ -1,3 +1,14 @@
+## v0.0.14 (2025-11-14)
+- Implemented codegen for palettes/DL entries
+- Support for using a label as an address offset during ASM export
+- Implemented smarter zooming algorithm
+- Re-ordered 320B colors to fix some export inaccuracies
+- Fixed binary formatting in ASM export if the value >256
+- Can now use W/S/Up/Down to select colors
+- Can now use the number keys to select a zoom level
+- Palette info in sidebar is hidden if `displayMode=none`
+- Fixed some alignment issues in the UI
+
 ## v0.0.13 (2025-11-12)
 - Implemented codegen for remaining display modes (except `none`)
 - Added image export
