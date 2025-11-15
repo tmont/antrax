@@ -93,3 +93,5 @@ export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatR
 };
 
 export const zeroPad = (x: string, len: number): string => x.padStart(len, '0');
+
+export const isLeftMouseButton = (e: MouseEvent): boolean => e.button === 0;

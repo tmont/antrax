@@ -16,6 +16,7 @@ import {
     findSelect,
     findTemplateContent,
     getColorValueCombinedLabel,
+    isLeftMouseButton,
     nope,
     parseTemplate
 } from './utils.ts';
@@ -744,7 +745,7 @@ export class Editor {
         });
 
         canvasContainer.addEventListener('mousedown', (e) => {
-            if (!e.shiftKey) {
+            if (!e.shiftKey || !isLeftMouseButton(e)) {
                 return;
             }
 

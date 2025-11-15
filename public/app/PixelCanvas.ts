@@ -14,6 +14,7 @@ import {
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
     formatAssemblyNumber,
+    isLeftMouseButton,
     isPaletteIndex,
     type PixelInfo,
     type PixelInfoSerialized
@@ -442,11 +443,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         };
 
         const onMouseDown = (e: MouseEvent) => {
-            if (this.drawState !== 'idle') {
-                return;
-            }
-
-            if (e.shiftKey) {
+            if (this.drawState !== 'idle' || e.shiftKey || !isLeftMouseButton(e)) {
                 return;
             }
 
