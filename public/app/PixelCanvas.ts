@@ -318,7 +318,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public getColors(): DisplayModeColorValue[] {
-        return this.displayMode.getColors(this.group.getPaletteSet(), this.palette);
+        return this.displayMode.getColors(this.group.getPaletteSet(), this.palette, this.editorSettings.kangarooMode);
     }
 
     public setDisplayMode(newMode: DisplayMode | DisplayModeName): void {
@@ -662,7 +662,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return null;
         }
         const paletteSet = this.editorSettings.activeColorPaletteSet;
-        return this.displayMode.getColorAt(paletteSet, this.palette, pixel.modeColorIndex);
+        const kangarooMode = this.editorSettings.kangarooMode;
+        return this.displayMode.getColorAt(paletteSet, this.palette, pixel.modeColorIndex, kangarooMode);
     }
 
     public drawPixelFromRowAndCol(
@@ -709,9 +710,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 // not using slice() since it's probably more efficient to not copy the array since this is
                 // called in a loop. but ain't nobody got time for benchmarking, so maybe it wouldn't even
                 // matter...
-                const partsPerPixel = Math.min(colorValue.length, this.displayMode.partsPerPixel);
+                const partsPerPixel = Math.min(colorValue.colors.length, this.displayMode.partsPerPixel);
                 for (let i = 0; i < partsPerPixel; i++) {
-                    const color = colorValue[i];
+                    const color = colorValue.colors[i];
                     if (!color) {
                         break;
                     }

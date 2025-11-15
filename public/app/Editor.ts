@@ -26,11 +26,13 @@ export interface EditorSettings {
     zoomLevel: number;
     activeColorPaletteSet: ColorPaletteSet;
     uncoloredPixelBehavior: 'transparent' | 'background';
+    kangarooMode: boolean;
 }
 
 export interface EditorSettingsSerialized extends Pick<EditorSettings, 'showGrid' | 'zoomLevel'> {
     activeColorPaletteSetId: ColorPaletteSet['id'];
     uncoloredPixelBehavior?: EditorSettings['uncoloredPixelBehavior'];
+    kangarooMode?: EditorSettings['kangarooMode'];
 }
 
 export interface EditorOptions {
@@ -80,6 +82,7 @@ export class Editor {
     private readonly $projectControls: HTMLElement;
     private readonly $canvasSidebar: HTMLElement;
     private readonly $displayModeSelect: HTMLSelectElement;
+    private readonly $kangarooModeInput: HTMLInputElement;
     private initialized = false;
     private settings: EditorSettings;
 
@@ -99,6 +102,7 @@ export class Editor {
         this.$canvasArea = findElement(this.$el, '.canvas-area');
         this.$gridInput = findInput(this.$gutter, '#option-show-grid');
         this.$transparentInput = findInput(this.$gutter, '#option-show-transparent');
+        this.$kangarooModeInput = findInput(this.$gutter, '#option-kangaroo-mode');
         this.$zoomValue = findElement(this.$gutter, '.zoom-level-value');
         this.$pixelWidthInput = findInput(this.$gutter, '#option-pixel-width');
         this.$pixelHeightInput = findInput(this.$gutter, '#option-pixel-height');
@@ -121,6 +125,7 @@ export class Editor {
             zoomLevel: 2,
             activeColorPaletteSet: defaultPaletteSet,
             uncoloredPixelBehavior: 'transparent',
+            kangarooMode: false,
         };
 
         this.paletteSets = new ColorPaletteSetCollection({
@@ -367,7 +372,7 @@ export class Editor {
 
             findElement($item, '.label').innerText = getColorValueCombinedLabel(colorValue);
 
-            colorValue.forEach((color) => {
+            colorValue.colors.forEach((color) => {
                 const $swatch = document.createElement('div');
                 $swatch.classList.add('color-swatch');
                 $swatch.style.backgroundColor = color.value === 'transparent' ?
@@ -478,6 +483,27 @@ export class Editor {
 
     public updateGridUI(): void {
         this.$gridInput.checked = this.settings.showGrid;
+    }
+
+    public updateKangarooModeUI(): void {
+        this.$kangarooModeInput.checked = this.settings.kangarooMode;
+        this.updateCanvasSidebarColors();
+    }
+
+    private onKangarooModeChanged(): void {
+        this.updateKangarooModeUI();
+        this.settings.uncoloredPixelBehavior = this.settings.kangarooMode ? 'background' : 'transparent';
+        this.onUncoloredPixelBehaviorChanged();
+        this.project?.updateKangarooMode();
+    }
+
+    private updateUncolorPixelBehaviorUI(): void {
+        this.$transparentInput.checked = this.settings.uncoloredPixelBehavior === 'transparent';
+    }
+
+    private onUncoloredPixelBehaviorChanged(): void {
+        this.updateUncolorPixelBehaviorUI();
+        this.project?.setUncoloredPixelBehavior();
     }
 
     public init(): void {
@@ -717,8 +743,13 @@ export class Editor {
                 this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'transparent' ?
                     'background' :
                     'transparent';
-                this.$transparentInput.checked = this.settings.uncoloredPixelBehavior === 'transparent';
-                this.project?.setUncoloredPixelBehavior();
+                this.onUncoloredPixelBehaviorChanged();
+                return;
+            }
+
+            if (e.key.toLowerCase() === 'k') {
+                this.settings.kangarooMode = !this.settings.kangarooMode;
+                this.onKangarooModeChanged();
                 return;
             }
 
@@ -800,7 +831,12 @@ export class Editor {
 
         this.$transparentInput.addEventListener('change', () => {
             this.settings.uncoloredPixelBehavior = this.$transparentInput.checked ? 'transparent' : 'background';
-            this.project?.setUncoloredPixelBehavior();
+            this.onUncoloredPixelBehaviorChanged();
+        });
+
+        this.$kangarooModeInput.addEventListener('change', () => {
+            this.settings.kangarooMode = this.$kangarooModeInput.checked;
+            this.onKangarooModeChanged();
         });
 
         findElement(this.$gutter, '.zoom-level-label').addEventListener('click', () => {
@@ -947,6 +983,7 @@ export class Editor {
                 showGrid: this.settings.showGrid,
                 zoomLevel: this.settings.zoomLevel,
                 uncoloredPixelBehavior: this.settings.uncoloredPixelBehavior,
+                kangarooMode: this.settings.kangarooMode,
             },
         };
     }
@@ -1041,7 +1078,9 @@ export class Editor {
                 typeof settings.uncoloredPixelBehavior !== 'undefined') ||
             typeof settings.showGrid !== 'boolean' ||
             typeof settings.zoomLevel !== 'number' ||
-            typeof settings.activeColorPaletteSetId !== 'number'
+            typeof settings.activeColorPaletteSetId !== 'number' ||
+            (typeof settings.kangarooMode !== 'boolean' &&
+                typeof settings.kangarooMode !== 'undefined')
         ) {
             return false;
         }
@@ -1082,6 +1121,7 @@ export class Editor {
             showGrid: json.settings.showGrid,
             activeColorPaletteSet,
             uncoloredPixelBehavior: json.settings.uncoloredPixelBehavior || 'transparent',
+            kangarooMode: json.settings.kangarooMode || false,
         };
 
         const paletteSetCollection = ColorPaletteSetCollection.fromJSON(
@@ -1109,5 +1149,7 @@ export class Editor {
         this.project?.init();
         this.updateZoomLevelUI();
         this.updateGridUI();
+        this.updateUncolorPixelBehaviorUI();
+        this.updateKangarooModeUI();
     }
 }

@@ -35,7 +35,10 @@ export interface DisplayModeColor {
     value: ColorValue;
 }
 
-export type DisplayModeColorValue = DisplayModeColor[];
+export interface DisplayModeColorValue {
+    colors: DisplayModeColor[];
+    kangarooModeOnly?: boolean;
+}
 
 export type DisplayModeColorValueSerialized = DisplayModeColorIndex;
 
@@ -45,7 +48,7 @@ export interface PixelInfo {
 export type PixelInfoSerialized = PixelInfo;
 
 export const getColorValueCombinedLabel = (value: DisplayModeColorValue): string =>
-    value.map(x => x.label).join('+');
+    value.colors.map(x => x.label).join('+');
 
 const parser = new DOMParser();
 export const parseTemplate = (html: string): HTMLElement => {

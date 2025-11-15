@@ -686,6 +686,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateAllThumbnails();
     }
 
+    public updateKangarooMode(): void {
+        // TODO this should probably only be for canvases that are in a display mode affected by Kangaroo mode...
+        this.canvases.forEach(canvas => canvas.render());
+        this.updateAllThumbnails();
+    }
+
     public applyCheckpoint(undoCanvas: PixelCanvas, checkpoint: UndoCheckpoint): void {
         const canvas = this.canvases.find(canvas => canvas === undoCanvas);
         if (!canvas) {

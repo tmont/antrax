@@ -1,5 +1,6 @@
 import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import type { EditorSettings } from './Editor.ts';
 import {
     type Dimensions,
     type DisplayModeColor,
@@ -22,8 +23,6 @@ class DisplayMode {
     public static readonly Mode320D = new DisplayMode('320D');
 
     public static readonly encodedWidthBits = 5;
-
-    public kangarooMode = false;
 
     private constructor(public readonly name: DisplayModeName) {}
 
@@ -208,8 +207,9 @@ class DisplayMode {
         paletteSet: ColorPaletteSet,
         palette: ColorPalette,
         index: number,
+        kangarooMode: EditorSettings['kangarooMode'],
     ): DisplayModeColorValue | null {
-        const colors = this.getColors(paletteSet, palette);
+        const colors = this.getColors(paletteSet, palette, kangarooMode);
         return colors[index] || null;
     }
 
@@ -239,6 +239,7 @@ class DisplayMode {
     public getColors(
         paletteSet: ColorPaletteSet,
         palette: ColorPalette,
+        kangarooMode: EditorSettings['kangarooMode'],
     ): DisplayModeColorValue[] {
         const paletteIndex = paletteSet.getPalettes().indexOf(palette);
         if (!isPaletteIndex(paletteIndex)) {
@@ -262,19 +263,21 @@ class DisplayMode {
         const mapPalette = (palette: ColorPalette, paletteIndex: PaletteIndex): DisplayModeColorValue[] => {
             return palette.colors.map((_, index): DisplayModeColorValue => {
                 const colorIndex = index as ColorIndex;
-                return [ {
-                    label: `P${paletteIndex}C${colorIndex}`,
-                    value: {
-                        palette,
-                        index: index as ColorIndex,
-                    },
-                } ];
+                return {
+                    colors: [ {
+                        label: `P${paletteIndex}C${colorIndex}`,
+                        value: {
+                            palette,
+                            index: index as ColorIndex,
+                        },
+                    } ],
+                }
             });
         };
 
         switch (this.name) {
             case 'none':
-                return [ [ t ], [ bg ] ].concat(
+                return [ { colors: [ t ] }, { colors: [ bg ] } ].concat(
                     palettes
                         .map((palette, i) => {
                             if (!isPaletteIndex(i)) {
@@ -287,15 +290,15 @@ class DisplayMode {
                 );
             case '160A':
                 return [
-                    [ t ],
-                    [ c1 ],
-                    [ c2 ],
-                    [ c3 ],
+                    { colors: [ kangarooMode ? bg : t ] },
+                    { colors: [ c1 ] },
+                    { colors: [ c2 ] },
+                    { colors: [ c3 ] },
                 ];
             case '160B': {
                 const mask = 0b100;
                 const startIndex: 0 | 4 = (paletteIndex & mask) as any;
-                return [ [ t ] ].concat(
+                return [ { colors: [ kangarooMode ? bg : t ] } ].concat(
                     palettes
                         .slice(startIndex, startIndex + mask)
                         .map((palette, i) => {
@@ -311,39 +314,44 @@ class DisplayMode {
             }
             case '320A':
                 return [
-                    [ t, t ],
-                    [ bg, c2 ],
-                    [ c2, bg ],
-                    [ c2, c2 ],
+                    { colors: [ kangarooMode ? bg : t , kangarooMode ? bg : t ] },
+                    { colors: [ bg, c2 ] },
+                    { colors: [ c2, bg ] },
+                    { colors: [ c2, c2 ] },
                 ];
             case '320B': {
                 const [ c1, c2, c3 ] = this.getColorValuesForPalette(paletteIndex, palettes, 0b100);
 
                 // note: these are reordered from the tables so that they are in bit order
                 return [
-                    [ t, t ],
+                    { colors: [ kangarooMode ? bg : t, kangarooMode ? bg : t ] },
 
-                    [ bg, c2 ],
-                    [ bg, c3 ],
-                    [ c1, c2 ],
-                    [ c1, c3 ],
+                    { colors: [ kangarooMode ? bg : t, kangarooMode ? c1  : t] },
+                    { colors: [ kangarooMode ? c1 : t, kangarooMode ? bg : t ] },
+                    { colors: [ kangarooMode ? c1 : t, kangarooMode ? c1 : t ] },
 
-                    [ c2, bg ],
-                    [ c3, bg ],
-                    [ c3, c1 ],
-                    [ c2, c1 ],
+                    { colors: [ bg, c2 ] },
+                    { colors: [ bg, c3 ] },
+                    { colors: [ c1, c2 ] },
 
-                    [ c2, c2 ],
-                    [ c2, c3 ],
-                    [ c3, c2 ],
-                    [ c3, c3 ],
+                    { colors: [ c1, c3 ] },
+                    { colors: [ c2, bg ] },
+                    { colors: [ c3, bg ] },
+
+                    { colors: [ c3, c1 ] },
+                    { colors: [ c2, c1 ] },
+                    { colors: [ c2, c2 ] },
+
+                    { colors: [ c2, c3 ] },
+                    { colors: [ c3, c2 ] },
+                    { colors: [ c3, c3 ] },
                 ];
             }
             case '320C': {
                 const mask = 0b100;
                 const startIndex: 0 | 4 = (paletteIndex & mask) as any;
 
-                return [ [ t, t ] ].concat(
+                return [ { colors: [ kangarooMode ? bg : t, kangarooMode ? bg : t ] } ].concat(
                     palettes
                         .slice(startIndex, startIndex + mask)
                         .map((palette, i) => {
@@ -360,10 +368,11 @@ class DisplayMode {
                                 },
                             };
 
+                            // TODO: these are in wrong order
                             return [
-                                [ c2, c2 ],
-                                [ c2, bg ],
-                                [ bg, c2 ],
+                                { colors: [ c2, c2 ] },
+                                { colors: [ c2, bg ] },
+                                { colors: [ bg, c2 ] },
                             ];
                         })
                         .reduce((arr, colors) => arr.concat(colors), [])
@@ -376,34 +385,34 @@ class DisplayMode {
                     case 0:
                     case 4:
                         return [
-                            [ t, t ],
-                            [ bg, c2 ],
-                            [ c2, bg ],
-                            [ c2, c2 ],
+                            { colors: [ kangarooMode ? bg : t, kangarooMode ? bg : t ] },
+                            { colors: [ bg, c2 ] },
+                            { colors: [ c2, bg ] },
+                            { colors: [ c2, c2 ] },
                         ];
                     case 1:
                     case 5:
                         return [
-                            [ t, t ],
-                            [ bg, c3 ],
-                            [ c2, c1 ],
-                            [ c2, c3 ],
+                            { colors: [ kangarooMode ? bg : t, kangarooMode ? c1 : t ] },
+                            { colors: [ bg, c3 ] },
+                            { colors: [ c2, c1 ] },
+                            { colors: [ c2, c3 ] },
                         ];
                     case 2:
                     case 6:
                         return [
-                            [ t, t ],
-                            [ c1, c2 ],
-                            [ c3, bg ],
-                            [ c3, c2 ],
+                            { colors: [ kangarooMode ? c1 : t, kangarooMode ? bg : t ] },
+                            { colors: [ c1, c2 ] },
+                            { colors: [ c3, bg ] },
+                            { colors: [ c3, c2 ] },
                         ];
                     case 3:
                     case 7:
                         return [
-                            [ t, t ],
-                            [ c1, c3 ],
-                            [ c3, c1 ],
-                            [ c3, c3 ],
+                            { colors: [ kangarooMode ? c1 : t, kangarooMode ? c1 : t ] },
+                            { colors: [ c1, c3 ] },
+                            { colors: [ c3, c1 ] },
+                            { colors: [ c3, c3 ] },
                         ];
                     default:
                         nope(paletteIndex);
@@ -471,15 +480,7 @@ class DisplayMode {
                     // https://sites.google.com/site/atari7800wiki/graphics-modes/palette-sprite-bits/320b
                     const byte = chunk
                         .map((pixel, i) => {
-                            let index = pixel.modeColorIndex || 0;
-                            if (index === 0) {
-                                return 0;
-                            }
-
-                            if (!this.kangarooMode) {
-                                // we don't present the other three transparent options unless we're in kangaroo mode
-                                index += 3;
-                            }
+                            const index = pixel.modeColorIndex || 0;
 
                             const hi = Math.floor(index / 4) << 4;
                             const lo = index % 4;
