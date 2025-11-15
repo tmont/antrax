@@ -369,7 +369,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         const $indent4SpacesInput = findInput($el, '#export-indent-spaces-4');
                         const $indent2SpacesInput = findInput($el, '#export-indent-spaces-2');
                         const $addressInput = findInput($el, '#export-address');
-                        const $addressNamedInput = findInput($el, '#export-address-named');
+                        const $addressLabelInput = findInput($el, '#export-address-label');
                         const $byteRadixInput = findSelect($el, '#export-byte-radix');
                         const $labelColonInput = findInput($el, '#export-label-colon');
 
@@ -386,7 +386,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                             let byteOffsetRaw = $addressInput.value;
                             let options: CodeGenerationOptions;
 
-                            if ($addressNamedInput.checked) {
+                            if ($addressLabelInput.checked) {
                                 options = {
                                     ...baseOptions,
                                     addressLabel: byteOffsetRaw,
@@ -424,7 +424,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                             return;
                         }
 
-                        [ $indentTabInput, $indent2SpacesInput, $indent4SpacesInput, $addressInput, $addressNamedInput, $byteRadixInput, $labelColonInput ]
+                        [ $indentTabInput, $indent2SpacesInput, $indent4SpacesInput, $addressInput, $addressLabelInput, $byteRadixInput, $labelColonInput ]
                             .forEach((input) => {
                                 input.addEventListener('change', generateCode);
                             });
