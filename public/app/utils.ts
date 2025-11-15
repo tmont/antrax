@@ -79,7 +79,7 @@ export type AssemblyNumberFormatRadix = 2 | 10 | 16;
 export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatRadix): string => {
     switch (radix) {
         case 16:
-            return '$' + (value.toString(16)).toUpperCase();
+            return '$' + zeroPad((value.toString(16)).toUpperCase(), 2);
         case 10:
             return value.toString();
         case 2: {
@@ -92,4 +92,4 @@ export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatR
     }
 };
 
-export const zeroPad = (x: string, len: number): string => '0'.repeat(Math.max(0, len - x.length)) + x;
+export const zeroPad = (x: string, len: number): string => x.padStart(len, '0');

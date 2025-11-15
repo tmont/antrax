@@ -6,7 +6,8 @@ import {
 import { ColorPicker } from './ColorPicker.ts';
 import { type Atari7800Color, colors, colorToJson, type ColorSerialized } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
-import { findElement, parseTemplate } from './utils.ts';
+import type { CodeGenerationOptions } from './PixelCanvas.ts';
+import { type AssemblyNumberFormatRadix, findElement, formatAssemblyNumber, parseTemplate } from './utils.ts';
 
 export interface ColorPaletteSetOptions {
     id?: ColorPaletteSet['id'];
@@ -161,6 +162,26 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
         findElement(this.$el, '.bg-color-container .color-swatch').style.backgroundColor =
             this.backgroundColor.hex;
+    }
+
+    public generateCode(options: CodeGenerationOptions): string {
+        const indent = options.indentChar;
+
+        const code = [
+            `Palette${options.labelColon ? ':' : ''}`,
+        ];
+
+        const format: AssemblyNumberFormatRadix = 16;
+        code.push(`${indent}.byte ${formatAssemblyNumber(this.backgroundColor.index, format)} ; BG`);
+
+        this.palettes.forEach((palette) => {
+            palette.colors.forEach((color, colorIndex) => {
+                code.push(`${indent}.byte ${formatAssemblyNumber(color.index, format)} ` +
+                    `; ${palette.name}C${colorIndex}`);
+            });
+        });
+
+        return code.join('\n');
     }
 
     public toJSON(): ColorPaletteSetSerialized {

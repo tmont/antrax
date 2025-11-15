@@ -372,6 +372,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         const $addressLabelInput = findInput($el, '#export-address-label');
                         const $byteRadixInput = findSelect($el, '#export-byte-radix');
                         const $labelColonInput = findInput($el, '#export-label-colon');
+                        const $exportObjectInput = findInput($el, '#export-object');
+                        const $exportHeaderInput = findInput($el, '#export-header');
+                        const $exportPalettesInput = findInput($el, '#export-palettes');
 
                         const generateCode = (): boolean => {
                             const baseOptions: CodeGenerationOptionsBase = {
@@ -381,6 +384,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
                                     ($indent2SpacesInput.checked ? '  ' : '    '),
                                 labelColon: $labelColonInput.checked,
                                 byteRadix: Number($byteRadixInput.value) as AssemblyNumberFormatRadix,
+                                object: $exportObjectInput.checked,
+                                header: $exportHeaderInput.checked,
                             };
 
                             let byteOffsetRaw = $addressInput.value;
@@ -407,8 +412,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
                                 };
                             }
 
+                            const genThunks: Array<() => string> = [];
+
+                            if ($exportObjectInput.checked) {
+                                genThunks.push(() => canvas.generateCode(options));
+                            }
+                            if ($exportHeaderInput.checked) {
+                                genThunks.push(() => canvas.generateHeaderCode(options));
+                            }
+                            if ($exportPalettesInput.checked) {
+                                genThunks.push(() => canvas.generatePalettesCode(options));
+                            }
+
                             try {
-                                $codeTextarea.value = canvas.generateCode(options);
+                                $codeTextarea.value = genThunks.map(thunk => thunk()).join('\n\n');
                                 return true;
                             } catch (e) {
                                 Popover.toast({
@@ -424,7 +441,18 @@ export class Project extends EventEmitter<ProjectEventMap> {
                             return;
                         }
 
-                        [ $indentTabInput, $indent2SpacesInput, $indent4SpacesInput, $addressInput, $addressLabelInput, $byteRadixInput, $labelColonInput ]
+                        [
+                            $indentTabInput,
+                            $indent2SpacesInput,
+                            $indent4SpacesInput,
+                            $addressInput,
+                            $addressLabelInput,
+                            $byteRadixInput,
+                            $labelColonInput,
+                            $exportPalettesInput,
+                            $exportObjectInput,
+                            $exportHeaderInput,
+                        ]
                             .forEach((input) => {
                                 input.addEventListener('change', generateCode);
                             });

@@ -14,6 +14,7 @@ import {
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
     formatAssemblyNumber,
+    isPaletteIndex,
     type PixelInfo,
     type PixelInfoSerialized
 } from './utils.ts';
@@ -50,6 +51,8 @@ export interface CodeGenerationOptionsBase {
     labelColon: boolean;
     addressOffsetRadix: AssemblyNumberFormatRadix;
     byteRadix: AssemblyNumberFormatRadix;
+    object: boolean;
+    header: boolean;
 }
 
 export interface CodeGenerationOptionsLabel extends CodeGenerationOptionsBase {
@@ -889,9 +892,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.render();
     }
 
+    private get asmLabel(): string {
+        return this.name.replace(/[^a-z0-9]/ig, '');
+    }
+
     public generateCode(options: CodeGenerationOptions): string {
         const indent = options.indentChar;
-        const safeLabel = (name: string): string => name.replace(/[^a-z0-9]/ig, '');
 
         const code: string[] = [];
         let addressOffset = 0;
@@ -918,7 +924,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             code.push('');
 
             const comment = i === pixelData.length - 1 ? '' : '; ';
-            code.push(`${comment}${safeLabel(this.name)}${options.labelColon ? ':' : ''}`);
+            code.push(`${comment}${this.asmLabel}${options.labelColon ? ':' : ''}`);
 
             const bytes = this.displayMode.convertPixelsToBytes(row);
             bytes.forEach(byte => code.push(`${indent}.byte ${formatAssemblyNumber(byte, options.byteRadix)}`));
@@ -927,6 +933,45 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         return code.join('\n');
+    }
+
+    public generateHeaderCode(options: CodeGenerationOptions): string {
+        const indent = options.indentChar;
+
+        const code = [
+            `; 4-byte DL entry for ${this.asmLabel}, mode: ${this.displayMode.name}, ${this.width}x${this.height}`,
+            `${this.asmLabel}Header${options.labelColon ? ':' : ''}`,
+        ];
+
+        const lowByte = hasAddressLabel(options) ?
+            '<' + options.addressLabel :
+            formatAssemblyNumber(options.addressOffset & 0x7F, 16);
+        const highByte = hasAddressLabel(options) ?
+            '>' + options.addressLabel :
+            formatAssemblyNumber(options.addressOffset >> 8, 16);
+
+        const paletteSet = this.group.getPaletteSet();
+        const paletteIndex = paletteSet.getPalettes().findIndex(p => p === this.palette);
+        if (!isPaletteIndex(paletteIndex)) {
+            throw new Error(`Could not find ColorPalette{${this.palette.id}} in ColorPaletteSet{${paletteSet.id}}`);
+        }
+
+        const widthInBytes = this.width / (this.displayMode.pixelsPerByte);
+
+        // lower 5 bits of 2's complement of the width in bytes
+        const widthPart = (~widthInBytes + 1) & 0b11111;
+        const byte2 = formatAssemblyNumber((paletteIndex << 5) | widthPart, 2);
+
+        code.push(`${indent}.byte ${lowByte}`);
+        code.push(`${indent}.byte ${byte2}`);
+        code.push(`${indent}.byte ${highByte}`);
+        code.push(`${indent}.byte TODO ; horizontal position`);
+
+        return code.join('\n');
+    }
+
+    public generatePalettesCode(options: CodeGenerationOptions): string {
+        return this.group.getPaletteSet().generateCode(options);
     }
 
     public toJSON(): PixelCanvasSerialized {
