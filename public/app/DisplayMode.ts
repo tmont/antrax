@@ -385,11 +385,10 @@ class DisplayMode {
                                 },
                             };
 
-                            // TODO: these are in wrong order
                             return [
-                                { colors: [ c2, c2 ] },
-                                { colors: [ c2, bg ] },
                                 { colors: [ bg, c2 ] },
+                                { colors: [ c2, bg ] },
+                                { colors: [ c2, c2 ] },
                             ];
                         })
                         .reduce((arr, colors) => arr.concat(colors), [])
