@@ -760,6 +760,15 @@ export class Editor {
                 return;
             }
 
+            if (e.key.toLowerCase() === 'x') {
+                if (e.shiftKey) {
+                    this.project?.exportCanvasToImage();
+                } else {
+                    this.project?.showExportASMModal();
+                }
+                return;
+            }
+
             if (/^\d$/.test(e.key)) {
                 const canvas = this.project?.getActiveCanvas();
                 const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || {

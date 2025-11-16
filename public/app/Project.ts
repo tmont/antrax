@@ -336,8 +336,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
             editPopover.hide();
         });
 
-        const $copySuccess = parseTemplate('<div><i class="fa-solid fa-check"></i> Code copied!</div>');
-        const $copyError = parseTemplate('<div><i class="fa-solid fa-exclamation-triangle"></i> Failed to copy :(</div>');
         $overflowContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
             anchor.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -357,151 +355,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         this.cloneObject(canvas);
                         break;
                     case 'export-image':
-                        canvas.generateDataURL((url) => {
-                            if (!url) {
-                                Popover.toast({
-                                    content: 'Failed to generate image :(',
-                                    type: 'danger',
-                                });
-                                return;
-                            }
-
-                            window.open(url);
-                        }, 'full');
+                        this.exportCanvasToImage(canvas);
                         break;
                     case 'export-asm': {
-                        const exportId = 'export';
-                        const content = findTemplateContent(document, '#modal-content-export-form');
-
-                        const $el = content.cloneNode(true) as ParentNode;
-                        const $codeTextarea = findOrDie($el, '.export-code', node => node instanceof HTMLTextAreaElement);
-                        const $indentTabInput = findInput($el, '#export-indent-tab');
-                        const $indent4SpacesInput = findInput($el, '#export-indent-spaces-4');
-                        const $indent2SpacesInput = findInput($el, '#export-indent-spaces-2');
-                        const $addressInput = findInput($el, '#export-address');
-                        const $addressLabelInput = findInput($el, '#export-address-label');
-                        const $byteRadixInput = findSelect($el, '#export-byte-radix');
-                        const $labelColonInput = findInput($el, '#export-label-colon');
-                        const $exportObjectInput = findInput($el, '#export-object');
-                        const $exportHeaderInput = findInput($el, '#export-header');
-                        const $exportPalettesInput = findInput($el, '#export-palettes');
-
-                        const generateCode = (): boolean => {
-                            const baseOptions: CodeGenerationOptionsBase = {
-                                addressOffsetRadix: 16,
-                                indentChar: $indentTabInput.checked ?
-                                    '\t' :
-                                    ($indent2SpacesInput.checked ? '  ' : '    '),
-                                labelColon: $labelColonInput.checked,
-                                byteRadix: Number($byteRadixInput.value) as AssemblyNumberFormatRadix,
-                                object: $exportObjectInput.checked,
-                                header: $exportHeaderInput.checked,
-                            };
-
-                            let byteOffsetRaw = $addressInput.value;
-                            let options: CodeGenerationOptions;
-
-                            if ($addressLabelInput.checked) {
-                                options = {
-                                    ...baseOptions,
-                                    addressLabel: byteOffsetRaw,
-                                };
-                            } else {
-                                let byteOffset: number;
-                                if (byteOffsetRaw.startsWith('$')) {
-                                    byteOffset = parseInt(byteOffsetRaw.substring(1), 16);
-                                } else if (byteOffsetRaw.startsWith('%')) {
-                                    byteOffset = parseInt(byteOffsetRaw.substring(1), 2);
-                                } else {
-                                    byteOffset = parseInt(byteOffsetRaw, 10);
-                                }
-
-                                options = {
-                                    ...baseOptions,
-                                    addressOffset: byteOffset,
-                                };
-                            }
-
-                            const genThunks: Array<() => string> = [];
-
-                            if ($exportObjectInput.checked) {
-                                genThunks.push(() => canvas.generateCode(options));
-                            }
-                            if ($exportHeaderInput.checked) {
-                                genThunks.push(() => canvas.generateHeaderCode(options));
-                            }
-                            if ($exportPalettesInput.checked) {
-                                genThunks.push(() => canvas.generatePalettesCode(options));
-                            }
-
-                            try {
-                                $codeTextarea.value = genThunks.map(thunk => thunk()).join('\n\n');
-                                return true;
-                            } catch (e) {
-                                Popover.toast({
-                                    content: `Code generation failure: ${(e as Error).message}`,
-                                    type: 'danger',
-                                });
-                            }
-
-                            return false;
-                        };
-
-                        if (!generateCode()) {
-                            return;
-                        }
-
-                        [
-                            $indentTabInput,
-                            $indent2SpacesInput,
-                            $indent4SpacesInput,
-                            $addressInput,
-                            $addressLabelInput,
-                            $byteRadixInput,
-                            $labelColonInput,
-                            $exportPalettesInput,
-                            $exportObjectInput,
-                            $exportHeaderInput,
-                        ]
-                            .forEach((input) => {
-                                input.addEventListener('change', generateCode);
-                            });
-
-                        const exportModal = Modal.create({
-                            type: 'default',
-                            title: 'Export object',
-                            actions: [
-                                'cancel',
-                                {
-                                    id: exportId,
-                                    align: 'end',
-                                    labelHtml: '<i class="fa-solid fa-copy"></i> Copy',
-                                    type: 'primary',
-                                },
-                            ],
-                            contentHtml: $el,
-                        });
-
-                        exportModal.show();
-                        exportModal.on('action', async (action) => {
-                            if (action.id === exportId) {
-                                this.logger.debug('exporting!');
-                                try {
-                                    await navigator.clipboard.writeText($codeTextarea.value);
-                                    this.logger.info(`successfully wrote to clipboard`);
-                                    Popover.toast({
-                                        type: 'success',
-                                        content: $copySuccess,
-                                    });
-                                } catch (e) {
-                                    this.logger.error(`failed to write to clipboard`, e);
-                                    Popover.toast({
-                                        type: 'danger',
-                                        content: $copyError,
-                                    });
-                                }
-                            }
-                        });
+                        this.showExportASMModal(canvas);
                         break;
                     }
                     case 'delete':
@@ -522,6 +379,164 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         this.setObjectName(canvas, canvas.getName());
+    }
+
+    public exportCanvasToImage(canvas?: PixelCanvas | null): void {
+        canvas = canvas || this.getActiveCanvas();
+        canvas?.generateDataURL((url) => {
+            if (!url) {
+                Popover.toast({
+                    content: 'Failed to generate image :(',
+                    type: 'danger',
+                });
+                return;
+            }
+
+            window.open(url);
+        }, 'full');
+    }
+
+    public showExportASMModal(canvas?: PixelCanvas | null): void {
+        canvas = canvas || this.getActiveCanvas();
+        if (!canvas || !canvas.canExportToASM()) {
+            return;
+        }
+
+        const exportId = 'export';
+        const content = findTemplateContent(document, '#modal-content-export-form');
+
+        const $el = content.cloneNode(true) as ParentNode;
+        const $codeTextarea = findOrDie($el, '.export-code', node => node instanceof HTMLTextAreaElement);
+        const $indentTabInput = findInput($el, '#export-indent-tab');
+        const $indent4SpacesInput = findInput($el, '#export-indent-spaces-4');
+        const $indent2SpacesInput = findInput($el, '#export-indent-spaces-2');
+        const $addressInput = findInput($el, '#export-address');
+        const $addressLabelInput = findInput($el, '#export-address-label');
+        const $byteRadixInput = findSelect($el, '#export-byte-radix');
+        const $labelColonInput = findInput($el, '#export-label-colon');
+        const $exportObjectInput = findInput($el, '#export-object');
+        const $exportHeaderInput = findInput($el, '#export-header');
+        const $exportPalettesInput = findInput($el, '#export-palettes');
+
+        const generateCode = (): boolean => {
+            const baseOptions: CodeGenerationOptionsBase = {
+                addressOffsetRadix: 16,
+                indentChar: $indentTabInput.checked ?
+                    '\t' :
+                    ($indent2SpacesInput.checked ? '  ' : '    '),
+                labelColon: $labelColonInput.checked,
+                byteRadix: Number($byteRadixInput.value) as AssemblyNumberFormatRadix,
+                object: $exportObjectInput.checked,
+                header: $exportHeaderInput.checked,
+            };
+
+            let byteOffsetRaw = $addressInput.value;
+            let options: CodeGenerationOptions;
+
+            if ($addressLabelInput.checked) {
+                options = {
+                    ...baseOptions,
+                    addressLabel: byteOffsetRaw,
+                };
+            } else {
+                let byteOffset: number;
+                if (byteOffsetRaw.startsWith('$')) {
+                    byteOffset = parseInt(byteOffsetRaw.substring(1), 16);
+                } else if (byteOffsetRaw.startsWith('%')) {
+                    byteOffset = parseInt(byteOffsetRaw.substring(1), 2);
+                } else {
+                    byteOffset = parseInt(byteOffsetRaw, 10);
+                }
+
+                options = {
+                    ...baseOptions,
+                    addressOffset: byteOffset,
+                };
+            }
+
+            const genThunks: Array<() => string> = [];
+
+            if ($exportObjectInput.checked) {
+                genThunks.push(() => canvas.generateCode(options));
+            }
+            if ($exportHeaderInput.checked) {
+                genThunks.push(() => canvas.generateHeaderCode(options));
+            }
+            if ($exportPalettesInput.checked) {
+                genThunks.push(() => canvas.generatePalettesCode(options));
+            }
+
+            try {
+                $codeTextarea.value = genThunks.map(thunk => thunk()).join('\n\n');
+                return true;
+            } catch (e) {
+                Popover.toast({
+                    content: `Code generation failure: ${(e as Error).message}`,
+                    type: 'danger',
+                });
+            }
+
+            return false;
+        };
+
+        if (!generateCode()) {
+            return;
+        }
+
+        [
+            $indentTabInput,
+            $indent2SpacesInput,
+            $indent4SpacesInput,
+            $addressInput,
+            $addressLabelInput,
+            $byteRadixInput,
+            $labelColonInput,
+            $exportPalettesInput,
+            $exportObjectInput,
+            $exportHeaderInput,
+        ]
+            .forEach((input) => {
+                input.addEventListener('change', generateCode);
+            });
+
+        const exportModal = Modal.create({
+            type: 'default',
+            title: 'Export object',
+            actions: [
+                'cancel',
+                {
+                    id: exportId,
+                    align: 'end',
+                    labelHtml: '<i class="fa-solid fa-copy"></i> Copy',
+                    type: 'primary',
+                },
+            ],
+            contentHtml: $el,
+        });
+
+        this.logger.debug('showing export ASM modal');
+        const $copySuccess = parseTemplate('<div><i class="fa-solid fa-check"></i> Code copied!</div>');
+        const $copyError = parseTemplate('<div><i class="fa-solid fa-exclamation-triangle"></i> Failed to copy :(</div>');
+        exportModal.show();
+        exportModal.on('action', async (action) => {
+            if (action.id === exportId) {
+                this.logger.debug('exporting!');
+                try {
+                    await navigator.clipboard.writeText($codeTextarea.value);
+                    this.logger.info(`successfully wrote to clipboard`);
+                    Popover.toast({
+                        type: 'success',
+                        content: $copySuccess,
+                    });
+                } catch (e) {
+                    this.logger.error(`failed to write to clipboard`, e);
+                    Popover.toast({
+                        type: 'danger',
+                        content: $copyError,
+                    });
+                }
+            }
+        });
     }
 
     public addObject(options: CanvasOptions, insertAfter?: PixelCanvas): PixelCanvas {

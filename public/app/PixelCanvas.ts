@@ -328,6 +328,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.displayMode.supportsKangarooMode;
     }
 
+    public canExportToASM(): boolean {
+        return this.displayMode.canExportToASM;
+    }
+
     public getColors(): DisplayModeColorValue[] {
         return this.displayMode.getColors(this.group.getPaletteSet(), this.palette, this.editorSettings.kangarooMode);
     }
@@ -561,6 +565,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 return;
             }
 
+            this.logger.debug('generating image of canvas');
+            const start = Date.now();
             ctx.drawImage(this.$bgEl, 0, 0, $canvas.width, $canvas.height);
             ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
 
@@ -570,7 +576,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     return;
                 }
 
-                this.logger.debug('generated blob');
+                this.logger.debug(`image generated in ${Date.now() - start}ms`);
                 callback(URL.createObjectURL(blob));
             }, 'image/png');
         }, 50);
