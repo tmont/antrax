@@ -262,6 +262,9 @@ export class Editor {
         this.project.on('canvas_palette_change', (activeCanvas) => {
             this.onCanvasPaletteChanged(activeCanvas);
         });
+        this.project.on('canvas_active_color_change', (activeCanvas) => {
+            this.setActiveColor(activeCanvas.getActiveColor());
+        });
     }
 
     private syncDisplayModeControl(hasData?: boolean): void {

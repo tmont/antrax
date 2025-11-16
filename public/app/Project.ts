@@ -120,6 +120,7 @@ export type ProjectEventMap = {
     canvas_dimensions_change: [ PixelCanvas ];
     display_mode_change: [ PixelCanvas ];
     canvas_palette_change: [ PixelCanvas ];
+    canvas_active_color_change: [ PixelCanvas ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -266,6 +267,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
             }
 
             this.emit('canvas_render', canvas);
+        });
+        canvas.on('active_color_change', () => {
+            this.emit('canvas_active_color_change', canvas);
         });
 
         if (this.canvases.indexOf(canvas) === -1) {

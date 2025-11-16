@@ -40,6 +40,12 @@ export type PixelCanvasDrawState = 'idle' | 'drawing';
 
 export type PixelDrawingBehavior = 'user' | 'internal';
 
+interface LocatedPixel {
+    row: number;
+    col: number;
+    pixel: PixelInfo | null;
+}
+
 export interface PixelDrawingEvent {
     pixel: PixelInfo;
     row: number;
@@ -81,6 +87,7 @@ type PixelCanvasEventMap = {
     canvas_dimensions_change: [];
     display_mode_change: [];
     palette_change: [];
+    active_color_change: [ DisplayModeColorIndex ];
 };
 
 export interface PixelCanvasSerialized {
@@ -257,7 +264,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public setActiveColor(modeColorIndex: DisplayModeColorIndex): void {
         this.activeColor = modeColorIndex;
-        this.logger.debug(`active color set`, modeColorIndex);
+        this.logger.debug(`active color set to`, modeColorIndex);
     }
 
     public clonePixelData(): PixelInfo[][] {
@@ -438,12 +445,38 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             }
         };
 
+        const getPixelFromMouseEvent = (e: MouseEvent): LocatedPixel => {
+            const { clientX, clientY } = e;
+            const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
+            const trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
+            const trueY = clientY + document.documentElement.scrollTop - offsetTop;
+
+            return this.getPixelAt({ x: trueX, y: trueY });
+        }
+
         const onMouseMove = (e: MouseEvent): void => {
             activatePixelAtCursor(e);
         };
 
         const onMouseDown = (e: MouseEvent) => {
-            if (this.drawState !== 'idle' || e.shiftKey || !isLeftMouseButton(e)) {
+            if (this.drawState !== 'idle' || e.shiftKey) {
+                return;
+            }
+
+            if (e.altKey || e.button === 1) {
+                // Alt+click or middle button
+                const pixelData = getPixelFromMouseEvent(e);
+                if (
+                    typeof pixelData.pixel?.modeColorIndex === 'number' &&
+                    pixelData.pixel.modeColorIndex !== this.activeColor
+                ) {
+                    this.setActiveColor(pixelData.pixel.modeColorIndex);
+                    this.emit('active_color_change', pixelData.pixel.modeColorIndex);
+                }
+                return;
+            }
+
+            if (!isLeftMouseButton(e)) {
                 return;
             }
 
@@ -473,14 +506,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 return;
             }
 
-            const { clientX, clientY } = e;
-
-            const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
-
-            const trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
-            const trueY = clientY + document.documentElement.scrollTop - offsetTop;
-
-            const pixelData = this.getPixelAt({ x: trueX, y: trueY });
+            const pixelData = getPixelFromMouseEvent(e);
             if (pixelData.pixel) {
                 this.highlightPixel({ x: pixelData.col, y: pixelData.row });
             }
@@ -816,7 +842,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return { x: absoluteX, y: absoluteY };
     }
 
-    private getPixelAt(screenLocation: Coordinate): { row: number; col: number; pixel: PixelInfo | null } {
+    private getPixelAt(screenLocation: Coordinate): LocatedPixel {
         const { x: col, y: row } = this.convertAbsoluteToPixelCoordinate(screenLocation);
 
         const pixel = this.pixelData[row]?.[col] || null;
