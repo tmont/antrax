@@ -1,3 +1,21 @@
+## v0.0.15 (2025-11-15)
+
+- Keyboard shortcut: `X` to open "Export ASM" modal (if supported by current
+  object's display mode)
+- Keyboard shortcut: `Shift+X` to export active object as image
+- Fixed `320C` ASM export (colors were in wrong order)
+- `Alt+Click`/`Middle-click` to select color at pixel
+- Image export checkerboard now matches color in editor
+- Added kangaroo mode toggle for `displayMode!=none`
+    - Keyboard shortcut: `K`
+- Keyboard shortcuts now fire even if focused on other elements (e.g. checkboxes)
+- Default browser behavior no longer overridden if `Ctrl` is held (i.e. `Ctrl+C`
+  now actually copies text instead of doing nothing)
+- Canvas width is now clamped to the maximum supported by the current display mode
+  (with `none` having a maximum of 256)
+- Right-clicking on the canvas no longer interacts and instead will execute default 
+  browser behavior
+
 ## v0.0.14 (2025-11-14)
 - Implemented codegen for palettes/DL entries
 - Support for using a label as an address offset during ASM export
