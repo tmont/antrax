@@ -694,20 +694,27 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public setBackgroundColor(color: Atari7800Color): void {
-        // TODO this should probably only be for groups with the active palette set...
-        this.canvases.forEach(canvas => canvas.render());
+        this.canvases
+            .filter(canvas => canvas.group.getPaletteSet() === this.editorSettings.activeColorPaletteSet)
+            .forEach(canvas => canvas.render());
         this.updateAllThumbnails();
     }
 
     public updatePaletteColor(palette: ColorPalette, colorIndex: ColorIndex): void {
-        // TODO this should probably only be for canvases using this palette...
-        this.canvases.forEach(canvas => canvas.render());
+        // NOTE: detecting which canvases are using a palette is annoying due to the
+        // complexities of the display mode, so instead we just filter by palette set.
+        // I mean, it's not THAT annoying given we already can fetch the colors for
+        // a display mode+palette, but it seems wasteful to run that logic every time.
+        // Another option is to actually cache the current display mode's colors on the
+        // canvas, and then this would be free, but that might be some premature optimization.
+        this.canvases
+            .filter(canvas => canvas.group.getPaletteSet() === this.editorSettings.activeColorPaletteSet)
+            .forEach(canvas => canvas.render());
         this.updateAllThumbnails();
     }
 
     public updateKangarooMode(): void {
-        // TODO this should probably only be for canvases that are in a display mode affected by Kangaroo mode...
-        this.canvases.forEach(canvas => canvas.render());
+        this.canvases.filter(canvas => canvas.supportsKangarooMode).forEach(canvas => canvas.render());
         this.updateAllThumbnails();
     }
 
