@@ -7,7 +7,7 @@ import { findOrDie, parseTemplate, zeroPad } from './utils.ts';
 const tmpl = `<div class="color-picker"><form></form></div>`;
 
 export interface ColorPickerOptions {
-    title?: string;
+    title?: string | null;
     activeColor?: Atari7800Color | null;
 }
 
@@ -19,21 +19,21 @@ export type ColorPickerEventMap = {
 export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
     private readonly logger: Logger;
     private readonly popover: Popover;
-    private readonly title: string;
-    private activeColor: Readonly<Atari7800Color> | null;
+
+    private readonly $el: HTMLElement;
+
+    private static instance: ColorPicker = new ColorPicker();
 
     public get name(): string {
         return 'ColorPicker';
     }
 
-    public constructor(options?: ColorPickerOptions) {
+    public constructor() {
         super();
 
-        this.title = options?.title || 'Choose a color';
-        this.activeColor = options?.activeColor || null;
         this.logger = Logger.from(this);
 
-        const $el = parseTemplate(tmpl);
+        const $el = this.$el = parseTemplate(tmpl);
         const $form = findOrDie($el, 'form', node => node instanceof HTMLFormElement);
 
         // note: this all assumes there are 256 colors (e.g. 16*16)
@@ -57,9 +57,6 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
             const swatch = document.createElement('button');
             swatch.type = 'submit';
             swatch.classList.add('color-swatch', 'selectable');
-            if (color === this.activeColor) {
-                swatch.classList.add('active');
-            }
             swatch.setAttribute('data-color-index', color.index.toString());
             swatch.style.backgroundColor = color.hex;
             swatch.setAttribute('title',
@@ -87,14 +84,12 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
             });
             btn.classList.add('active');
 
-            this.activeColor = color;
             this.logger.debug(`selected color ${index} (${color.hex})`);
             this.emit('color_select', color, index);
         });
 
         this.popover = new Popover({
             content: $el,
-            title: this.title,
         });
 
         this.popover.bubble('hide', this);
@@ -106,5 +101,32 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
 
     public show($target: HTMLElement): void {
         this.popover.show($target);
+    }
+
+    public setActiveColor(color: Readonly<Atari7800Color> | null): void {
+        this.$el.querySelectorAll('.color-swatch.active').forEach((el) => {
+            el.classList.remove('active');
+            if (color) {
+                const index = el.getAttribute('data-color-index');
+                if (index === color.index.toString()) {
+                    el.classList.add('active');
+                }
+            }
+
+        });
+    }
+
+    public setTitle(title: string | null): void {
+        this.popover.setTitle(title);
+    }
+
+    public static singleton(options?: ColorPickerOptions): ColorPicker {
+        const instance = ColorPicker.instance;
+        instance.off();
+
+        instance.setTitle(options?.title || null);
+        instance.setActiveColor(options?.activeColor || null);
+
+        return instance;
     }
 }

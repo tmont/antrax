@@ -113,25 +113,21 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
             });
         });
 
-        findElement(this.$el, '.bg-color-container .color-swatch').addEventListener('click', (() => {
-            const picker = new ColorPicker({
-                activeColor: this.backgroundColor,
-                title: 'Change background color',
-            });
-
-            picker.on('color_select', (color, index) => {
-                this.setBackgroundColor(color);
-                this.emit('bg_select', this.backgroundColor);
-            });
-
-            return (e) => {
+        findElement(this.$el, '.bg-color-container .color-swatch').addEventListener('click', (e) => {
                 if (!(e.target instanceof HTMLElement)) {
                     return;
                 }
 
+                const picker = ColorPicker.singleton({
+                    activeColor: this.backgroundColor,
+                    title: 'Change background color',
+                });
+                picker.on('color_select', (color, index) => {
+                    this.setBackgroundColor(color);
+                    this.emit('bg_select', this.backgroundColor);
+                });
                 picker.show(e.target);
-            };
-        })());
+        });
 
         this.$container.appendChild(this.$el);
 

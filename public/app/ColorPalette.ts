@@ -84,21 +84,22 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         const $el = this.$el;
         this.colors.forEach((_, paletteColorIndex) => {
             const $swatch = findElement($el, `[data-index="${paletteColorIndex}"]`);
-            const picker = new ColorPicker({
-                activeColor: this.colors[paletteColorIndex],
-                title: `Change ${this.name} C${paletteColorIndex}`,
-            });
-
-            picker.on('color_select', (color) => {
-                this.colors[paletteColorIndex] = color;
-                this.updateColors();
-                this.emit('color_change', color, paletteColorIndex as ColorIndex);
-            });
 
             $swatch.addEventListener('click', (e) => {
                 if (!(e.target instanceof HTMLElement)) {
                     return;
                 }
+
+                const picker = ColorPicker.singleton({
+                    activeColor: this.colors[paletteColorIndex],
+                    title: `Change ${this.name}C${paletteColorIndex}`,
+                });
+
+                picker.on('color_select', (color) => {
+                    this.colors[paletteColorIndex] = color;
+                    this.updateColors();
+                    this.emit('color_change', color, paletteColorIndex as ColorIndex);
+                });
 
                 picker.show(e.target);
             });

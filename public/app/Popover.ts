@@ -36,11 +36,12 @@ export class Popover extends EventEmitter<PopoverEventMap> {
 
         this.$el = parseTemplate(tmpl);
 
+        findElement(this.$el, '.close-x').addEventListener('click', () => {
+            this.hide();
+        });
+
         if (options.title) {
             findElement(this.$el, '.popover-title').innerText = options.title;
-            findElement(this.$el, '.close-x').addEventListener('click', () => {
-                this.hide();
-            });
         } else {
             this.$el.classList.add('no-header');
         }
@@ -80,6 +81,15 @@ export class Popover extends EventEmitter<PopoverEventMap> {
             $content.appendChild(options.content);
         } else {
             $content.innerText = options.content;
+        }
+    }
+
+    public setTitle(title: string | null) {
+        findElement(this.$el, '.popover-title').innerText = title || '';
+        if (title) {
+            this.$el.classList.remove('no-header');
+        } else {
+            this.$el.classList.add('no-header');
         }
     }
 
