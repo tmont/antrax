@@ -717,12 +717,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         pixel: PixelInfo,
         behavior: PixelDrawingBehavior,
         erasing = false,
+        emit = true,
+        filled: Record<string, 1> = {},
     ): boolean {
         if (this.destroyed) {
             return false;
         }
 
         const isUserAction = behavior === 'user';
+        const prevColor = pixel.modeColorIndex;
 
         // if it's the user actually drawing something, we use the current palette/color, otherwise,
         // it's just an internal render, and we use the pixel's current palette/color
@@ -788,8 +791,39 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         if (isUserAction) {
+            if (this.editorSettings.drawMode === 'fill') {
+                // recursively set all adjacent pixels with same color to the new color
+                const pixels: Coordinate[] = [
+                    { x: col, y: row - 1 },
+                    { x: col, y: row + 1 },
+                    { x: col - 1, y: row },
+                    { x: col + 1, y: row },
+                ];
+
+                filled[`${col},${row}`] = 1;
+                pixels.forEach((coordinate) => {
+                    const pixel = this.pixelData[coordinate.y]?.[coordinate.x];
+                    if (!pixel) {
+                        return;
+                    }
+
+                    const key = `${coordinate.x},${coordinate.y}`;
+                    if (filled[key]) {
+                        // prevent infinite recursion
+                        return;
+                    }
+
+                    if (pixel.modeColorIndex === prevColor) {
+                        // don't need to emit multiple times for only one "drawing" action
+                        this.drawPixelFromRowAndCol(coordinate, pixel, 'user', erasing, false, filled);
+                    }
+                });
+            }
+
             // important to not emit for internal drawing actions for performance reasons
-            this.emit('pixel_draw', { pixel, row, col, behavior });
+            if (emit) {
+                this.emit('pixel_draw', { pixel, row, col, behavior });
+            }
         }
 
         return true;
