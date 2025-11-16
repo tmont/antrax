@@ -1,4 +1,4 @@
-import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
+import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
 import type { EditorSettings, UndoCheckpoint } from './Editor.ts';
@@ -16,7 +16,7 @@ import {
 } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
-    type AssemblyNumberFormatRadix,
+    type AssemblyNumberFormatRadix, type ColorIndex,
     type DisplayModeColorIndex,
     type DisplayModeName,
     findElement,

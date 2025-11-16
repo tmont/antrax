@@ -1,13 +1,16 @@
-import {
-    type ColorIndex,
-    ColorPalette,
-    type ColorPaletteSerialized
-} from './ColorPalette.ts';
+import { ColorPalette, type ColorPaletteSerialized } from './ColorPalette.ts';
 import { ColorPicker } from './ColorPicker.ts';
 import { type Atari7800Color, colors, colorToJson, type ColorSerialized } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
+import { Logger } from './Logger.ts';
 import type { CodeGenerationOptions } from './PixelCanvas.ts';
-import { type AssemblyNumberFormatRadix, findElement, formatAssemblyNumber, parseTemplate } from './utils.ts';
+import {
+    type AssemblyNumberFormatRadix,
+    type ColorIndex,
+    findElement,
+    formatAssemblyNumber,
+    parseTemplate
+} from './utils.ts';
 
 export interface ColorPaletteSetOptions {
     id?: ColorPaletteSet['id'];
@@ -47,6 +50,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
     private readonly $container: HTMLElement;
     private readonly $el: HTMLElement;
+    private readonly logger: Logger;
     private initialized = false;
     private name: string;
     public readonly id: number;
@@ -79,6 +83,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         this.backgroundColor = bg || colors[3];
         this.palettes = palettes;
         this.name = options.name || `Palette Set ${this.id}`;
+        this.logger = Logger.from(this);
 
         this.$container = options.mountEl;
         this.$el = parseTemplate(paletteSetTmpl);
@@ -122,7 +127,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
                     activeColor: this.backgroundColor,
                     title: 'Change background color',
                 });
-                picker.on('color_select', (color, index) => {
+                picker.on('color_select', (color) => {
                     this.setBackgroundColor(color);
                     this.emit('bg_select', this.backgroundColor);
                 });
@@ -155,9 +160,10 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
     public setBackgroundColor(color: Atari7800Color): void {
         this.backgroundColor = color;
-
         findElement(this.$el, '.bg-color-container .color-swatch').style.backgroundColor =
             this.backgroundColor.hex;
+
+        this.logger.debug(`ColorPaletteSet{${this.id}} set background color to ${color.index} (${color.hex})`);
     }
 
     public generateCode(options: CodeGenerationOptions): string {

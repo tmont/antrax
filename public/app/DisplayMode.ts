@@ -1,12 +1,14 @@
-import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
+import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { EditorSettings } from './Editor.ts';
 import {
+    type ColorIndex,
     type Dimensions,
     type DisplayModeColor,
     type DisplayModeColorString,
     type DisplayModeColorValue,
     type DisplayModeName,
+    isPaletteColorIndex,
     isPaletteIndex,
     nope,
     type PaletteIndex,
@@ -279,13 +281,16 @@ class DisplayMode {
 
         const mapPalette = (palette: ColorPalette, paletteIndex: PaletteIndex): DisplayModeColorValue[] => {
             return palette.colors.map((_, index): DisplayModeColorValue => {
-                const colorIndex = index as ColorIndex;
+                if (!isPaletteColorIndex(index)) {
+                    throw new Error(`Cannot handle color index ${index}`);
+                }
+
                 return {
                     colors: [ {
-                        label: `P${paletteIndex}C${colorIndex}`,
+                        label: `P${paletteIndex}C${index}`,
                         value: {
                             palette,
-                            index: index as ColorIndex,
+                            index,
                         },
                     } ],
                 }

@@ -1,9 +1,10 @@
-import { type ColorIndex, ColorPalette } from './ColorPalette.ts';
+import { ColorPalette } from './ColorPalette.ts';
 import { ColorPaletteSet, type ColorPaletteSetSerialized } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
 import type { EditorSettings } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
+import type { ColorIndex } from './utils.ts';
 
 export interface ColorPaletteSetCollectionOptions {
     paletteSets: ColorPaletteSet[];

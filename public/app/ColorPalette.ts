@@ -2,7 +2,7 @@ import { ColorPicker } from './ColorPicker.ts';
 import { type Atari7800Color, colors, type ColorSerialized, colorToJson, getColorObject } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
-import { findElement, parseTemplate } from './utils.ts';
+import { type ColorIndex, findElement, isPaletteColorIndex, parseTemplate } from './utils.ts';
 
 export interface ColorPaletteOptions {
     id?: ColorPalette['id'];
@@ -27,16 +27,14 @@ const tmpl = `
 </div>
 `;
 
-export type ColorIndex = 0 | 1 | 2;
-
 export type ColorPaletteEventMap = {
     color_select: [ Atari7800Color, ColorIndex ],
     color_change: [ Atari7800Color, ColorIndex ],
 };
 
 export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
-    public colors: [ Atari7800Color, Atari7800Color, Atari7800Color ]; // TODO
-    public name: string; // TODO
+    public readonly colors: [ Atari7800Color, Atari7800Color, Atari7800Color ];
+    public readonly name: string;
     private initialized = false;
     private readonly logger: Logger;
     private $el: HTMLElement | null = null;
@@ -65,7 +63,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
 
         this.$el = parseTemplate(tmpl);
 
-        this.updateName();
+        findElement(this.$el, '.color-palette-name').innerText = this.name;
         this.updateColors();
 
         this.$el.querySelectorAll('.color-swatch[data-index]').forEach((swatch) => {
@@ -83,6 +81,10 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
 
         const $el = this.$el;
         this.colors.forEach((_, paletteColorIndex) => {
+            if (!isPaletteColorIndex(paletteColorIndex)) {
+                throw new Error(`Cannot handle color index "${paletteColorIndex}"`);
+            }
+
             const $swatch = findElement($el, `[data-index="${paletteColorIndex}"]`);
 
             $swatch.addEventListener('click', (e) => {
@@ -97,8 +99,9 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
 
                 picker.on('color_select', (color) => {
                     this.colors[paletteColorIndex] = color;
+                    this.logger.debug(`ColorPalette{${this.id}} selected color ${color.index} (${color.hex})`);
                     this.updateColors();
-                    this.emit('color_change', color, paletteColorIndex as ColorIndex);
+                    this.emit('color_change', color, paletteColorIndex);
                 });
 
                 picker.show(e.target);
@@ -108,14 +111,6 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         $container.appendChild(this.$el);
 
         this.initialized = true;
-    }
-
-    public updateName(): void {
-        if (!this.$el) {
-            throw new Error(`ColorPalette has not been initialized, cannot update name`);
-        }
-
-        findElement(this.$el, '.color-palette-name').innerText = this.name;
     }
 
     public updateColors(): void {
