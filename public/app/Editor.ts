@@ -10,12 +10,14 @@ import {
     type DisplayModeColorIndex,
     type DisplayModeColorValue,
     type DisplayModeName,
+    type DrawMode,
     findElement,
     findInput,
     findOrDie,
     findSelect,
     findTemplateContent,
     getColorValueCombinedLabel,
+    isDrawMode,
     isLeftMouseButton,
     nope,
     parseTemplate
@@ -27,12 +29,14 @@ export interface EditorSettings {
     activeColorPaletteSet: ColorPaletteSet;
     uncoloredPixelBehavior: 'transparent' | 'background';
     kangarooMode: boolean;
+    drawMode: DrawMode;
 }
 
 export interface EditorSettingsSerialized extends Pick<EditorSettings, 'showGrid' | 'zoomLevel'> {
     activeColorPaletteSetId: ColorPaletteSet['id'];
     uncoloredPixelBehavior?: EditorSettings['uncoloredPixelBehavior'];
     kangarooMode?: EditorSettings['kangarooMode'];
+    drawMode?: EditorSettings['drawMode'];
 }
 
 export interface EditorOptions {
@@ -126,6 +130,7 @@ export class Editor {
             activeColorPaletteSet: defaultPaletteSet,
             uncoloredPixelBehavior: 'transparent',
             kangarooMode: false,
+            drawMode: 'draw',
         };
 
         this.paletteSets = new ColorPaletteSetCollection({
@@ -198,10 +203,6 @@ export class Editor {
 
             this.$canvasCoordinates.innerText = `0,0`;
 
-            findElement(this.$canvasSidebar, '.group-name').innerText = activeCanvas?.group.getName() || '';
-            findElement(this.$canvasSidebar, '.palette-set-name').innerText = activeCanvas?.group.getPaletteSet().getName() || '';
-            findElement(this.$canvasSidebar, '.object-name').innerText = activeCanvas?.getName() || '';
-
             if (activeCanvas) {
                 this.onPixelDimensionsChanged(activeCanvas);
                 this.onCanvasDimensionsChanged(activeCanvas);
@@ -246,9 +247,7 @@ export class Editor {
             pushUndoItem(canvas);
         });
         this.project.on('active_object_name_change', (activeCanvas) => {
-            const name = activeCanvas.getName() || 'n/a';
-            this.$activeObjectName.innerText = name;
-            findElement(this.$canvasSidebar, '.object-name').innerText = name;
+            this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
         });
         this.project.on('pixel_dimensions_change', (activeCanvas) => {
             this.onPixelDimensionsChanged(activeCanvas);
@@ -426,10 +425,6 @@ export class Editor {
         const { width, height } = canvas.getDimensions();
         this.$canvasWidthInput.value = width.toString();
         this.$canvasHeightInput.value = height.toString();
-
-        findElement(this.$canvasSidebar, '.object-details .canvas-size').innerText = canvas ?
-            width + '×' + height :
-            '';
     }
 
     private onPixelDimensionsChanged(canvas: PixelCanvas): void {
@@ -438,13 +433,29 @@ export class Editor {
         }
 
         const { width, height } = canvas.getPixelDimensions();
-
-        findElement(this.$canvasSidebar, '.object-details .pixel-size').innerText = canvas ?
-            (width + '×' + height) :
-            '';
-
         this.$pixelWidthInput.value = width.toString();
         this.$pixelHeightInput.value = height.toString();
+    }
+
+    private setDrawMode(newMode: DrawMode, force = false): void {
+        if (!force && this.settings.drawMode === newMode) {
+            return;
+        }
+
+        this.settings.drawMode = newMode;
+
+        this.$canvasSidebar.querySelectorAll('[data-mode]').forEach((el) => {
+            const drawMode = el.getAttribute('data-mode');
+            if (!isDrawMode(drawMode)) {
+                return;
+            }
+
+            el.classList.toggle('active', drawMode === newMode);
+            el.classList.toggle('btn-primary', drawMode === newMode);
+            el.classList.toggle('btn-tertiary', drawMode !== newMode);
+        });
+
+        this.logger.debug(`drawMode set to ${this.settings.drawMode}`);
     }
 
     public setPaletteSets(paletteSets: ColorPaletteSetCollection): void {
@@ -962,6 +973,22 @@ export class Editor {
             this.project?.setColorPalette(palette);
         });
 
+        this.$canvasSidebar.querySelectorAll('button[data-mode]').forEach((el) => {
+            if (!(el instanceof HTMLButtonElement)) {
+                return;
+            }
+
+            const mode = el.getAttribute('data-mode');
+            if (!isDrawMode(mode)) {
+                el.disabled = true;
+                return;
+            }
+
+            el.addEventListener('click', () => {
+                this.setDrawMode(mode);
+            });
+        });
+
         this.updateZoomLevelUI();
         this.initialized = true;
     }
@@ -1096,7 +1123,9 @@ export class Editor {
             typeof settings.zoomLevel !== 'number' ||
             typeof settings.activeColorPaletteSetId !== 'number' ||
             (typeof settings.kangarooMode !== 'boolean' &&
-                typeof settings.kangarooMode !== 'undefined')
+                typeof settings.kangarooMode !== 'undefined') ||
+            (typeof settings.drawMode !== 'string' &&
+                typeof settings.drawMode !== 'undefined')
         ) {
             return false;
         }
@@ -1138,6 +1167,7 @@ export class Editor {
             activeColorPaletteSet,
             uncoloredPixelBehavior: json.settings.uncoloredPixelBehavior || 'transparent',
             kangarooMode: json.settings.kangarooMode || false,
+            drawMode: isDrawMode(json.settings.drawMode) ? json.settings.drawMode : 'draw',
         };
 
         const paletteSetCollection = ColorPaletteSetCollection.fromJSON(
@@ -1167,5 +1197,6 @@ export class Editor {
         this.updateGridUI();
         this.updateUncolorPixelBehaviorUI();
         this.updateKangarooModeUI();
+        this.setDrawMode(this.settings.drawMode, true);
     }
 }

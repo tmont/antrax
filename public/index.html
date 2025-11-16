@@ -38,43 +38,52 @@
                 <div class="middle-content">
                     <div class="canvas-sidebar">
                         <div class="has-selected-object">
-                            <header class="group-name clamp-1"></header>
-                            <div class="indented-list">
-                                <section class="group-details">
-                                    <div class="palette-set-name clamp-1"></div>
-                                </section>
-                                <header class="object-name clamp-1"></header>
-                                <div class="indented-list">
-                                    <section class="object-details">
-                                        <div class="canvas-size"></div>
-                                        <span class="text-muted">/</span>
-                                        <div class="pixel-size"></div>
-                                    </section>
-                                    <hr/>
-                                    <section class="canvas-palette-details">
-                                        <select class="canvas-palette-select form-control"></select>
-                                        <div class="canvas-palette-colors"></div>
-                                        <div class="palette-not-allowed">Palette n/a</div>
-                                    </section>
-                                    <hr/>
-                                    <section class="object-display-mode">
-                                        <div class="form-row form-row-h">
-                                            <label for="display-mode-select">Mode:</label>
-                                            <select id="display-mode-select" class="form-control" autocomplete="off" style="flex: 1">
-                                                <option value="none">None</option>
-                                                <option value="160A">160A</option>
-                                                <option value="160B">160B</option>
-                                                <option value="320A">320A</option>
-                                                <option value="320B">320B</option>
-                                                <option value="320C">320C</option>
-                                                <option value="320D">320D</option>
-                                            </select>
-                                        </div>
-                                    </section>
-                                    <hr />
-                                    <div class="color-list"></div>
-                                </div>
+                            <div class="canvas-controls">
+                                <button type="button" class="btn btn-sm btn-primary active" data-mode="draw" title="Draw">
+                                    <i class="fa-solid fa-fw fa-paint-brush"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="erase" title="Erase">
+                                    <i class="fa-solid fa-fw fa-eraser"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="fill" title="Fill" disabled>
+                                    <i class="fa-solid fa-fw fa-fill"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="dropper" title="Eye-dropper">
+                                    <i class="fa-solid fa-fw fa-eye-dropper"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="rect" title="Rectangle" disabled>
+                                    <i class="fa-regular fa-fw fa-square"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="circle" title="Circle" disabled>
+                                    <i class="fa-regular fa-fw fa-circle"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="line" title="Line" disabled>
+                                    <i class="fa-solid fa-fw fa-slash"></i>
+                                </button>
                             </div>
+                            <hr/>
+                            <section class="canvas-palette-details">
+                                <select class="canvas-palette-select form-control"></select>
+                                <div class="canvas-palette-colors"></div>
+                                <div class="palette-not-allowed">Palette n/a</div>
+                            </section>
+                            <hr/>
+                            <section class="object-display-mode">
+                                <div class="form-row form-row-h">
+                                    <label for="display-mode-select">Mode:</label>
+                                    <select id="display-mode-select" class="form-control" autocomplete="off" style="flex: 1">
+                                        <option value="none">None</option>
+                                        <option value="160A">160A</option>
+                                        <option value="160B">160B</option>
+                                        <option value="320A">320A</option>
+                                        <option value="320B">320B</option>
+                                        <option value="320C">320C</option>
+                                        <option value="320D">320D</option>
+                                    </select>
+                                </div>
+                            </section>
+                            <hr />
+                            <section class="color-list"></section>
                         </div>
                         <div class="no-selected-object">
                             <p>

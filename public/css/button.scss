@@ -19,7 +19,8 @@
     }
 
     &:focus,
-    &:active {
+    &:active,
+    &.active {
         border-color: rgba($border-color, 0.35);
         background-image: linear-gradient(
             to bottom,
@@ -94,6 +95,10 @@
 
 .btn-secondary {
     @include button-variant(config.$secondary-bg, config.$secondary-border);
+}
+
+.btn-tertiary {
+    @include button-variant(config.$tertiary-bg, config.$tertiary-border);
 }
 
 .btn-success {

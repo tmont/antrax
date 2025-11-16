@@ -434,6 +434,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
     }
 
+    private selectColorAtPixel(pixel: PixelInfo | null): void {
+        if (typeof pixel?.modeColorIndex === 'number' && pixel.modeColorIndex !== this.activeColor) {
+            this.setActiveColor(pixel.modeColorIndex);
+            this.emit('active_color_change', pixel.modeColorIndex);
+        }
+    }
+
     public enable(): void {
         if (this.destroyed) {
             return;
@@ -474,13 +481,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             if (e.altKey || e.button === 1) {
                 // Alt+click or middle button
                 const pixelData = getPixelFromMouseEvent(e);
-                if (
-                    typeof pixelData.pixel?.modeColorIndex === 'number' &&
-                    pixelData.pixel.modeColorIndex !== this.activeColor
-                ) {
-                    this.setActiveColor(pixelData.pixel.modeColorIndex);
-                    this.emit('active_color_change', pixelData.pixel.modeColorIndex);
-                }
+                this.selectColorAtPixel(pixelData.pixel);
                 return;
             }
 
@@ -726,6 +727,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         // if it's the user actually drawing something, we use the current palette/color, otherwise,
         // it's just an internal render, and we use the pixel's current palette/color
         if (isUserAction) {
+            if (this.editorSettings.drawMode === 'dropper') {
+                this.selectColorAtPixel(pixel);
+                return false;
+            }
+
+            erasing = erasing || this.editorSettings.drawMode === 'erase';
             pixel.modeColorIndex = erasing ? null : this.activeColor;
         }
 

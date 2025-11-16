@@ -6,6 +6,7 @@
 );
 @use "../node_modules/@fortawesome/fontawesome-free/scss/fontawesome";
 @use "../node_modules/@fortawesome/fontawesome-free/scss/solid";
+@use "../node_modules/@fortawesome/fontawesome-free/scss/regular";
 
 @use "./css/config.scss";
 
@@ -266,16 +267,11 @@ hr {
             width: 100%;
         }
 
-        .indented-list {
-            margin-left: config.$gutter-quarter;
-            display: flex;
-            flex-direction: column;
-            gap: config.$gutter-eighth;
-            font-size: 95%;
-        }
-
         .has-selected-object {
             display: none;
+            > section {
+                font-size: 90%;
+            }
         }
 
         .no-selected-object {
@@ -288,19 +284,11 @@ hr {
             }
         }
 
-        .group-name {
-            font-weight: bold;
-            text-shadow: 1px 1px 1px rgba(black, 0.6);
-        }
 
-        .object-name {
-            font-weight: bold;
-            text-shadow: 1px 1px 1px rgba(black, 0.6);
-        }
-
-        .object-details {
-            display: flex;
-            gap: config.$gutter-eighth;
+        .canvas-controls {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: config.$gutter-quarter;
         }
 
         .canvas-palette-details {
