@@ -241,6 +241,7 @@ hr {
         flex: 1;
         position: relative;
         overflow: hidden;
+        background-color: config.$canvas-container-bg;
         &.panning-start {
             &, canvas {
                 cursor: grab !important;
@@ -447,21 +448,28 @@ hr {
 }
 
 canvas {
+    $editor-z-index: 5;
     &.editor {
         border: 2px solid gray;
         box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
         image-rendering: pixelated;
         cursor: crosshair;
+        position: relative;
+        z-index: $editor-z-index;
     }
 
     &.editor-grid, &.editor-hover, &.editor-bg {
         pointer-events: none;
         position: absolute;
         image-rendering: pixelated;
+        z-index: $editor-z-index;
     }
 
     &.editor-bg {
-        z-index: -1;
+        // this is the same as .canvas-container, but it needs to be here so that we
+        // can easily get it from JavaScript
+        background-color: config.$canvas-container-bg;
+        z-index: $editor-z-index - 1;
     }
 }
 
