@@ -320,6 +320,8 @@ export class Editor {
         $paletteSelect.disabled = displayMode.name === 'none';
 
         this.updateCanvasSidebarColors();
+
+        this.$kangarooModeInput.disabled = !canvas.supportsKangarooMode();
     }
 
     private updateCanvasSidebarColors(): void {
@@ -751,8 +753,10 @@ export class Editor {
             }
 
             if (e.key.toLowerCase() === 'k') {
-                this.settings.kangarooMode = !this.settings.kangarooMode;
-                this.onKangarooModeChanged();
+                if (this.project?.getActiveCanvas()?.supportsKangarooMode()) {
+                    this.settings.kangarooMode = !this.settings.kangarooMode;
+                    this.onKangarooModeChanged();
+                }
                 return;
             }
 

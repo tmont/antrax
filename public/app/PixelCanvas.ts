@@ -324,6 +324,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.displayMode;
     }
 
+    public supportsKangarooMode(): boolean {
+        return this.displayMode.supportsKangarooMode;
+    }
+
     public getColors(): DisplayModeColorValue[] {
         return this.displayMode.getColors(this.group.getPaletteSet(), this.palette, this.editorSettings.kangarooMode);
     }
