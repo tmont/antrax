@@ -104,15 +104,9 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
     }
 
     public setActiveColor(color: Readonly<Atari7800Color> | null): void {
-        this.$el.querySelectorAll('.color-swatch.active').forEach((el) => {
-            el.classList.remove('active');
-            if (color) {
-                const index = el.getAttribute('data-color-index');
-                if (index === color.index.toString()) {
-                    el.classList.add('active');
-                }
-            }
-
+        this.$el.querySelectorAll('.color-swatch').forEach((el) => {
+            const index = el.getAttribute('data-color-index');
+            el.classList.toggle('active', index === color?.index.toString());
         });
     }
 
