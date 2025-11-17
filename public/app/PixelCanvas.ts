@@ -547,6 +547,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     this.selectColorAtPixel(pixelData.pixel);
                     break;
 
+                case 'ellipse':
+                case 'ellipse-filled':
                 case 'rect':
                 case 'rect-filled': {
                     if (!mouseDownOrigin) {
@@ -581,6 +583,30 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                                 ) {
                                     continue;
                                 }
+                            } else if (
+                                this.editorSettings.drawMode === 'ellipse-filled' ||
+                                this.editorSettings.drawMode === 'ellipse'
+                            ) {
+                                const w = Math.floor(width / 2);
+                                const h = Math.floor(height / 2);
+                                const x = col - start.x - w;
+                                const y = row - start.y - h;
+
+                                const value = ((x * x) / (w * w)) + ((y * y) / (h * h));
+
+                                if (this.editorSettings.drawMode === 'ellipse-filled') {
+                                    if (value >= 1) {
+                                        continue;
+                                    }
+                                } else {
+                                    // normally if value === 1 then the point would lie on the edge, but since
+                                    // we're dealing with blocky pixels you get a quite sparse ellipse if you
+                                    // do that. by rounding we can kinda get a "closed" ellipse, although it
+                                    // gets quite thick at larger sizes.
+                                    if (Math.round(value * 3) !== 3) {
+                                        continue;
+                                    }
+                                }
                             }
 
                             // TODO erasing?
@@ -607,7 +633,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     break;
                 }
 
-                case 'circle':
                 case 'line':
                     throw new Error(`drawMode "${this.editorSettings.drawMode}" is not supported yet`);
 
