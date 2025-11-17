@@ -39,28 +39,28 @@
                     <div class="canvas-sidebar">
                         <div class="has-selected-object">
                             <div class="canvas-controls">
-                                <button type="button" class="btn btn-sm btn-primary active" data-mode="draw" title="Draw">
+                                <button type="button" class="btn btn-sm btn-primary active" data-mode="draw" title="Draw [D]">
                                     <i class="fa-solid fa-fw fa-paint-brush"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="erase" title="Erase">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="erase" title="Erase [E]">
                                     <i class="fa-solid fa-fw fa-eraser"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="fill" title="Fill">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="fill" title="Fill [F]">
                                     <i class="fa-solid fa-fw fa-fill"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="dropper" title="Eye-dropper">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="dropper" title="Eye-dropper [Y]">
                                     <i class="fa-solid fa-fw fa-eye-dropper"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="rect-filled" title="Filled rectangle">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="rect-filled" title="Filled rectangle [R]">
                                     <i class="fa-solid fa-fw fa-square"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="rect" title="Rectangle">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="rect" title="Rectangle [Shift+R]">
                                     <i class="fa-regular fa-fw fa-square"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="ellipse-filled" title="Filled ellipse">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="ellipse-filled" title="Filled ellipse [C]">
                                     <i class="fa-solid fa-fw fa-circle"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="ellipse" title="Ellipse">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="ellipse" title="Ellipse [Shift+C]">
                                     <i class="fa-regular fa-fw fa-circle"></i>
                                 </button>
 <!--                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="line" title="Line" disabled>-->
@@ -207,22 +207,28 @@
                         </tr>
                     </table>
                 </section>
+
+                <section>
+                    <header>Draw mode shortcuts</header>
+                    <table>
+                        <tr><td><kbd>D</kbd></td><td>Draw</td></tr>
+                        <tr><td><kbd>E</kbd></td><td>Erase</td></tr>
+                        <tr><td><kbd>F</kbd></td><td>Fill</td></tr>
+                        <tr><td><kbd>Y</kbd></td><td>Eye-dropper (select color)</td></tr>
+                        <tr><td><kbd>R</kbd></td><td>Filled rectangle</td></tr>
+                        <tr><td><kbd>Shift</kbd> + <kbd>R</kbd></td><td>Rectangle</td></tr>
+                        <tr><td><kbd>C</kbd></td><td>Filled ellipse</td></tr>
+                        <tr><td><kbd>Shift</kbd> + <kbd>C</kbd></td><td>Ellipse</td></tr>
+                    </table>
+                </section>
             </div>
             <div class="col">
                 <section>
-                    <header>Keyboard shortcuts</header>
+                    <header>Application shortcuts</header>
                     <table>
                         <tr>
                             <td><kbd>G</kbd></td>
                             <td>Toggle grid</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>P</kbd></td>
-                            <td>Update pixel dimensions</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>C</kbd></td>
-                            <td>Update canvas dimensions</td>
                         </tr>
                         <tr>
                             <td><kbd>T</kbd></td>
@@ -238,7 +244,10 @@
                         </tr>
                         <tr>
                             <td><kbd>0-9</kbd></td>
-                            <td>Set zoom level</td>
+                            <td>
+                                Set zoom level (<kbd>0</kbd> = <strong>10x</strong>, <kbd>1</kbd> = <strong>1x</strong>,
+                                <kbd>5</kbd> = <strong>5x</strong>)
+                            </td>
                         </tr>
                         <tr>
                             <td><kbd>X</kbd></td>

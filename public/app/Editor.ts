@@ -443,6 +443,9 @@ export class Editor {
         if (!force && this.settings.drawMode === newMode) {
             return;
         }
+        if (!this.project?.getActiveCanvas()) {
+            return;
+        }
 
         this.settings.drawMode = newMode;
 
@@ -746,17 +749,28 @@ export class Editor {
                 return;
             }
 
-            if (e.key.toLowerCase() === 'p') {
-                // must prevent default so that we don't type a "p" in the input
-                e.preventDefault();
-                this.$pixelWidthInput.focus();
+            if (e.key.toLowerCase() === 'c') {
+                this.setDrawMode(e.shiftKey ? 'ellipse' : 'ellipse-filled');
                 return;
             }
-
-            if (e.key.toLowerCase() === 'c') {
-                // must prevent default so that we don't type a "c" in the input
-                e.preventDefault();
-                this.$canvasWidthInput.focus();
+            if (e.key.toLowerCase() === 'd') {
+                this.setDrawMode('draw');
+                return;
+            }
+            if (e.key.toLowerCase() === 'e') {
+                this.setDrawMode('erase');
+                return;
+            }
+            if (e.key.toLowerCase() === 'f') {
+                this.setDrawMode('fill');
+                return;
+            }
+            if (e.key.toLowerCase() === 'r') {
+                this.setDrawMode(e.shiftKey ? 'rect' : 'rect-filled');
+                return;
+            }
+            if (e.key.toLowerCase() === 'y') {
+                this.setDrawMode('dropper');
                 return;
             }
 
