@@ -508,13 +508,19 @@ export class Editor {
 
     public updateKangarooModeUI(): void {
         this.$kangarooModeInput.checked = this.settings.kangarooMode;
+        this.$transparentInput.disabled = this.settings.kangarooMode;
         this.updateCanvasSidebarColors();
     }
 
     private onKangarooModeChanged(): void {
         this.updateKangarooModeUI();
-        this.settings.uncoloredPixelBehavior = this.settings.kangarooMode ? 'background' : 'transparent';
-        this.onUncoloredPixelBehaviorChanged();
+        const newPixelBehavior: EditorSettings['uncoloredPixelBehavior'] = this.settings.kangarooMode ?
+            'background' :
+            'transparent';
+        if (this.settings.uncoloredPixelBehavior !== newPixelBehavior) {
+            this.settings.uncoloredPixelBehavior = newPixelBehavior;
+            this.onUncoloredPixelBehaviorChanged();
+        }
         this.project?.updateKangarooMode();
     }
 
@@ -775,6 +781,11 @@ export class Editor {
             }
 
             if (e.key.toLowerCase() === 't') {
+                // cannot toggle transparency when in Kangaroo mode
+                if (this.settings.kangarooMode) {
+                    return;
+                }
+
                 this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'transparent' ?
                     'background' :
                     'transparent';
