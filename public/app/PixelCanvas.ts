@@ -547,6 +547,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     this.selectColorAtPixel(pixelData.pixel);
                     break;
 
+                case 'rect':
                 case 'rect-filled': {
                     if (!mouseDownOrigin) {
                         // this will be one of the corners of the rectangle, depending on
@@ -568,6 +569,18 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                             const pixel = this.pixelData[row]?.[col];
                             if (!pixel) {
                                 continue;
+                            }
+
+                            if (this.editorSettings.drawMode === 'rect') {
+                                // only color the outer edges
+                                if (
+                                    row !== start.y &&
+                                    row !== start.y + height &&
+                                    col !== start.x &&
+                                    col !== start.x + width
+                                ) {
+                                    continue;
+                                }
                             }
 
                             // TODO erasing?

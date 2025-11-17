@@ -101,9 +101,9 @@ export const zeroPad = (x: string, len: number): string => x.padStart(len, '0');
 
 export const isLeftMouseButton = (e: MouseEvent): boolean => e.button === 0;
 
-export type DrawMode = 'draw' | 'erase' | 'fill' | 'dropper' | 'rect-filled' | 'circle' | 'line';
+export type DrawMode = 'draw' | 'erase' | 'fill' | 'dropper' | 'rect' | 'rect-filled' | 'circle' | 'line';
 const drawModeMap: Record<DrawMode, 1> = {
-    circle: 1, draw: 1, erase: 1, dropper: 1, fill: 1, line: 1, 'rect-filled': 1,
+    circle: 1, draw: 1, erase: 1, dropper: 1, fill: 1, line: 1, rect: 1, 'rect-filled': 1,
 };
 export const isDrawMode = (mode: unknown): mode is DrawMode =>
     typeof mode === 'string' && !!drawModeMap[mode as unknown as DrawMode];
