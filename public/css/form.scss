@@ -40,6 +40,10 @@ input, select, textarea {
 
 textarea.code {
     color: config.$code-color;
+
+    &.export-code {
+        resize: vertical;
+    }
 }
 
 .form-control {
