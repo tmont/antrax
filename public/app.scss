@@ -437,8 +437,9 @@ hr {
 
 canvas {
     $editor-z-index: 5;
+    $canvas-border-width: 2px;
     &.editor {
-        border: 2px solid gray;
+        border: $canvas-border-width solid gray;
         box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
         image-rendering: pixelated;
         cursor: crosshair;
@@ -446,11 +447,13 @@ canvas {
         z-index: $editor-z-index;
     }
 
-    &.editor-grid, &.editor-hover, &.editor-bg {
+    &.editor-grid, &.editor-hover, &.editor-bg, &.editor-transient {
         pointer-events: none;
         position: absolute;
         image-rendering: pixelated;
         z-index: $editor-z-index;
+        top: $canvas-border-width;
+        left: $canvas-border-width;
     }
 
     &.editor-bg {

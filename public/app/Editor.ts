@@ -4,7 +4,7 @@ import DisplayMode from './DisplayMode.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
-import { PixelCanvas } from './PixelCanvas.ts';
+import { PixelCanvas, type PixelDrawingBehavior } from './PixelCanvas.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
     type DisplayModeColorIndex,
@@ -221,12 +221,9 @@ export class Editor {
                 findElement(this.$canvasSidebar, '.has-selected-object').style.display = '';
             }
         });
-        this.project.on('pixel_highlight', (e) => {
-            this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
-        });
-        this.project.on('pixel_draw', (e, canvas) => {
+
+        const onCanvasPixelsChanged = (e: { behavior: PixelDrawingBehavior }, canvas: PixelCanvas) => {
             if (e.behavior === 'user') {
-                this.$canvasCoordinates.innerText = `${e.row},${e.col}`;
                 if (undoTimeoutId) {
                     window.clearTimeout(undoTimeoutId);
                     undoTimeoutId = null;
@@ -236,12 +233,15 @@ export class Editor {
             }
 
             this.syncDisplayModeControl();
+        };
+
+        this.project.on('pixel_draw', onCanvasPixelsChanged);
+        this.project.on('pixel_draw_aggregate', onCanvasPixelsChanged);
+        this.project.on('pixel_hover', (coordinate) => {
+            this.$canvasCoordinates.innerText = `${coordinate.x},${coordinate.y}`;
         });
         this.project.on('canvas_reset', () => {
             this.syncDisplayModeControl(false);
-        });
-        this.project.on('canvas_render', () => {
-            this.syncDisplayModeControl();
         });
         this.project.on('draw_start', (canvas) => {
             pushUndoItem(canvas);

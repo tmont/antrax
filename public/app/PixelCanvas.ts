@@ -16,6 +16,7 @@ import {
     formatAssemblyNumber,
     isLeftMouseButton,
     isPaletteIndex,
+    nope,
     type PixelInfo,
     type PixelInfoSerialized
 } from './utils.ts';
@@ -34,11 +35,23 @@ export interface CanvasOptions extends Dimensions {
     activeColor?: DisplayModeColorIndex;
 }
 
+interface DrawPixelOptions {
+    behavior: PixelDrawingBehavior;
+    erasing?: boolean; // erase the pixel instead of coloring it, defaults to false
+    emit?: boolean; // emit pixel_draw, defaults to true
+    ctx?: CanvasRenderingContext2D;
+    immutable?: boolean; // do not update the pixel's color, defaults to false
+}
+
 export type GeneratedImageSize = 'thumbnail' | 'full';
 
 export type PixelCanvasDrawState = 'idle' | 'drawing';
 
-export type PixelDrawingBehavior = 'user' | 'internal';
+export type PixelDrawingBehavior =
+    // the user initiated the draw action
+    'user' |
+    // internal system (e.g. rendering) initiated the draw action
+    'internal';
 
 interface LocatedPixel {
     row: number;
@@ -77,12 +90,11 @@ const hasAddressLabel = (options: CodeGenerationOptions): options is CodeGenerat
 }
 
 type PixelCanvasEventMap = {
-    pixel_highlight: [ PixelDrawingEvent ];
     pixel_draw: [ PixelDrawingEvent ];
-    clear: [];
+    pixel_draw_aggregate: [ Pick<PixelDrawingEvent, 'behavior'> ];
+    pixel_hover: [ Coordinate, PixelInfo ];
     reset: [];
     draw_start: [];
-    render: [];
     pixel_dimensions_change: [];
     canvas_dimensions_change: [];
     display_mode_change: [];
@@ -112,7 +124,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private pixelWidth: number;
     private pixelHeight: number;
     private readonly editorSettings: Readonly<EditorSettings>;
-    private ctx: CanvasRenderingContext2D;
+    private readonly ctx: CanvasRenderingContext2D;
     private readonly logger: Logger;
     private readonly eventMap: Array<[ EventTarget, string, (...args: any[]) => void ]> = [];
     private pixelData: PixelInfo[][];
@@ -133,6 +145,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private readonly $gridEl: HTMLCanvasElement;
     private readonly $hoverEl: HTMLCanvasElement;
     private readonly $bgEl: HTMLCanvasElement;
+    private readonly $transientEl: HTMLCanvasElement;
 
     private drawState: PixelCanvasDrawState = 'idle';
 
@@ -189,6 +202,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.$bgEl = document.createElement('canvas');
         this.$bgEl.classList.add('editor-bg');
+
+        this.$transientEl = document.createElement('canvas');
+        this.$transientEl.classList.add('editor-transient');
 
         this.setCanvasDimensions();
         this.enable();
@@ -277,6 +293,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         });
     }
 
+    private execOnCanvasElements(thunk: (canvasEl: HTMLCanvasElement) => void): void {
+        [ this.$el, this.$gridEl, this.$hoverEl, this.$bgEl, this.$transientEl ].forEach(thunk);
+    }
+
     private setCanvasDimensions(): void {
         if (this.destroyed) {
             return;
@@ -285,24 +305,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.displayWidth = this.width * this.displayPixelWidth;
         this.displayHeight = this.height * this.displayPixelHeight;
 
-        this.$el.width = this.$gridEl.width = this.$hoverEl.width = this.$bgEl.width = this.displayWidth;
-        this.$el.height = this.$gridEl.height = this.$hoverEl.height = this.$bgEl.height = this.displayHeight;
+        this.execOnCanvasElements((canvasEl) => {
+            canvasEl.width = this.displayWidth;
+            canvasEl.height = this.displayHeight;
+        });
 
-        this.setCanvasPosition();
         this.fillPixelDataArray();
-    }
-
-    public setCanvasPosition(): void {
-        if (this.destroyed) {
-            return;
-        }
-
-        const computedStyle = window.getComputedStyle(this.$el);
-        const borderTopWidth = parseInt(computedStyle?.getPropertyValue('border-top-width'), 10);
-        const borderLeftWidth = parseInt(computedStyle?.getPropertyValue('border-left-width'), 10);
-
-        this.$gridEl.style.top = this.$hoverEl.style.top = this.$bgEl.style.top = (this.$el.offsetTop + borderTopWidth) + 'px';
-        this.$gridEl.style.left = this.$hoverEl.style.left = this.$bgEl.style.left = (this.$el.offsetLeft + borderLeftWidth) + 'px';
     }
 
     private fillPixelDataArray(reset = false): void {
@@ -369,10 +377,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger.debug('hiding');
         this.disable();
 
-        this.$el.style.display = 'none';
-        this.$hoverEl.style.display = 'none';
-        this.$gridEl.style.display = 'none';
-        this.$bgEl.style.display = 'none';
+        // TODO this is unnecessary, we can just show/hide the .frame-container parent element instead of
+        // all <canvas> elements
+        this.execOnCanvasElements(canvasEl => canvasEl.style.display = 'none');
     }
 
     public show(): void {
@@ -394,12 +401,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (!this.$bgEl.isConnected) {
             this.$el.insertAdjacentElement('afterend', this.$bgEl);
         }
+        if (!this.$transientEl.isConnected) {
+            this.$el.insertAdjacentElement('afterend', this.$transientEl);
+        }
 
-        this.$el.style.display = '';
-        this.$hoverEl.style.display = '';
-        this.$gridEl.style.display = '';
-        this.$bgEl.style.display = '';
-        this.setCanvasPosition();
+        this.execOnCanvasElements(canvasEl => canvasEl.style.display = '');
 
         this.render();
         this.enable();
@@ -446,18 +452,163 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        interface TransientPixelData {
+            coordinate: Coordinate;
+            pixel: PixelInfo;
+            color: DisplayModeColorIndex | null;
+        }
+
+        let mouseDownOrigin: LocatedPixel | null = null;
+        let lastDrawnPixel: PixelInfo | null = null;
+        let transientState: TransientPixelData[] = [];
+
+        const transientCtx = this.$transientEl.getContext('2d');
+        if (!transientCtx) {
+            throw new Error(`Unable to create 2d context for transient canvas`);
+        }
+
         const activatePixelAtCursor = (e: MouseEvent): void => {
             const { clientX, clientY, ctrlKey: erasing } = e;
-
             const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
-
             const trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
             const trueY = clientY + document.documentElement.scrollTop - offsetTop;
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
-            if (pixelData.pixel) {
-                this.drawPixelFromRowAndCol({ x: pixelData.col, y: pixelData.row }, pixelData.pixel, 'user', erasing);
+            if (!pixelData.pixel) {
+                return;
             }
+
+            // prevent doing too much work on mousemove: if we're hovering over the same pixel we
+            // don't need to process it again
+            if (lastDrawnPixel === pixelData.pixel) {
+                return;
+            }
+
+            const pixelCoordinate = {
+                x: pixelData.col,
+                y: pixelData.row,
+            };
+
+            switch (this.editorSettings.drawMode) {
+                case 'fill': {
+                    let drawn = false;
+                    const seen: Record<string, 1> = {};
+                    const prevColor = pixelData.pixel.modeColorIndex;
+
+                    const fill = (coordinate: Coordinate, pixel: PixelInfo) => {
+                        drawn = this.drawPixelFromRowAndCol(coordinate, pixel, {
+                            behavior: 'user',
+                            erasing,
+                            emit: false,
+                        }) || drawn;
+
+                        const { x: col, y: row } = coordinate;
+
+                        // recursively set all adjacent pixels with same color to the new color
+                        const pixels: Coordinate[] = [
+                            { x: col, y: row - 1 },
+                            { x: col, y: row + 1 },
+                            { x: col - 1, y: row },
+                            { x: col + 1, y: row },
+                        ];
+
+                        seen[`${col},${row}`] = 1;
+                        pixels.forEach((coordinate) => {
+                            const pixel = this.pixelData[coordinate.y]?.[coordinate.x];
+                            if (!pixel) {
+                                return;
+                            }
+
+                            if (seen[`${coordinate.x},${coordinate.y}`]) {
+                                // prevent infinite recursion
+                                return;
+                            }
+
+                            if (pixel.modeColorIndex === prevColor) {
+                                fill(coordinate, pixel);
+                            }
+                        });
+                    };
+
+                    fill(pixelCoordinate, pixelData.pixel);
+
+                    if (drawn) {
+                        this.emit('pixel_draw_aggregate', { behavior: 'user' });
+                    }
+
+                    break;
+                }
+
+                case 'erase':
+                    this.drawPixelFromRowAndCol(pixelCoordinate, pixelData.pixel, { behavior: 'user', erasing: true });
+                    break;
+
+                case 'dropper':
+                    this.selectColorAtPixel(pixelData.pixel);
+                    break;
+
+                case 'rect-filled': {
+                    if (!mouseDownOrigin) {
+                        // this will be one of the corners of the rectangle, depending on
+                        // which direction the user is dragging
+                        mouseDownOrigin = pixelData;
+                    }
+
+                    const width = Math.abs(mouseDownOrigin.col - pixelData.col);
+                    const height = Math.abs(mouseDownOrigin.row - pixelData.row);
+                    const start: Coordinate = {
+                        x: Math.min(mouseDownOrigin.col, pixelData.col),
+                        y: Math.min(mouseDownOrigin.row, pixelData.row),
+                    };
+
+                    this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, transientCtx);
+                    transientState = [];
+                    for (let row = start.y; row <= start.y + height; row++) {
+                        for (let col = start.x; col <= start.x + width; col++) {
+                            const pixel = this.pixelData[row]?.[col];
+                            if (!pixel) {
+                                continue;
+                            }
+
+                            // TODO erasing?
+                            const drawn = this.drawPixelFromRowAndCol({ x: col, y: row }, pixel, {
+                                behavior: 'user',
+                                emit: false,
+                                ctx: transientCtx,
+                                immutable: true,
+                            });
+
+                            if (drawn) {
+                                transientState.push({
+                                    color: this.activeColor, // TODO this isn't used...
+                                    coordinate: {
+                                        x: col,
+                                        y: row,
+                                    },
+                                    pixel,
+                                });
+                            }
+                        }
+                    }
+
+                    break;
+                }
+
+                case 'circle':
+                case 'line':
+                    throw new Error(`drawMode "${this.editorSettings.drawMode}" is not supported yet`);
+
+                case 'draw':
+                    this.drawPixelFromRowAndCol(pixelCoordinate, pixelData.pixel, { behavior: 'user', erasing });
+                    break;
+
+                default:
+                    nope(this.editorSettings.drawMode);
+                    throw new Error(`Unknow drawMode "${this.editorSettings.drawMode}"`);
+            }
+
+            lastDrawnPixel = pixelData.pixel;
+            this.emit('pixel_hover', pixelCoordinate, pixelData.pixel);
         };
 
         const getPixelFromMouseEvent = (e: MouseEvent): LocatedPixel => {
@@ -468,6 +619,26 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
             return this.getPixelAt({ x: trueX, y: trueY });
         }
+
+        const cleanUpTransientState = (): void => {
+            mouseDownOrigin = null;
+            lastDrawnPixel = null;
+
+            let drawn = false;
+            while (transientState.length) {
+                const data = transientState.pop()!;
+                drawn = this.drawPixelFromRowAndCol(data.coordinate, data.pixel, {
+                    behavior: 'user',
+                    emit: false,
+                }) || drawn;
+            }
+
+            if (drawn) {
+                this.emit('pixel_draw_aggregate', { behavior: 'user' });
+            }
+
+            this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, transientCtx);
+        };
 
         const onMouseMove = (e: MouseEvent): void => {
             activatePixelAtCursor(e);
@@ -502,6 +673,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             if (this.drawState !== 'idle') {
                 this.setDrawState('idle');
             }
+
+            cleanUpTransientState();
         };
 
         const onHover = (e: MouseEvent): void => {
@@ -591,7 +764,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public clear(): void {
         this.logger.info(`clearing canvas`);
         this.clearRect(0, 0, this.displayWidth, this.displayHeight);
-        this.emit('clear');
     }
 
     public reset(): void {
@@ -600,12 +772,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.emit('reset');
     }
 
-    public clearRect(x: number, y: number, width: number, height: number): void {
+    public clearRect(x: number, y: number, width: number, height: number, ctx = this.ctx): void {
         if (this.destroyed) {
             return;
         }
 
-        this.ctx.clearRect(x, y, width, height);
+        ctx.clearRect(x, y, width, height);
     }
 
     public render(): void {
@@ -625,7 +797,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             for (let col = 0; col < pixelRow.length; col++) {
                 totalPixels++;
                 const pixelInfo = pixelRow[col]!;
-                if (this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, 'internal')) {
+                if (this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, { behavior: 'internal', emit: false })) {
                     pixelsDrawn += (pixelInfo.modeColorIndex !== null ? 1 : 0);
                 }
             }
@@ -635,7 +807,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.renderGrid();
         this.logger.debug(`rendering complete in ${Date.now() - start}ms`);
-        this.emit('render');
+        this.emit('pixel_draw_aggregate', { behavior: 'internal' });
     }
 
     public renderBg(): void {
@@ -703,41 +875,32 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         ctx.stroke();
     }
 
-    private getColorForPixel(pixel: PixelInfo): DisplayModeColorValue | null {
-        if (pixel.modeColorIndex === null) {
+    private getColorForModeIndex(index: DisplayModeColorIndex): DisplayModeColorValue | null {
+        if (index === null) {
             return null;
         }
         const paletteSet = this.editorSettings.activeColorPaletteSet;
         const kangarooMode = this.editorSettings.kangarooMode;
-        return this.displayMode.getColorAt(paletteSet, this.palette, pixel.modeColorIndex, kangarooMode);
+        return this.displayMode.getColorAt(paletteSet, this.palette, index, kangarooMode);
     }
 
-    public drawPixelFromRowAndCol(
-        pixelRowAndCol: Coordinate,
-        pixel: PixelInfo,
-        behavior: PixelDrawingBehavior,
-        erasing = false,
-        emit = true,
-        filled: Record<string, 1> = {},
-    ): boolean {
+    public drawPixelFromRowAndCol(pixelRowAndCol: Coordinate, pixel: PixelInfo, options: DrawPixelOptions): boolean {
         if (this.destroyed) {
             return false;
         }
 
+        const ctx = options.ctx || this.ctx;
+        const behavior = options.behavior;
+        const immutable = options.immutable === true;
+
         const isUserAction = behavior === 'user';
-        const prevColor = pixel.modeColorIndex;
 
         // if it's the user actually drawing something, we use the current palette/color, otherwise,
         // it's just an internal render, and we use the pixel's current palette/color
-        if (isUserAction) {
-            if (this.editorSettings.drawMode === 'dropper') {
-                this.selectColorAtPixel(pixel);
-                return false;
-            }
+        const newColor = isUserAction ?
+            (options.erasing ? null : this.activeColor) :
+            pixel.modeColorIndex;
 
-            erasing = erasing || this.editorSettings.drawMode === 'erase';
-            pixel.modeColorIndex = erasing ? null : this.activeColor;
-        }
 
         // NOTE: all the "if (isUserAction)" stuff is for performance reasons, apparently
         // calling a function that does the same conditional is significantly slower than just
@@ -750,16 +913,28 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const { x: col, y: row } = pixelRowAndCol;
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
 
-        if (pixel.modeColorIndex === null) {
+        if (newColor === null) {
             if (isUserAction) {
-                this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+                this.clearRect(
+                    absoluteCoordinate.x,
+                    absoluteCoordinate.y,
+                    this.displayPixelWidth,
+                    this.displayPixelHeight,
+                    ctx,
+                );
             }
         } else {
-            const colorValue = this.getColorForPixel(pixel);
+            const colorValue = this.getColorForModeIndex(newColor);
             if (!colorValue) {
-                this.logger.error(`color[${pixel.modeColorIndex}] not found in display mode ${this.displayMode.name}`);
+                this.logger.error(`color[${newColor}] not found in display mode ${this.displayMode.name}`);
                 if (isUserAction) {
-                    this.clearRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+                    this.clearRect(
+                        absoluteCoordinate.x,
+                        absoluteCoordinate.y,
+                        this.displayPixelWidth,
+                        this.displayPixelHeight,
+                        ctx,
+                    );
                 }
             } else {
                 // not using slice() since it's probably more efficient to not copy the array since this is
@@ -776,52 +951,27 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     const fudge = i * width;
                     const x = absoluteCoordinate.x + fudge;
                     if (color.value === 'background') {
-                        this.ctx.fillStyle = this.group.getBackgroundColor().hex;
-                        this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        ctx.fillStyle = this.group.getBackgroundColor().hex;
+                        ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     } else if (color.value === 'transparent') {
                         if (isUserAction) {
-                            this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                            this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight, ctx);
                         }
                     } else {
-                        this.ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
-                        this.ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
+                        ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     }
                 }
             }
         }
 
+        if (!immutable) {
+            pixel.modeColorIndex = newColor;
+        }
+
         if (isUserAction) {
-            if (this.editorSettings.drawMode === 'fill') {
-                // recursively set all adjacent pixels with same color to the new color
-                const pixels: Coordinate[] = [
-                    { x: col, y: row - 1 },
-                    { x: col, y: row + 1 },
-                    { x: col - 1, y: row },
-                    { x: col + 1, y: row },
-                ];
-
-                filled[`${col},${row}`] = 1;
-                pixels.forEach((coordinate) => {
-                    const pixel = this.pixelData[coordinate.y]?.[coordinate.x];
-                    if (!pixel) {
-                        return;
-                    }
-
-                    const key = `${coordinate.x},${coordinate.y}`;
-                    if (filled[key]) {
-                        // prevent infinite recursion
-                        return;
-                    }
-
-                    if (pixel.modeColorIndex === prevColor) {
-                        // don't need to emit multiple times for only one "drawing" action
-                        this.drawPixelFromRowAndCol(coordinate, pixel, 'user', erasing, false, filled);
-                    }
-                });
-            }
-
             // important to not emit for internal drawing actions for performance reasons
-            if (emit) {
+            if (options.emit !== false) {
                 this.emit('pixel_draw', { pixel, row, col, behavior });
             }
         }
@@ -861,7 +1011,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         ctx.fillStyle = 'rgba(164, 164, 255, 0.35)';
         ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
 
-        this.emit('pixel_highlight', { pixel, row, col, behavior: 'user' });
+        this.emit('pixel_hover', pixelRowAndCol, pixel);
 
         return true;
     }

@@ -16,7 +16,9 @@ import {
 } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
-    type AssemblyNumberFormatRadix, type ColorIndex,
+    type AssemblyNumberFormatRadix,
+    type ColorIndex,
+    type Coordinate,
     type DisplayModeColorIndex,
     type DisplayModeName,
     findElement,
@@ -24,7 +26,8 @@ import {
     findOrDie,
     findSelect,
     findTemplateContent,
-    parseTemplate
+    parseTemplate,
+    type PixelInfo
 } from './utils.ts';
 
 // https://stackoverflow.com/a/13139830
@@ -110,10 +113,10 @@ export interface ProjectOptions {
 
 export type ProjectEventMap = {
     canvas_activate: [ PixelCanvas | null ];
-    pixel_highlight: [ PixelDrawingEvent, PixelCanvas ];
+    pixel_hover: [ Coordinate, PixelInfo, PixelCanvas ];
     pixel_draw: [ PixelDrawingEvent, PixelCanvas ];
+    pixel_draw_aggregate: [ Pick<PixelDrawingEvent, 'behavior'>, PixelCanvas ];
     canvas_reset: [ PixelCanvas ];
-    canvas_render: [ PixelCanvas ];
     active_object_name_change: [ PixelCanvas ];
     draw_start: [ PixelCanvas ];
     pixel_dimensions_change: [ PixelCanvas ];
@@ -233,18 +236,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     private wireUpCanvas(canvas: PixelCanvas, insertAfter?: PixelCanvas): void {
-        canvas.on('pixel_highlight', (...args) => {
-            this.emit('pixel_highlight', ...args, canvas);
-        });
         canvas.on('pixel_draw', (...args) => {
-            if (canvas === this.activeCanvas) {
-                this.updateActiveThumbnail();
-            }
-
+            this.updateThumbnailForCanvas(canvas);
             this.emit('pixel_draw', ...args, canvas);
+        });
+        canvas.on('pixel_draw_aggregate', (e) => {
+            this.updateThumbnailForCanvas(canvas);
+            this.emit('pixel_draw_aggregate', e, canvas);
+        });
+        canvas.on('pixel_hover', (...args) => {
+            this.emit('pixel_hover', ...args, canvas);
         });
         canvas.on('reset', () => {
             this.emit('canvas_reset', canvas);
+            this.updateThumbnailForCanvas(canvas);
         });
         canvas.on('draw_start', () => {
             this.emit('draw_start', canvas);
@@ -260,13 +265,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
         canvas.on('canvas_dimensions_change', () => {
             this.emit('canvas_dimensions_change', canvas);
-        });
-        canvas.on('render', () => {
-            if (canvas === this.activeCanvas) {
-                this.updateActiveObjectInfo();
-            }
-
-            this.emit('canvas_render', canvas);
         });
         canvas.on('active_color_change', () => {
             this.emit('canvas_active_color_change', canvas);
