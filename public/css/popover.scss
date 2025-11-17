@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "sass:math";
 @use "./config";
 
@@ -53,8 +54,14 @@
     }
     &.danger {
         border-color: config.$danger-border;
-        &, .popover-content {
+        &, .popover-content{
             background-color: config.$danger-bg;
+        }
+
+        .popover-header {
+            background-color: color.adjust(config.$danger-bg, $lightness: -5%);
+            border-color: config.$danger-border;
+            color: config.$danger-color;
         }
     }
 

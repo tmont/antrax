@@ -111,3 +111,6 @@ const drawModeMap: Record<DrawMode, 1> = {
 };
 export const isDrawMode = (mode: unknown): mode is DrawMode =>
     typeof mode === 'string' && !!drawModeMap[mode as unknown as DrawMode];
+
+export const hasMessage = (obj: unknown): obj is { message: string } =>
+    typeof obj === 'object' && !!obj && typeof (obj as any).message === 'string';

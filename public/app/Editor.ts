@@ -5,6 +5,7 @@ import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
 import { PixelCanvas, type PixelDrawingBehavior } from './PixelCanvas.ts';
+import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
     type DisplayModeColorIndex,
@@ -17,6 +18,7 @@ import {
     findSelect,
     findTemplateContent,
     getColorValueCombinedLabel,
+    hasMessage,
     isDrawMode,
     isLeftMouseButton,
     nope,
@@ -570,14 +572,17 @@ export class Editor {
                 return;
             }
 
+            const filename = file.name;
             const sizeKb = (file.size / 1024).toFixed(1);
-            this.logger.info(`selected file ${file.name} (${file.type}), ${sizeKb}KB`);
+            this.logger.info(`selected file ${filename} (${file.type}), ${sizeKb}KB`);
 
-            if (file.type !== 'application/gzip') {
+            // normally it should be application/gzip, but sometimes it's application/x-gzip, so now
+            // we just look for "gzip" anywhere and assume it's gzipped
+            if (!/gzip/.test(file.type)) {
                 // assume it's JSON
-                this.load(await file.text());
+                this.load(await file.text(), filename);
             } else {
-                this.load(await file.arrayBuffer());
+                this.load(await file.arrayBuffer(), filename);
             }
         });
 
@@ -1053,17 +1058,36 @@ export class Editor {
             });
     }
 
-    public load(data: string | ArrayBuffer | Blob): void {
+    public load(data: string | ArrayBuffer | Blob, filename: string): void {
+        const handleError = (err: unknown, message: string): void => {
+            this.logger.error(err);
+
+            const errMsg = hasMessage(err) ? `: "${err.message}"` : '';
+            Popover.toast({
+                type: 'danger',
+                title: 'Failed to load',
+                content: `${filename}: ${message}${errMsg}`,
+            });
+        };
+
         let json: object;
         if (typeof data === 'string') {
             try {
                 json = JSON.parse(data);
             } catch (err) {
-                this.logger.error(err);
+                handleError(err, 'Failed to parse selected file as JSON');
                 return;
             }
 
-            this.loadJson(json);
+            try {
+                this.loadJson(json);
+                Popover.toast({
+                    type: 'success',
+                    content: `Successfully loaded data from ${filename}`,
+                });
+            } catch (err) {
+                handleError(err, 'JSON successfully parsed, but was not valid');
+            }
         } else {
             if (!(data instanceof Blob)) {
                 data = new Blob([ data ]);
@@ -1074,22 +1098,26 @@ export class Editor {
             const decompressedStream = stream.pipeThrough(new DecompressionStream('gzip'));
             new Response(decompressedStream)
                 .blob()
-                .then(blob => {
+                .then((blob) => {
                     this.logger.debug(`file inflated to ${(blob.size / 1024).toFixed(1)}KB`);
                     return blob.text();
                 })
-                .then((stringified) => {
-                    try {
-                        json = JSON.parse(stringified);
-                    } catch (err) {
-                        this.logger.error(err);
-                        return;
-                    }
-
-                    this.loadJson(json);
+                .then(stringified => this.loadJson(JSON.parse(stringified)))
+                .then(() => {
+                    Popover.toast({
+                        type: 'success',
+                        content: `Successfully loaded data from ${filename}`,
+                    });
                 })
                 .catch((err) => {
-                    this.logger.error(err);
+                    if (err instanceof SyntaxError) {
+                        handleError(err, 'File un-gzipped successfully, but failed to be parsed as JSON');
+                    } else if (err instanceof DOMException && err.name === 'AbortError') {
+                        handleError(err, 'Failed to process gzipped file ' +
+                            '(most likely the file is not gzipped or otherwise corrupted)');
+                    } else {
+                        handleError(err, 'Failed to process gzipped file');
+                    }
                 });
         }
     }
@@ -1134,6 +1162,7 @@ export class Editor {
     }
 
     public loadJson(json: object): void {
+        const start = Date.now();
         this.logger.info(`loading JSON`, json);
 
         if (!this.isSerialized(json)) {
@@ -1198,5 +1227,7 @@ export class Editor {
         this.updateUncolorPixelBehaviorUI();
         this.updateKangarooModeUI();
         this.setDrawMode(this.settings.drawMode, true);
+
+        this.logger.info(`load successful in ${Date.now() - start}ms`);
     }
 }
