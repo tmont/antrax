@@ -499,7 +499,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         const exportModal = Modal.create({
             type: 'default',
-            title: 'Export object',
+            title: `Export ${canvas.getName()}`,
             actions: [
                 'cancel',
                 {
