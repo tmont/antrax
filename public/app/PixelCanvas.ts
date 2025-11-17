@@ -14,6 +14,7 @@ import {
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
     formatAssemblyNumber,
+    get2dContext,
     isLeftMouseButton,
     isPaletteIndex,
     nope,
@@ -125,6 +126,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private pixelHeight: number;
     private readonly editorSettings: Readonly<EditorSettings>;
     private readonly ctx: CanvasRenderingContext2D;
+    private readonly hoverCtx: CanvasRenderingContext2D;
+    private readonly gridCtx: CanvasRenderingContext2D;
+    private readonly bgCtx: CanvasRenderingContext2D;
+    private readonly transientCtx: CanvasRenderingContext2D;
     private readonly logger: Logger;
     private readonly eventMap: Array<[ EventTarget, string, (...args: any[]) => void ]> = [];
     private pixelData: PixelInfo[][];
@@ -139,7 +144,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private activeColor: DisplayModeColorIndex;
 
     private static instanceCount = 0;
-    private static transparentPatternMap: Record<number, CanvasPattern> = {};
+    private static transparentPatternMap: Record<string, CanvasPattern> = {};
 
     private readonly $el: HTMLCanvasElement;
     private readonly $gridEl: HTMLCanvasElement;
@@ -177,13 +182,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$el.classList.add('editor');
         this.$frameContainer.appendChild(this.$el);
 
-        const context = this.$el.getContext('2d');
-        if (!context) {
-            throw new Error('Unable to retrieve 2d context for canvas element');
-        }
-
-        this.ctx = context;
-
         this.pixelData = options.pixelData || [];
         this.pixelWidth = options.pixelWidth;
         this.pixelHeight = options.pixelHeight;
@@ -206,23 +204,26 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.$transientEl = document.createElement('canvas');
         this.$transientEl.classList.add('editor-transient');
 
+        this.ctx = get2dContext(this.$el);
+        this.hoverCtx = get2dContext(this.$hoverEl);
+        this.bgCtx = get2dContext(this.$bgEl);
+        this.gridCtx = get2dContext(this.$gridEl);
+        this.transientCtx = get2dContext(this.$transientEl);
+
         this.setCanvasDimensions();
         this.enable();
     }
 
     private getTransparentPattern(): CanvasPattern {
-        const key = this.editorSettings.zoomLevel;
+        const key = `${this.editorSettings.zoomLevel}:${this.pixelWidth}x${this.pixelHeight}`;
         let pattern = PixelCanvas.transparentPatternMap[key] || null;
 
         if (!pattern) {
             const $canvas = document.createElement('canvas');
             $canvas.width = Math.max(2, this.displayPixelWidth);
-            $canvas.height = Math.max(2, this.displayPixelWidth); // use height instead?
+            $canvas.height = Math.max(2, this.displayPixelHeight); // use height instead?
 
-            const ctx = $canvas.getContext('2d');
-            if (!ctx) {
-                throw new Error(`could not retrieve pattern context`);
-            }
+            const ctx = get2dContext($canvas);
 
             ctx.fillStyle = PixelCanvas.transparentColor1;
             ctx.fillRect(0, 0, $canvas.width / 2, $canvas.height / 2);
@@ -462,10 +463,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         let lastDrawnPixel: PixelInfo | null = null;
         let transientState: TransientPixelData[] = [];
 
-        const transientCtx = this.$transientEl.getContext('2d');
-        if (!transientCtx) {
-            throw new Error(`Unable to create 2d context for transient canvas`);
-        }
+        const transientCtx = this.transientCtx;
 
         const activatePixelAtCursor = (e: MouseEvent): void => {
             const { clientX, clientY, ctrlKey: erasing } = e;
@@ -853,11 +851,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        const ctx = this.$bgEl.getContext('2d');
-        if (!ctx) {
-            this.logger.error('no bg canvas context');
-            return;
-        }
+        const ctx = this.bgCtx;
 
         this.logger.debug('rendering bg');
 
@@ -871,9 +865,50 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             ctx.clearRect(0, 0, this.$bgEl.width, this.$bgEl.height);
         }
 
-        ctx.fillStyle = this.editorSettings.uncoloredPixelBehavior === 'transparent' ?
-            this.getTransparentPattern() :
-            this.group.getBackgroundColor().hex;
+        let fillStyle: string | CanvasPattern;
+
+        if (this.editorSettings.uncoloredPixelBehavior === 'background') {
+            fillStyle = this.group.getBackgroundColor().hex;
+        } else {
+            const color0 = this.getColors()[0];
+            if (!color0) {
+                fillStyle = this.getTransparentPattern();
+            } else {
+                const colors = color0.colors;
+                const canvas = document.createElement('canvas');
+                canvas.width = this.displayPixelWidth;
+                canvas.height = this.displayPixelHeight;
+
+                const ctx = get2dContext(canvas);
+
+                colors.forEach((color, i) => {
+                    switch (color.value) {
+                        case 'background':
+                            ctx.fillStyle = this.group.getBackgroundColor().hex;
+                            break;
+                        case 'transparent':
+                            ctx.fillStyle = this.getTransparentPattern();
+                            break;
+                        default: {
+                            const { palette, index } = color.value;
+                            ctx.fillStyle = palette.getColorAt(index).hex;
+                            break;
+                        }
+                    }
+
+                    ctx.fillRect(i * (canvas.width / colors.length), 0, canvas.width / colors.length, canvas.height);
+                });
+
+                const pattern = ctx.createPattern(canvas, 'repeat');
+                if (!pattern) {
+                    throw new Error('Failed to create pattern');
+                }
+
+                fillStyle = pattern;
+            }
+        }
+
+        ctx.fillStyle = fillStyle;
         ctx.fillRect(0, 0, this.$bgEl.width, this.$bgEl.height);
     }
 
@@ -882,11 +917,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        const ctx = this.$gridEl.getContext('2d');
-        if (!ctx) {
-            this.logger.error('no grid canvas context');
-            return;
-        }
+        const ctx = this.gridCtx;
 
         this.logger.debug('rendering grid');
 
@@ -1034,11 +1065,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return false;
         }
 
-        const ctx = this.$hoverEl.getContext('2d');
-        if (!ctx) {
-            return false;
-        }
-
+        const ctx = this.hoverCtx;
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
 
         const dashSize = Math.max(2, Math.round(this.displayPixelWidth / 15));
@@ -1067,12 +1094,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return false;
         }
 
-        const ctx = this.$hoverEl.getContext('2d');
-        if (!ctx) {
-            return false;
-        }
-
-        ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
+        this.hoverCtx.clearRect(0, 0, this.displayWidth, this.displayHeight);
         return true;
     }
 
