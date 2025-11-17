@@ -1236,13 +1236,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             `${this.asmLabel}Header${options.labelColon ? ':' : ''}`,
         ];
 
-        const lowByte = hasAddressLabel(options) ?
-            '<' + options.addressLabel :
-            formatAssemblyNumber(options.addressOffset & 0x7F, 16);
-        const highByte = hasAddressLabel(options) ?
-            '>' + options.addressLabel :
-            formatAssemblyNumber(options.addressOffset >> 8, 16);
-
         const paletteSet = this.group.getPaletteSet();
         const paletteIndex = paletteSet.getPalettes().findIndex(p => p === this.palette);
         if (!isPaletteIndex(paletteIndex)) {
@@ -1256,9 +1249,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const widthBits = (~widthInBytes + 1) & widthBitsMask;
         const byte2 = formatAssemblyNumber((paletteIndex << DisplayMode.encodedWidthBits) | widthBits, 2);
 
-        code.push(`${indent}.byte ${lowByte}`);
+        code.push(`${indent}.byte <${this.asmLabel}`);
         code.push(`${indent}.byte ${byte2}`);
-        code.push(`${indent}.byte ${highByte}`);
+        code.push(`${indent}.byte >${this.asmLabel}`);
         code.push(`${indent}.byte TODO ; horizontal position`);
 
         return code.join('\n');
