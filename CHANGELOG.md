@@ -1,3 +1,17 @@
+## v0.0.16 (2025-11-17)
+- Drawing modes
+    - Basic: Draw/Erase/Fill/Eye dropper
+    - Shapes: Rectangle/Ellipse/Filled Rectangle/Filled Ellipse/Line
+- Removed `P`/`C` keyboard shortcuts for focusing pixel/canvas width inputs
+- Prevent toggling transparency in Kangaroo mode
+- Use current display mode's first color as background in Kangaroo mode
+- Updated favicon
+- `ColorPicker` is now treated like a singleton which improves memory
+  consumption by 10x
+- Display list code generation uses the object's label instead of the
+  address label/offset
+- Fixed load mechanism on Windows, and added better error handling in general
+
 ## v0.0.15 (2025-11-15)
 
 - Keyboard shortcut: `X` to open "Export ASM" modal (if supported by current
