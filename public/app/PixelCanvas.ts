@@ -545,6 +545,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     this.selectColorAtPixel(pixelData.pixel);
                     break;
 
+                case 'line':
                 case 'ellipse':
                 case 'ellipse-filled':
                 case 'rect':
@@ -560,6 +561,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     const start: Coordinate = {
                         x: Math.min(mouseDownOrigin.col, pixelData.col),
                         y: Math.min(mouseDownOrigin.row, pixelData.row),
+                    };
+
+
+                    // line mode stuff, origin is leftmost point
+                    const m = (-pixelData.row + mouseDownOrigin.row) / (pixelData.col - mouseDownOrigin.col);
+                    const origin: Coordinate = {
+                        x: pixelData.col < mouseDownOrigin.col ? pixelData.col : mouseDownOrigin.col,
+                        y: pixelData.col < mouseDownOrigin.col ? pixelData.row : mouseDownOrigin.row,
                     };
 
                     this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, transientCtx);
@@ -605,6 +614,24 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                                         continue;
                                     }
                                 }
+                            } else if (this.editorSettings.drawMode === 'line') {
+                                if (isNaN(m)) {
+                                    // vertical line
+                                    if (col !== mouseDownOrigin.col) {
+                                        continue;
+                                    }
+                                } else {
+                                    // if slope is greater than one, rotate everything 90 degrees so that
+                                    // rounding works to make a contiguous line. i'm doing my best :(
+                                    const smallSlope = Math.abs(m) <= 1;
+                                    const x = smallSlope ? col - origin.x : origin.y - row;
+                                    const y = smallSlope ? origin.y - row : col - origin.x;
+                                    let m2 = smallSlope ? m : 1 / m;
+                                    const mxb = m2 * x; // we force b = 0 here
+                                    if (Math.round(mxb) !== (y)) {
+                                        continue;
+                                    }
+                                }
                             }
 
                             // TODO erasing?
@@ -630,9 +657,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
                     break;
                 }
-
-                case 'line':
-                    throw new Error(`drawMode "${this.editorSettings.drawMode}" is not supported yet`);
 
                 case 'draw':
                     this.drawPixelFromRowAndCol(pixelCoordinate, pixelData.pixel, { behavior: 'user', erasing });

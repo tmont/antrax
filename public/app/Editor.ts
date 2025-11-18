@@ -787,6 +787,10 @@ export class Editor {
                 this.setDrawMode('dropper');
                 return;
             }
+            if (e.key.toLowerCase() === 'l') {
+                this.setDrawMode('line');
+                return;
+            }
 
             if (e.key.toLowerCase() === 't') {
                 // cannot toggle transparency when in Kangaroo mode
