@@ -319,10 +319,22 @@ hr {
             .color-item {
                 display: flex;
                 justify-content: space-between;
+                cursor: pointer;
 
                 &.active {
+                    cursor: default;
                     .label {
                         font-weight: bold;
+                        color: config.$primary-color;
+                    }
+
+                    .color.selectable {
+                        border-color: white;
+                    }
+                }
+
+                &:hover {
+                    .label {
                         color: config.$primary-color;
                     }
 
@@ -335,19 +347,13 @@ hr {
                     text-shadow: 1px 1px 1px rgba(black, 0.5);
                 }
                 .color {
+                    $border-radius: 3px;
                     display: flex;
                     border: 1px solid transparent;
-                    border-radius: 3px;
-
-                    &.selectable {
-                        cursor: pointer;
-                        &:hover {
-                            border-color: white;
-                        }
-                    }
+                    border-radius: $border-radius;
 
                     .color-swatch {
-                        border-radius: 3px;
+                        border-radius: $border-radius;
                     }
                 }
             }
