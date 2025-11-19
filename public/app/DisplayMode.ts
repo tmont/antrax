@@ -235,9 +235,12 @@ class DisplayMode {
     private getColorValuesForPalette(
         paletteIndex: PaletteIndex,
         palettes: ColorPalette[],
-        mask = 0b111,
+        mask: number,
     ): [ DisplayModeColor, DisplayModeColor, DisplayModeColor ] {
-        const effectiveIndex: PaletteIndex = (paletteIndex & mask) as any;
+        const effectiveIndex = paletteIndex & mask;
+        if (!isPaletteIndex(effectiveIndex)) {
+            throw new Error(`Invalid mask 0b${mask.toString(2)} for palette`);
+        }
         const effectivePalette: ColorPalette = palettes[effectiveIndex]!;
 
         const colorIndexes: [ ColorIndex, ColorIndex, ColorIndex ] = [ 0, 1, 2 ];
@@ -277,7 +280,7 @@ class DisplayMode {
             value: 'background',
         };
 
-        const [ c1, c2, c3 ] = this.getColorValuesForPalette(paletteIndex, palettes);
+        const [ c1, c2, c3 ] = this.getColorValuesForPalette(paletteIndex, palettes, 0b111);
 
         const mapPalette = (palette: ColorPalette, paletteIndex: PaletteIndex): DisplayModeColorValue[] => {
             return palette.colors.map((_, index): DisplayModeColorValue => {

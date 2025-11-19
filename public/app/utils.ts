@@ -17,8 +17,11 @@ export type DisplayModeNameHi = '320A' | '320B' | '320C' | '320D';
 export type DisplayModeName = DisplayModeNameLo | DisplayModeNameHi | 'none';
 export type PaletteIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type ColorIndex = 0 | 1 | 2;
-export const isPaletteIndex = (index: number): index is PaletteIndex => index >= 0 && index <= 7;
-export const isPaletteColorIndex = (index: number): index is ColorIndex => index >= 0 && index <= 3;
+
+const paletteIndexMap: Record<PaletteIndex, 1> = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 };
+const colorIndexMap: Record<ColorIndex, 1> = { 0: 1, 1: 1, 2: 1 };
+export const isPaletteIndex = (index: number): index is PaletteIndex => !!paletteIndexMap[index as PaletteIndex];
+export const isPaletteColorIndex = (index: number): index is ColorIndex => !!colorIndexMap[index as ColorIndex];
 
 export interface ColorPaletteColor {
     palette: ColorPalette;
