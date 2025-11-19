@@ -372,8 +372,8 @@ hr {
 .transparent-checkerboard {
     // https://stackoverflow.com/a/65129916
     // duplicated in PixelCanvas.transparentColor1 and PixelCanvas.transparentColor2
-    $color1: rgba(208, 208, 208, 0.5);
-    $color2: rgba(255, 255, 255, 0.5);
+    $color1: #8f8f8f;
+    $color2: #a8a8a8;
     background-image: repeating-conic-gradient($color1 0 25%, $color2 0 50%);
     background-position: 0 50%;
     background-size: 8px 8px;
@@ -462,9 +462,6 @@ canvas {
     }
 
     &.editor-bg {
-        // this is the same as .canvas-container, but it needs to be here so that we
-        // can easily get it from JavaScript
-        background-color: config.$canvas-container-bg;
         z-index: $editor-z-index - 1;
     }
 }

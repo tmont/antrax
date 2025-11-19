@@ -154,8 +154,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     private drawState: PixelCanvasDrawState = 'idle';
 
-    public static readonly transparentColor1 = 'rgba(208, 208, 208, 0.5)';
-    public static readonly transparentColor2 = 'rgba(255, 255, 255, 0.5)';
+    public static readonly transparentColor1 = '#8f8f8f';
+    public static readonly transparentColor2 = '#a8a8a8';
 
     public constructor(options: CanvasOptions) {
         super();
@@ -879,15 +879,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.logger.debug('rendering bg');
 
-        // since the checkerboard pattern is transparent, we need to ensure the css bg is part
-        // of the canvas so that converting the canvas to an image includes the bg.
-        const bgColor = window.getComputedStyle(this.$bgEl)?.getPropertyValue('background-color');
-        if (bgColor) {
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, this.$bgEl.width, this.$bgEl.height);
-        } else {
-            ctx.clearRect(0, 0, this.$bgEl.width, this.$bgEl.height);
-        }
+        ctx.clearRect(0, 0, this.$bgEl.width, this.$bgEl.height);
 
         let fillStyle: string | CanvasPattern;
 
