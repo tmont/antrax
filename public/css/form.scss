@@ -40,6 +40,9 @@ input, select, textarea {
 
 textarea.code {
     color: config.$code-color;
+    white-space: pre;
+    font-family: config.$font-mono;
+    font-size: 1em;
 
     &.export-code {
         resize: vertical;

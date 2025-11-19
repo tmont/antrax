@@ -454,11 +454,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             const genThunks: Array<() => string> = [];
 
-            if ($exportObjectInput.checked) {
-                genThunks.push(() => canvas?.generateCode(options));
-            }
             if ($exportHeaderInput.checked) {
                 genThunks.push(() => canvas?.generateHeaderCode(options));
+            }
+            if ($exportObjectInput.checked) {
+                genThunks.push(() => canvas?.generateCode(options));
             }
             if ($exportPalettesInput.checked) {
                 genThunks.push(() => canvas?.generatePalettesCode(options));

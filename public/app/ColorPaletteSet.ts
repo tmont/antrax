@@ -170,6 +170,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         const indent = options.indentChar;
 
         const code = [
+            '/*',
             `Palette${options.labelColon ? ':' : ''}`,
         ];
 
@@ -182,6 +183,8 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
                     `; ${palette.name}C${colorIndex}`);
             });
         });
+
+        code.push('*/');
 
         return code.join('\n');
     }

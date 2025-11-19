@@ -1274,28 +1274,32 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public generateHeaderCode(options: CodeGenerationOptions): string {
         const indent = options.indentChar;
 
-        const code = [
-            `; 4-byte DL entry for ${this.asmLabel}, mode: ${this.displayMode.name}, ${this.width}x${this.height}`,
-            `${this.asmLabel}Header${options.labelColon ? ':' : ''}`,
-        ];
-
         const paletteSet = this.group.getPaletteSet();
-        const paletteIndex = paletteSet.getPalettes().findIndex(p => p === this.palette);
+        const paletteIndex = paletteSet.getPalettes().indexOf(this.palette);
         if (!isPaletteIndex(paletteIndex)) {
             throw new Error(`Could not find ColorPalette{${this.palette.id}} in ColorPaletteSet{${paletteSet.id}}`);
         }
 
-        const widthInBytes = this.width / (this.displayMode.pixelsPerByte);
+        // sanity check
+        if (this.width % this.displayMode.pixelsPerByte !== 0) {
+            throw new Error(`Width (${this.width}) is not a multiple of ${this.displayMode.pixelsPerByte}`);
+        }
 
-        // lower 5 bits of 2's complement of the width in bytes
+        const widthInBytes = this.width / this.displayMode.pixelsPerByte;
+
+        // lower bits of 2's complement of the width in bytes
         const widthBitsMask = (2 ** DisplayMode.encodedWidthBits) - 1;
         const widthBits = (~widthInBytes + 1) & widthBitsMask;
         const byte2 = formatAssemblyNumber((paletteIndex << DisplayMode.encodedWidthBits) | widthBits, 2);
 
-        code.push(`${indent}.byte <${this.asmLabel}`);
-        code.push(`${indent}.byte ${byte2}`);
-        code.push(`${indent}.byte >${this.asmLabel}`);
-        code.push(`${indent}.byte TODO ; horizontal position`);
+        const code = [
+            `/* ${this.name} (Mode=${this.displayMode.name}, Dimensions=${this.width}x${this.height}, ` +
+                `PixelsPerByte=${this.displayMode.pixelsPerByte})`,
+            `${indent}Address:       ${this.asmLabel}`,
+            `${indent}Palette/Width: ${byte2} (Palette=${paletteIndex}, ByteWidth=${this.width / this.displayMode.pixelsPerByte})`,
+        ];
+
+        code.push('*/');
 
         return code.join('\n');
     }
