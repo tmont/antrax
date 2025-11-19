@@ -1,5 +1,6 @@
 import type { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import type { Atari7800Color } from './colors.ts';
 import DisplayMode from './DisplayMode.ts';
 import type { EditorSettings } from './Editor.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -343,6 +344,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public getColors(): DisplayModeColorValue[] {
         return this.displayMode.getColors(this.group.getPaletteSet(), this.palette, this.editorSettings.kangarooMode);
+    }
+
+    private get backgroundColor(): Readonly<Atari7800Color> {
+        return this.group.getBackgroundColor();
     }
 
     public setDisplayMode(newMode: DisplayMode | DisplayModeName): void {
@@ -884,7 +889,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         let fillStyle: string | CanvasPattern;
 
         if (this.editorSettings.uncoloredPixelBehavior === 'background') {
-            fillStyle = this.group.getBackgroundColor().hex;
+            fillStyle = this.backgroundColor.hex;
         } else {
             const color0 = this.getColors()[0];
             if (!color0) {
@@ -900,7 +905,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 colors.forEach((color, i) => {
                     switch (color.value) {
                         case 'background':
-                            ctx.fillStyle = this.group.getBackgroundColor().hex;
+                            ctx.fillStyle = this.backgroundColor.hex;
                             break;
                         case 'transparent':
                             ctx.fillStyle = this.getTransparentPattern();
@@ -1036,7 +1041,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     const fudge = i * width;
                     const x = absoluteCoordinate.x + fudge;
                     if (color.value === 'background') {
-                        ctx.fillStyle = this.group.getBackgroundColor().hex;
+                        ctx.fillStyle = this.backgroundColor.hex;
                         ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     } else if (color.value === 'transparent') {
                         if (isUserAction) {
