@@ -355,21 +355,20 @@ class DisplayMode {
                     { colors: [ kangarooMode ? c1 : t, kangarooMode ? bg : t ] },
                     { colors: [ kangarooMode ? c1 : t, kangarooMode ? c1 : t ] },
 
-                    { colors: [ bg, c2 ] },
-                    { colors: [ bg, c3 ] },
-                    { colors: [ c1, c2 ] },
+                    { colors: [ bg, c2 ] }, // 01..00
+                    { colors: [ bg, c3 ] }, // 01..01
+                    { colors: [ c1, c2 ] }, // 01..10
+                    { colors: [ c1, c3 ] }, // 01..11
 
-                    { colors: [ c1, c3 ] },
-                    { colors: [ c2, bg ] },
-                    { colors: [ c3, bg ] },
+                    { colors: [ c2, bg ] }, // 10..00
+                    { colors: [ c2, c1 ] }, // 10..01
+                    { colors: [ c3, bg ] }, // 10..10
+                    { colors: [ c3, c1 ] }, // 10..11
 
-                    { colors: [ c3, c1 ] },
-                    { colors: [ c2, c1 ] },
-                    { colors: [ c2, c2 ] },
-
-                    { colors: [ c2, c3 ] },
-                    { colors: [ c3, c2 ] },
-                    { colors: [ c3, c3 ] },
+                    { colors: [ c2, c2 ] }, // 11..00
+                    { colors: [ c2, c3 ] }, // 11..01
+                    { colors: [ c3, c2 ] }, // 11..10
+                    { colors: [ c3, c3 ] }, // 11..11
                 ];
             }
             case '320C': {
