@@ -361,11 +361,10 @@ hr {
     }
 
     .canvas-area {
-        flex: 1;
         overflow: hidden;
         position: absolute;
-        top: 0;
-        left: 0;
+        top: 4rem;
+        left: 4rem;
     }
 }
 

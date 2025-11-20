@@ -128,7 +128,7 @@ export class Editor {
 
         this.settings = options.settings || {
             showGrid: false,
-            zoomLevel: 2,
+            zoomLevel: 3,
             activeColorPaletteSet: defaultPaletteSet,
             uncoloredPixelBehavior: 'color0',
             kangarooMode: false,
