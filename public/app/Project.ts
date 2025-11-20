@@ -69,9 +69,25 @@ const objectItemTmpl = `
 
 const objectGroupTmpl = `
 <div class="project-item-group">
-    <header class="group-name clamp-1 section-item"></header>
+    <div class="group-item project-list-item section-item">
+        <header class="group-name clamp-1"></header>
+        <div class="item-controls">
+            <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
+                <i class="fa-solid fa-ellipsis-h"></i>
+            </button>
+        </div>
+    </div>
     <div class="indented-list group-items"></div>
 </div>
+`;
+
+const groupOverflowTmpl = `
+<ul class="project-item-overflow list-unstyled dropdown-menu">
+    <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-asm" class="disabled"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger disabled"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
+</ul>
 `;
 
 const objectOverflowTmpl = `
@@ -88,9 +104,23 @@ const objectOverflowTmpl = `
 `;
 
 const editObjectTmpl = `
-<form class="object-edit-container form-vertical">
+<form class="form-vertical">
     <div class="form-row">
         <input class="object-name-input form-control" type="text" maxlength="50" minlength="1" required />
+    </div>
+    <div class="submit-container">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
+`;
+
+const editGroupTmpl = `
+<form class="form-vertical">
+    <div class="form-row">
+        <input class="group-name-input form-control" type="text" maxlength="50" minlength="1" required />
+    </div>
+    <div class="form-row">
+        <select class="palette-set-select form-control"></select>
     </div>
     <div class="submit-container">
         <button type="submit" class="btn btn-primary">Save</button>
@@ -119,6 +149,7 @@ export type ProjectEventMap = {
     pixel_draw_aggregate: [ Pick<PixelDrawingEvent, 'behavior'>, PixelCanvas ];
     canvas_reset: [ PixelCanvas ];
     active_object_name_change: [ PixelCanvas ];
+    active_group_name_change: [ ObjectGroup ];
     draw_start: [ PixelCanvas ];
     pixel_dimensions_change: [ PixelCanvas ];
     canvas_dimensions_change: [ PixelCanvas ];
@@ -236,6 +267,60 @@ export class Project extends EventEmitter<ProjectEventMap> {
         }, canvas);
     }
 
+    private createGroup(parent: HTMLElement, canvas: PixelCanvas): HTMLElement {
+        const $group = parseTemplate(objectGroupTmpl);
+        $group.setAttribute('data-group-id', canvas.group.id.toString());
+        $group.querySelector('.group-name')?.appendChild(document.createTextNode(canvas.group.getName()));
+        parent.appendChild($group);
+
+        const $overflowContent = parseTemplate(groupOverflowTmpl);
+        const overflowPopover = new Popover({
+            content: $overflowContent,
+            dropdown: true,
+        });
+        const $overflowBtn = findElement($group, '.overflow-btn');
+
+        const $editForm = parseTemplate(editGroupTmpl);
+        const editPopover = new Popover({
+            content: $editForm,
+            title: 'Edit group',
+            arrowAlign: 'left',
+        });
+
+        const $groupName = findElement($group, '.group-name');
+        const $input = findInput($editForm, '.group-name-input');
+
+        $editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.setGroupName(canvas.group, $input.value);
+            editPopover.hide();
+        });
+
+        $overflowContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
+            anchor.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const action = anchor.getAttribute('data-action');
+                switch (action) {
+                    case 'edit':
+                        overflowPopover.hide();
+                        $input.value = canvas.group.getName();
+                        editPopover.show($groupName);
+                        $input.focus();
+                        break;
+                }
+
+                overflowPopover.hide();
+            });
+        });
+
+        $overflowBtn.addEventListener('click', () => {
+            overflowPopover.show($overflowBtn);
+        });
+
+        return $group;
+    }
+
     private wireUpCanvas(canvas: PixelCanvas, insertAfter?: PixelCanvas): void {
         canvas.on('pixel_draw', (...args) => {
             this.updateThumbnailForCanvas(canvas);
@@ -293,15 +378,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.activateCanvas(canvas);
         });
 
-        const doc = this.$container.ownerDocument;
         newItem.setAttribute('data-canvas-id', canvas.id.toString());
 
         let group = parent.querySelector(`.project-item-group[data-group-id="${canvas.group.id}"]`);
         if (!group) {
-            group = parseTemplate(objectGroupTmpl);
-            group.setAttribute('data-group-id', canvas.group.id.toString());
-            group.querySelector('.group-name')?.appendChild(doc.createTextNode(canvas.group.getName()));
-            parent.appendChild(group);
+            group = this.createGroup(parent, canvas);
         }
 
         if (insertAfter) {
@@ -325,6 +406,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const editPopover = new Popover({
             content: editForm,
             title: 'Change object name',
+            arrowAlign: 'left',
         });
 
         const objectName = findElement(newItem, '.item-name');
@@ -593,6 +675,15 @@ export class Project extends EventEmitter<ProjectEventMap> {
         nameEl.innerText = canvas.getName();
         if (canvas === this.activeCanvas) {
             this.emit('active_object_name_change', canvas);
+        }
+    }
+
+    private setGroupName(group: ObjectGroup, newName: string): void {
+        group.setName(newName);
+        const nameEl = findElement(this.$container, `.project-item-group[data-group-id="${group.id}"] .group-name`);
+        nameEl.innerText = group.getName();
+        if (this.activeCanvas && this.activeCanvas.group === group) {
+            this.emit('active_group_name_change', group);
         }
     }
 

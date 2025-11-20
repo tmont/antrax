@@ -1,0 +1,138 @@
+@use "./config";
+
+.project-structure {
+    display: flex;
+    flex-direction: column;
+    gap: config.$gutter;
+    padding: config.$sidebar-padding-y 0 config.$sidebar-padding-y config.$sidebar-padding-x;
+    overflow: hidden;
+    margin-right: -(config.$sidebar-border-width); // used to handle the active item
+
+    .project-name {
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+
+    .group-name {
+        font-weight: bold;
+    }
+
+    .project-controls {
+        display: flex;
+        justify-content: center;
+        gap: config.$gutter-quarter;
+    }
+
+    .section-item {
+        padding-right: config.$sidebar-padding-x;
+    }
+
+    .project-objects {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter-half;
+        font-size: 90%;
+        overflow: auto;
+    }
+
+    .group-items {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter-quarter;
+    }
+
+    .project-item-group {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter-half;
+    }
+
+    .project-item {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter-eighth;
+        padding: config.$gutter-quarter config.$sidebar-padding-x config.$gutter-quarter config.$gutter-quarter;
+        border: 2px solid transparent;
+        border-right: none;
+        position: relative;
+        border-top-left-radius: 3px;
+        border-bottom-left-radius: 3px;
+
+        &:hover {
+            &:not(&.active) {
+                background-color: rgba(config.$accent-bg, 0.5);
+            }
+        }
+
+        &.active {
+            background-color: config.$canvas-sidebar-bg;
+            border-color: config.$border-color;
+
+            a {
+                cursor: default;
+            }
+
+            .object-info {
+                display: flex;
+            }
+
+            .item-name {
+                color: config.$primary-color;
+                font-weight: bold;
+            }
+        }
+
+        .object-info {
+            display: none;
+            flex-direction: column;
+            gap: config.$gutter-eighth;
+            font-size: 80%;
+
+            .object-details {
+                display: flex;
+                gap: config.$gutter-half;
+                margin: 0 auto;
+            }
+
+            .canvas-palette-details {
+                display: flex;
+                gap: config.$gutter-quarter;
+                align-items: center;
+
+                .palette-color-list {
+                    display: flex;
+                    gap: config.$gutter-eighth;
+                }
+            }
+        }
+
+        .object-thumbnail {
+            width: 1.25rem;
+            height: 1.25rem;
+            object-fit: contain;
+            display: block;
+        }
+    }
+
+    .project-list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition:
+            color linear 100ms,
+            background-color linear 100ms;
+
+        .item-name {
+            padding: config.$gutter-quarter config.$gutter-quarter;
+            flex: 1;
+            color: config.$color;
+            text-decoration: none;
+        }
+    }
+
+    .item-controls {
+        display: flex;
+        gap: config.$gutter-quarter;
+        flex-shrink: 0;
+    }
+}

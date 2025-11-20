@@ -31,6 +31,10 @@ export class ObjectGroup {
         return this.name;
     }
 
+    public setName(newName: string): void {
+        this.name = newName || `Group ${this.id}`;
+    }
+
     public getPaletteSet(): ColorPaletteSet {
         return this.paletteSet;
     }

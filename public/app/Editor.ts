@@ -267,6 +267,9 @@ export class Editor {
         this.project.on('active_object_name_change', (activeCanvas) => {
             this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
         });
+        this.project.on('active_group_name_change', (group) => {
+            this.$activeGroupName.innerText = group.getName() || 'n/a';
+        });
         this.project.on('pixel_dimensions_change', (activeCanvas) => {
             this.onPixelDimensionsChanged(activeCanvas);
         });

@@ -16,6 +16,8 @@ const tmpl = `
 </div>
 `;
 
+type PopoverArrowAlignment = 'left' | 'center';
+
 export interface PopoverOptions {
     title?: string;
     dropdown?: boolean;
@@ -24,12 +26,14 @@ export interface PopoverOptions {
     toast?: boolean;
     timeoutMs?: number;
     type?: 'default' | 'danger' | 'success';
+    arrowAlign?: PopoverArrowAlignment;
 }
 
 export class Popover extends EventEmitter<PopoverEventMap> {
     private readonly $el: HTMLElement;
     private readonly isToast: boolean;
     private readonly timeoutMs: number;
+    private readonly arrowAlign: PopoverArrowAlignment;
 
     public constructor(options: PopoverOptions) {
         super();
@@ -48,6 +52,7 @@ export class Popover extends EventEmitter<PopoverEventMap> {
 
         this.isToast = options.toast === true;
         this.timeoutMs = options.timeoutMs || 5000;
+        this.arrowAlign = options.arrowAlign || 'center';
 
         if (options.arrow === false || this.isToast) {
             findElement(this.$el, '.arrow').remove();
@@ -109,7 +114,17 @@ export class Popover extends EventEmitter<PopoverEventMap> {
                 this.$el.style.top = (position.top + position.height) + 'px';
                 const $arrow = this.$el.querySelector('.arrow') as HTMLElement;
                 if ($arrow) {
-                    $arrow.style.left = (position.width / 2) + 'px';
+                    switch (this.arrowAlign) {
+                        case 'center':
+                            $arrow.style.left = (position.width / 2) + 'px';
+                            break;
+                        case 'left':
+                            $arrow.style.left = '1rem';
+                            break;
+                        default:
+                            nope(this.arrowAlign);
+                            break;
+                    }
                 }
 
                 const onKeyDown = (e: KeyboardEvent) => {
