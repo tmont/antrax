@@ -662,6 +662,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public removeObject(canvas: PixelCanvas): void {
+        this.logger.info(`removing object ${canvas.id}`);
+
         const index = this.canvases.indexOf(canvas);
         if (index !== -1) {
             this.canvases.splice(index, 1);
@@ -679,6 +681,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         }
 
         if (!this.getObjectsInGroup(canvas.group).length) {
+            this.logger.info(`removing group ${canvas.group.id}`);
             // remove group if it has no objects
             this.$container.querySelector(`.project-item-group[data-group-id="${canvas.group.id}"]`)?.remove();
         }
