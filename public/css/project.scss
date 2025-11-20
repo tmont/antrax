@@ -13,8 +13,20 @@
         flex-shrink: 0;
     }
 
-    .group-name {
-        font-weight: bold;
+    .group-name-container {
+        flex: 1;
+        display: flex;
+        gap: config.$gutter-quarter;
+        align-items: center;
+        cursor: pointer;
+
+        .collapse-icon {
+            transition: transform 150ms linear;
+        }
+
+        .group-name {
+            font-weight: bold;
+        }
     }
 
     .project-controls {
@@ -41,10 +53,29 @@
         gap: config.$gutter-quarter;
     }
 
+    .group-item {
+        padding: config.$gutter-quarter config.$sidebar-padding-x config.$gutter-quarter config.$gutter-quarter;
+        &:hover {
+            background-color: rgba(config.$accent-bg, 0.5);
+        }
+    }
+
     .project-item-group {
         display: flex;
         flex-direction: column;
         gap: config.$gutter-half;
+
+        &.closed {
+            .collapse-icon {
+                transform: rotate(180deg);
+            }
+
+            .group-items {
+                .project-item:not(.active) {
+                    display: none;
+                }
+            }
+        }
     }
 
     .project-item {

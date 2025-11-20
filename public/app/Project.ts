@@ -71,7 +71,10 @@ const objectItemTmpl = `
 const objectGroupTmpl = `
 <div class="project-item-group">
     <div class="group-item project-list-item section-item">
-        <header class="group-name clamp-1"></header>
+        <div class="group-name-container">
+            <i class="fa-solid fa-chevron-up collapse-icon"></i>
+            <header class="group-name clamp-1"></header>
+        </div>
         <div class="item-controls">
             <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
                 <i class="fa-solid fa-ellipsis-h"></i>
@@ -331,6 +334,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         $overflowBtn.addEventListener('click', () => {
             overflowPopover.show($overflowBtn);
+        });
+
+        const $collapsible = findElement($group, '.group-name-container');
+        $collapsible.addEventListener('click', () => {
+            $group.classList.toggle('closed');
         });
 
         return $group;
