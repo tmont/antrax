@@ -1,6 +1,7 @@
 import { ColorPalette, type ColorPaletteSerialized } from './ColorPalette.ts';
 import { ColorPicker } from './ColorPicker.ts';
 import { type Atari7800Color, colors, type ColorSerialized, colorToJson } from './colors.ts';
+import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import {
@@ -9,7 +10,8 @@ import {
     type ColorIndex,
     findElement,
     formatAssemblyNumber,
-    parseTemplate
+    generateId,
+    parseTemplate,
 } from './utils.ts';
 
 export interface ColorPaletteSetOptions {
@@ -21,7 +23,7 @@ export interface ColorPaletteSetOptions {
 }
 
 export interface ColorPaletteSetSerialized {
-    id: ColorPaletteSet['id'];
+    id: string | number;
     name: ColorPaletteSet['name'];
     backgroundColor: ColorSerialized;
     palettes: ColorPaletteSerialized[];
@@ -53,7 +55,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
     private readonly logger: Logger;
     private initialized = false;
     private name: string;
-    public readonly id: number;
+    public readonly id: string;
 
     private static instanceCount = 0;
 
@@ -69,7 +71,11 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
                     return palette;
                 }
 
-                return new ColorPalette(palette);
+                return new ColorPalette({
+                    colors: palette.colors,
+                    id: String(palette.id),
+                    name: palette.name,
+                });
             }) :
             [];
 
@@ -79,10 +85,10 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
             }));
         }
 
-        this.id = options.id || ColorPaletteSet.instanceCount;
+        this.id = options.id || generateId();
         this.backgroundColor = bg || colors[3];
         this.palettes = palettes;
-        this.name = options.name || `Palette Set ${this.id}`;
+        this.name = options.name || `Palette Set ${ColorPaletteSet.instanceCount}`;
         this.logger = Logger.from(this);
 
         this.$container = options.mountEl;
@@ -209,33 +215,31 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
     }
 
     public static fromJSON(json: object, mountEl: HTMLElement): ColorPaletteSet {
-        if (!isSerialized(json)) {
-            throw new Error(`Cannot deserialize ColorPaletteSet, invalid JSON`);
-        }
+        this.ensureSerialized(json);
 
         return new ColorPaletteSet({
-            id: json.id,
+            id: String(json.id),
             mountEl,
             palettes: json.palettes,
             backgroundColor: json.backgroundColor,
             name: json.name,
         });
     }
+
+    public static ensureSerialized(json: any): asserts json is ColorPaletteSetSerialized {
+        const context: SerializationContext = 'ColorPaletteSet';
+
+        if (!json.id || (typeof json.id !== 'string' && typeof json.id !== 'number')) {
+            throw new SerializationTypeError(context, 'id', 'non-empty string or number', json.id);
+        }
+        if (typeof json.name !== 'string') {
+            throw new SerializationTypeError(context, 'name', 'string', json.name);
+        }
+        if (typeof json.backgroundColor !== 'number') {
+            throw new SerializationTypeError(context, 'backgroundColor', 'number', json.backgroundColor);
+        }
+        if (!Array.isArray(json.palettes) && !json.palettes.every((item: unknown) => typeof item === 'object')) {
+            throw new SerializationTypeError(context, 'palettes', 'array of objects');
+        }
+    }
 }
-
-const isSerialized = (json: any): json is ColorPaletteSetSerialized => {
-    if (typeof json.id !== 'number') {
-        return false;
-    }
-    if (typeof json.name !== 'string') {
-        return false;
-    }
-    if (typeof json.backgroundColor !== 'number') {
-        return false;
-    }
-    if (!Array.isArray(json.palettes) && !json.palettes.every((item: unknown) => typeof item === 'object')) {
-        return false;
-    }
-
-    return true;
-};

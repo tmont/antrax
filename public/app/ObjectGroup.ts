@@ -1,5 +1,7 @@
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
+import { type SerializationContext, SerializationTypeError } from './errors.ts';
+import { generateId } from './utils.ts';
 
 export interface ObjectGroupOptions {
     id?: ObjectGroup['id'];
@@ -8,13 +10,13 @@ export interface ObjectGroupOptions {
 }
 
 export interface ObjectGroupSerialized {
-    id: ObjectGroup['id'];
+    id: string | number;
     name: ObjectGroup['name'];
-    paletteSetId: ColorPaletteSet['id'];
+    paletteSetId: string | number;
 }
 
 export class ObjectGroup {
-    public readonly id: number;
+    public readonly id: string;
     private name: string;
     private paletteSet: ColorPaletteSet;
 
@@ -22,8 +24,8 @@ export class ObjectGroup {
 
     public constructor(options: ObjectGroupOptions) {
         ObjectGroup.instanceCount++;
-        this.id = options.id || ObjectGroup.instanceCount;
-        this.name = options.name || `Group ${this.id}`;
+        this.id = options.id || generateId();
+        this.name = options.name || `Group ${ObjectGroup.instanceCount}`;
         this.paletteSet = options.paletteSet;
     }
 
@@ -55,32 +57,30 @@ export class ObjectGroup {
         json: object,
         paletteSets: Readonly<ColorPaletteSet[]>,
     ): ObjectGroup {
-        if (!isSerialized(json)) {
-            throw new Error('Cannot deserialize ObjectGroup, invalid JSON');
-        }
+        this.ensureSerialized(json);
 
-        const paletteSet = paletteSets.find(set => set.id === json.paletteSetId);
+        const paletteSet = paletteSets.find(set => set.id === String(json.paletteSetId));
         if (!paletteSet) {
             throw new Error(`Cannot deserialize ObjectGroup, palette set with ID "${json.paletteSetId}" not found`);
         }
         return new ObjectGroup({
-            id: json.id,
+            id: String(json.id),
             name: json.name,
             paletteSet: paletteSet,
         });
     }
+
+    public static ensureSerialized(json: any): asserts json is ObjectGroupSerialized {
+        const context: SerializationContext = 'ObjectGroup';
+
+        if (!json.id || (typeof json.id !== 'string' && typeof json.id !== 'number')) {
+            throw new SerializationTypeError(context, 'id', 'non-empty string or number', json.id);
+        }
+        if (typeof json.name !== 'string') {
+            throw new SerializationTypeError(context, 'name', 'string', json.name);
+        }
+        if (!json.paletteSetId || (typeof json.paletteSetId !== 'string' && typeof json.paletteSetId !== 'number')) {
+            throw new SerializationTypeError(context, 'paletteSetId', 'non-empty string or number number', json.paletteSetId);
+        }
+    }
 }
-
-const isSerialized = (json: any): json is ObjectGroupSerialized => {
-    if (typeof json.id !== 'number') {
-        return false;
-    }
-    if (typeof json.name !== 'string') {
-        return false;
-    }
-    if (typeof json.paletteSetId !== 'number') {
-        return false;
-    }
-
-    return true;
-};

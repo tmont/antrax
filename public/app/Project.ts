@@ -2,6 +2,7 @@ import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
 import type { EditorSettings, UndoCheckpoint } from './Editor.ts';
+import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
@@ -28,7 +29,7 @@ import {
     findSelect,
     findTemplateContent,
     parseTemplate,
-    type PixelInfo
+    type PixelInfo,
 } from './utils.ts';
 
 // https://stackoverflow.com/a/13139830
@@ -130,7 +131,7 @@ const editGroupTmpl = `
 
 export interface ProjectSerialized {
     name: Project['name'];
-    activeCanvasId: number | null;
+    activeCanvasId: string | number | null;
     canvases: PixelCanvasSerialized[];
 }
 
@@ -842,12 +843,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
         editorSettings: EditorSettings,
         paletteSets: Readonly<ColorPaletteSet[]>,
     ): Project {
-        if (!isSerialized(json)) {
-            throw new Error(`Cannot deserialize Project, invalid JSON`);
-        }
+        this.ensureSerialized(json);
 
-        const groupCache: any = {};
-
+        const groupCache: Record<ObjectGroup['id'], ObjectGroup> = {};
         const canvases = json.canvases.map(canvasJson =>
             PixelCanvas.fromJSON(canvasJson, canvasMountEl, editorSettings, groupCache, paletteSets));
 
@@ -856,28 +854,25 @@ export class Project extends EventEmitter<ProjectEventMap> {
             editorSettings,
             name: json.name,
             canvases,
-            activeCanvas: json.activeCanvasId ? canvases.find(canvas => canvas.id === json.activeCanvasId) : null,
+            activeCanvas: json.activeCanvasId ?
+                canvases.find(canvas => canvas.id === String(json.activeCanvasId)) :
+                null,
         });
     }
+
+    public static ensureSerialized(json: any): asserts json is ProjectSerialized {
+        const context: SerializationContext = 'Project';
+
+        if (typeof json.name !== 'string') {
+            throw new SerializationTypeError(context, 'name', 'string', json.name);
+        }
+
+        if (json.activeCanvasId !== null && typeof json.activeCanvasId !== 'string' && typeof json.activeCanvasId !== 'number') {
+            throw new SerializationTypeError(context, 'activeCanvasId', 'string/number/null', json.activeCanvasId);
+        }
+
+        if (!Array.isArray(json.canvases) || !json.canvases.every((obj: unknown) => typeof obj === 'object')) {
+            throw new SerializationTypeError(context, 'canvases', 'array of objects', json.canvases);
+        }
+    }
 }
-
-const isSerialized = (json: any): json is ProjectSerialized => {
-    if (typeof json !== 'object') {
-        return false;
-    }
-    if (!json) {
-        return false;
-    }
-
-    if (typeof json.name !== 'string') {
-        return false;
-    }
-    if (!Array.isArray(json.canvases)) {
-        return false;
-    }
-    if (!json.canvases.every((obj: unknown) => typeof obj === 'object')) {
-        return false;
-    }
-
-    return true;
-};

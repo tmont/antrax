@@ -2,7 +2,7 @@ import { ColorPicker } from './ColorPicker.ts';
 import { type Atari7800Color, colors, type ColorSerialized, colorToJson, getColorObject } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
-import { type ColorIndex, findElement, isPaletteColorIndex, parseTemplate } from './utils.ts';
+import { type ColorIndex, findElement, generateId, isPaletteColorIndex, parseTemplate } from './utils.ts';
 
 export interface ColorPaletteOptions {
     id?: ColorPalette['id'];
@@ -11,7 +11,7 @@ export interface ColorPaletteOptions {
 }
 
 export interface ColorPaletteSerialized {
-    id: ColorPalette['id'];
+    id: string | number;
     name: ColorPalette['name'];
     colors: [ ColorSerialized, ColorSerialized, ColorSerialized ];
 }
@@ -38,15 +38,12 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
     private initialized = false;
     private readonly logger: Logger;
     private $el: HTMLElement | null = null;
-    public readonly id: number;
-    private static instanceCount = 0;
+    public readonly id: string;
 
     public constructor(options: ColorPaletteOptions) {
         super();
 
-        ColorPalette.instanceCount++;
-
-        this.id = options.id || ColorPalette.instanceCount;
+        this.id = options.id || generateId();
         this.name = options.name;
         this.colors = [
             getColorObject(options?.colors?.[0], colors[0x47]),

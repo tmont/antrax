@@ -159,3 +159,8 @@ export type CodeGenerationOptions = CodeGenerationOptionsLabel | CodeGenerationO
 export const hasAddressLabel = (options: CodeGenerationOptions): options is CodeGenerationOptionsLabel => {
     return !!((options as CodeGenerationOptionsLabel).addressLabel || '').trim();
 };
+
+const idArr = new Uint32Array(2);
+export const generateId = (): string => Array.from(crypto.getRandomValues(idArr))
+    .map(i32 => i32.toString(36))
+    .join('_');

@@ -92,31 +92,4 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
             paletteSets: this.paletteSets.map(set => set.toJSON()),
         };
     }
-
-    public static fromJSON(
-        json: object,
-        editorSettings: EditorSettings,
-        paletteSets: ColorPaletteSet[],
-    ): ColorPaletteSetCollection {
-        if (!isSerialized(json)) {
-            throw new Error(`Cannot deserialize ColorPaletteSetCollection`);
-        }
-
-        return new ColorPaletteSetCollection({
-            editorSettings,
-            paletteSets,
-        });
-    }
 }
-
-const isSerialized = (json: object): json is ColorPaletteSetCollectionSerialized => {
-    if (!Array.isArray((json as ColorPaletteSetCollectionSerialized).paletteSets)) {
-        return false;
-    }
-
-    if (!((json as ColorPaletteSetCollectionSerialized).paletteSets).every(json => typeof json === 'object')) {
-        return false;
-    }
-
-    return true;
-};

@@ -1,6 +1,7 @@
 import { ColorPaletteSet } from './ColorPaletteSet.ts';
 import { ColorPaletteSetCollection, type ColorPaletteSetCollectionSerialized } from './ColorPaletteSetCollection.ts';
 import DisplayMode from './DisplayMode.ts';
+import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
@@ -35,7 +36,7 @@ export interface EditorSettings {
 }
 
 export interface EditorSettingsSerialized extends Pick<EditorSettings, 'showGrid' | 'zoomLevel'> {
-    activeColorPaletteSetId: ColorPaletteSet['id'];
+    activeColorPaletteSetId: string | number;
     uncoloredPixelBehavior?: EditorSettings['uncoloredPixelBehavior'] | 'transparent'; // "transparent" is legacy
     kangarooMode?: EditorSettings['kangarooMode'];
     drawMode?: EditorSettings['drawMode'];
@@ -436,9 +437,10 @@ export class Editor {
     private onCanvasPaletteChanged(canvas: PixelCanvas): void {
         const palette = canvas.getColorPalette();
         const $select = findSelect(this.$canvasSidebar, '.canvas-palette-select');
-        const index = Array.from($select.options).findIndex(option => option.value === palette.id.toString());
+        const index = Array.from($select.options).findIndex(option => option.value === palette.id);
         if (index === -1) {
-            throw new Error(`Palette{${palette.id}} not found in .canvas-palette-select <option>`);
+            const options = Array.from($select.options).map(option => option.value);
+            throw new Error(`Palette{${palette.id}} not found in .canvas-palette-select <option>: "${options.join('", "')}"`);
         }
 
         // update palette <select> and swatch list
@@ -1059,7 +1061,7 @@ export class Editor {
 
         const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         $paletteSelect.addEventListener('change', () => {
-            const paletteId = Number($paletteSelect.value);
+            const paletteId = $paletteSelect.value;
             const palette = this.settings.activeColorPaletteSet.getPalettes().find(palette => palette.id === paletteId);
             if (!palette) {
                 this.logger.error(`selected palette ${paletteId} not found in active ColorPaletteSet`);
@@ -1215,52 +1217,66 @@ export class Editor {
         }
     }
 
-    private isSerialized(json: object): json is EditorSerialized {
-        if (typeof (json as EditorSerialized).project !== 'object') {
-            return false;
-        }
-        if (typeof (json as EditorSerialized).paletteSetCollection !== 'object' || !(json as EditorSerialized).paletteSetCollection) {
-            return false;
-        }
-        if (!this.validateSettings((json as EditorSerialized).settings)) {
-            return false;
+    private ensureSerialized(json: any): asserts json is EditorSerialized {
+        const context: SerializationContext = 'Editor';
+
+        if (!json || typeof json !== 'object') {
+            throw new SerializationTypeError(context, '<root>', 'object', json);
         }
 
-        return true;
-    }
-
-    private validateSettings(settings: any): settings is EditorSettings {
-        if (typeof settings !== 'object') {
-            return false;
+        if (!json.project || typeof json.project !== 'object') {
+            throw new SerializationTypeError(context, 'project', 'object', json.project);
         }
-        if (!settings) {
-            return false;
+        if (!json.paletteSetCollection || typeof json.paletteSetCollection !== 'object') {
+            throw new SerializationTypeError(context, 'paletteSetCollection', 'object', json.paletteSetCollection);
         }
 
-        if (
-            (typeof settings.uncoloredPixelBehavior !== 'string' &&
-                typeof settings.uncoloredPixelBehavior !== 'undefined') ||
-            typeof settings.showGrid !== 'boolean' ||
-            typeof settings.zoomLevel !== 'number' ||
-            typeof settings.activeColorPaletteSetId !== 'number' ||
-            (typeof settings.kangarooMode !== 'boolean' &&
-                typeof settings.kangarooMode !== 'undefined') ||
-            (typeof settings.drawMode !== 'string' &&
-                typeof settings.drawMode !== 'undefined')
-        ) {
-            return false;
+        const settings = json.settings;
+
+        if (!settings || typeof settings !== 'object') {
+            throw new SerializationTypeError(context, 'settings', 'object', json.settings);
         }
 
-        return true;
+        const mappings: [ keyof EditorSettingsSerialized, string ][] = [
+            [ 'showGrid', 'boolean' ],
+            [ 'zoomLevel', 'number' ],
+        ];
+
+        mappings.forEach(([ key, type ]) => {
+            if (typeof settings[key] !== type) {
+                throw new SerializationTypeError(context, `settings[${key}]`, type, settings[key]);
+            }
+        });
+
+        const undefinedMappings: [ keyof EditorSettingsSerialized, string ][] = [
+            [ 'uncoloredPixelBehavior', 'string' ],
+            [ 'kangarooMode', 'boolean' ],
+            [ 'drawMode', 'string' ],
+        ];
+
+        undefinedMappings.forEach(([ key, type ]) => {
+            if (typeof settings[key] !== type && typeof settings[key] !== 'undefined') {
+                throw new SerializationTypeError(context, `settings[${key}]`, `${type} or missing`, settings[key]);
+            }
+        });
+
+        if (typeof settings.activeColorPaletteSetId !== 'number' && typeof settings.activeColorPaletteSetId !== 'string') {
+            throw new SerializationTypeError(
+                context,
+                `settings[activeColorPaletteSetId]`,
+                `string or number`,
+                settings.activeColorPaletteSetId,
+            );
+        }
     }
 
     public loadJson(json: object): void {
         const start = Date.now();
-        this.logger.info(`loading JSON`, json);
 
-        if (!this.isSerialized(json)) {
-            throw new Error(`JSON is invalid, cannot deserialize`);
-        }
+        // TODO remove this once things are more stable
+        this.logger.debug(`loading JSON`, json);
+
+        this.ensureSerialized(json);
 
         const paletteMountEl = findElement(this.$el, '.content-header');
 
@@ -1271,7 +1287,7 @@ export class Editor {
             }));
         }
 
-        let activeColorPaletteSet = paletteSets.find(set => set.id === json.settings.activeColorPaletteSetId);
+        let activeColorPaletteSet = paletteSets.find(set => set.id === String(json.settings.activeColorPaletteSetId));
         if (!activeColorPaletteSet) {
             this.logger.warn(`ColorPaletteSet{${json.settings.activeColorPaletteSetId}} not found`);
             activeColorPaletteSet = paletteSets[0];
@@ -1294,12 +1310,12 @@ export class Editor {
             drawMode: isDrawMode(json.settings.drawMode) ? json.settings.drawMode : 'draw',
         };
 
-        const paletteSetCollection = ColorPaletteSetCollection.fromJSON(
-            json.paletteSetCollection,
-            this.settings,
+        const paletteSetCollection = new ColorPaletteSetCollection({
+            editorSettings: this.settings,
             paletteSets,
-        );
+        });
         this.setPaletteSets(paletteSetCollection);
+        this.onPaletteSetChanged();
 
         const projectJson = json.project;
         if (projectJson) {

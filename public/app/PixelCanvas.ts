@@ -3,12 +3,13 @@ import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
 import DisplayMode from './DisplayMode.ts';
 import type { EditorSettings } from './Editor.ts';
+import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import {
-    type CodeGenerationOptions,
     CodeGenerationDetailLevel,
+    type CodeGenerationOptions,
     type Coordinate,
     type Dimensions,
     type DisplayModeColorIndex,
@@ -16,13 +17,14 @@ import {
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
     formatAssemblyNumber,
+    generateId,
     get2dContext,
     hasAddressLabel,
     isLeftMouseButton,
     isPaletteIndex,
     nope,
     type PixelInfo,
-    type PixelInfoSerialized
+    type PixelInfoSerialized,
 } from './utils.ts';
 
 export interface CanvasOptions extends Dimensions {
@@ -84,7 +86,7 @@ type PixelCanvasEventMap = {
 };
 
 export interface PixelCanvasSerialized {
-    id: PixelCanvas['id'];
+    id: string | number;
     name: PixelCanvas['name'];
     pixelWidth: PixelCanvas['pixelWidth'];
     pixelHeight: PixelCanvas['pixelHeight'];
@@ -93,7 +95,7 @@ export interface PixelCanvasSerialized {
     group: ObjectGroupSerialized;
     pixelData: PixelInfoSerialized[][];
     displayModeName: DisplayModeName;
-    paletteId: ColorPalette['id'];
+    paletteId: string | number;
     activeColor: DisplayModeColorValueSerialized;
 }
 
@@ -116,7 +118,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private readonly $container: HTMLElement;
     private readonly $frameContainer: HTMLDivElement;
     private name: string;
-    public readonly id: number;
+    public readonly id: string;
     public readonly group: ObjectGroup;
     private destroyed = false;
     private displayMode: DisplayMode;
@@ -140,8 +142,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public constructor(options: CanvasOptions) {
         super();
         PixelCanvas.instanceCount++;
-        this.id = options.id || PixelCanvas.instanceCount;
-        this.name = options.name || `Object ${this.id}`;
+        this.id = options.id || generateId();
+        this.name = options.name || `Object ${PixelCanvas.instanceCount}`;
         this.logger = Logger.from(this);
         this.group = options.group;
         this.editorSettings = options.editorSettings;
@@ -1357,10 +1359,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         groupCache: Record<ObjectGroup['id'], ObjectGroup>,
         paletteSets: Readonly<ColorPaletteSet[]>,
     ): PixelCanvas {
-        if (!isSerialized(json)) {
-            console.log(json);
-            throw new Error('Cannot deserialize PixelCanvas, invalid JSON');
-        }
+        this.ensureSerialized(json);
 
         let group = groupCache[json.group.id];
         if (!group) {
@@ -1381,7 +1380,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         return new PixelCanvas({
-            id: json.id,
+            id: String(json.id),
             name: json.name,
             width: json.width,
             height: json.height,
@@ -1393,44 +1392,46 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             displayMode: json.displayModeName,
             palette: colorPalette,
             activeColor: json.activeColor,
-            pixelData: deserializePixelData(json.pixelData),
+            pixelData: json.pixelData.map(row => row.map(item => ({ modeColorIndex: item.modeColorIndex }))),
         });
+    }
+
+    public static ensureSerialized(json: any): asserts json is PixelCanvasSerialized {
+        const context: SerializationContext = 'PixelCanvas';
+
+        if (!json.id || (typeof json.id !== 'string' && typeof json.id !== 'number')) {
+            throw new SerializationTypeError(context, 'id', 'non-empty string or number', json.id);
+        }
+
+        ([
+            [ 'name', 'string' ],
+            [ 'width', 'number' ],
+            [ 'height', 'number' ],
+            [ 'pixelWidth', 'number' ],
+            [ 'pixelHeight', 'number' ],
+            [ 'displayModeName', 'string' ],
+            [ 'activeColor', 'number' ],
+        ] as [ string, string ][]).forEach(([ key, expectedType ]) => {
+            const actual = json[key];
+            if (typeof actual !== expectedType) {
+                throw new SerializationTypeError(context, key, expectedType, actual);
+            }
+        });
+
+        if (!Array.isArray(json.pixelData) || !json.pixelData.every((row: unknown) => Array.isArray(row))) {
+            throw new SerializationTypeError(context, 'pixelData', 'array of arrays');
+        }
+
+        if (!json.paletteId || (typeof json.paletteId !== 'string' && typeof json.paletteId !== 'number')) {
+            throw new SerializationTypeError(context, 'paletteId', 'non-empty string or number', json.paletteId);
+        }
+
+        if (!json.group || typeof json.group !== 'object') {
+            throw new SerializationTypeError(context, 'group', 'non-null object', json.group);
+        }
     }
 
     public hasData(): boolean {
         return this.pixelData.some(row => row.some(data => data.modeColorIndex !== null));
     }
 }
-
-const isSerialized = (json: any): json is PixelCanvasSerialized => {
-    if (typeof json !== 'object') {
-        return false;
-    }
-    if (!json) {
-        return false;
-    }
-    if (
-        typeof json.width !== 'number' ||
-        typeof json.height !== 'number' ||
-        typeof json.pixelWidth !== 'number' ||
-        typeof json.pixelHeight !== 'number' ||
-        typeof json.displayModeName !== 'string' ||
-        typeof json.activeColor !== 'number'
-    ) {
-        return false;
-    }
-
-    if (!Array.isArray(json.pixelData) || !json.pixelData.every((row: unknown) => Array.isArray(row))) {
-        return false;
-    }
-
-    return true;
-};
-
-const deserializePixelData = (data: PixelInfoSerialized[][]): PixelInfo[][] => {
-    return data.map((row) => row.map((item): PixelInfo => {
-        return {
-            modeColorIndex: item.modeColorIndex,
-        };
-    }));
-};
