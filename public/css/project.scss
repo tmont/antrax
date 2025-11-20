@@ -51,6 +51,9 @@
         display: flex;
         flex-direction: column;
         gap: config.$gutter-quarter;
+        padding-left: config.$gutter-half;
+        border-left: 1px solid rgba(config.$border-color, 1);
+        margin-left: 0.95em; // makes it align with the chevron point, totally foolproof
     }
 
     .group-item {
@@ -63,7 +66,6 @@
     .project-item-group {
         display: flex;
         flex-direction: column;
-        gap: config.$gutter-half;
 
         &.closed {
             .collapse-icon {

@@ -81,7 +81,7 @@ const objectGroupTmpl = `
             </button>
         </div>
     </div>
-    <div class="indented-list group-items"></div>
+    <div class="group-items"></div>
 </div>
 `;
 
