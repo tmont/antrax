@@ -680,7 +680,13 @@ export class Editor {
                 const canvas = this.project?.getActiveCanvas();
                 const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || { width: 0, height: 0 };
 
-                this.settings.zoomLevel = Math.max(1, Math.min(10, this.settings.zoomLevel + dir));
+                let newZoomLevel = Math.max(0.5, Math.min(10, this.settings.zoomLevel + dir));
+
+                if (newZoomLevel > 1) {
+                    newZoomLevel = Math.floor(newZoomLevel);
+                }
+
+                this.settings.zoomLevel = newZoomLevel;
 
                 this.updateZoomLevelUI();
                 this.project?.zoomTo();
