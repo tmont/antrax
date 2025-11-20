@@ -8,8 +8,6 @@ import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
 import {
     type CanvasOptions,
-    type CodeGenerationOptions,
-    type CodeGenerationOptionsBase,
     PixelCanvas,
     type PixelCanvasSerialized,
     type PixelDrawingEvent
@@ -17,7 +15,10 @@ import {
 import { Popover } from './Popover.ts';
 import {
     type AssemblyNumberFormatRadix,
+    type CodeGenerationOptions,
+    type CodeGenerationOptionsBase,
     type ColorIndex,
+    CodeGenerationDetailLevel,
     type Coordinate,
     type DisplayModeColorIndex,
     type DisplayModeName,
@@ -415,6 +416,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const $exportObjectInput = findInput($el, '#export-object');
         const $exportHeaderInput = findInput($el, '#export-header');
         const $exportPalettesInput = findInput($el, '#export-palettes');
+        const $detailLotsInput = findInput($el, '#export-detail-level-lots');
+        const $detailSomeInput = findInput($el, '#export-detail-level-some');
+        const $detailNoneInput = findInput($el, '#export-detail-level-none');
 
         const generateCode = (): boolean => {
             const baseOptions: CodeGenerationOptionsBase = {
@@ -426,6 +430,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 byteRadix: Number($byteRadixInput.value) as AssemblyNumberFormatRadix,
                 object: $exportObjectInput.checked,
                 header: $exportHeaderInput.checked,
+                commentLevel: $detailLotsInput.checked ?
+                    CodeGenerationDetailLevel.Lots :
+                    ($detailSomeInput.checked ? CodeGenerationDetailLevel.Some : CodeGenerationDetailLevel.None),
             };
 
             let byteOffsetRaw = $addressInput.value;
@@ -492,6 +499,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
             $exportPalettesInput,
             $exportObjectInput,
             $exportHeaderInput,
+            $detailLotsInput,
+            $detailSomeInput,
+            $detailNoneInput,
         ]
             .forEach((input) => {
                 input.addEventListener('change', generateCode);

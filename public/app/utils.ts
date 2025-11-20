@@ -2,6 +2,9 @@ import type { ColorPalette } from './ColorPalette.ts';
 
 export const nope = (_x: never) => {};
 
+// https://stackoverflow.com/a/49286056
+export type ValueOf<T> = T[keyof T];
+
 export interface Dimensions {
     width: number;
     height: number;
@@ -125,4 +128,34 @@ export const get2dContext = (canvas: HTMLCanvasElement): CanvasRenderingContext2
     }
 
     return ctx;
+};
+
+export const CodeGenerationDetailLevel = {
+    None: 0,
+    Some: 5,
+    Lots: 10,
+} as const;
+
+export interface CodeGenerationOptionsBase {
+    indentChar: string;
+    labelColon: boolean;
+    addressOffsetRadix: AssemblyNumberFormatRadix;
+    byteRadix: AssemblyNumberFormatRadix;
+    object: boolean;
+    header: boolean;
+    commentLevel: ValueOf<typeof CodeGenerationDetailLevel>;
+}
+
+export interface CodeGenerationOptionsLabel extends CodeGenerationOptionsBase {
+    addressLabel: string;
+}
+
+export interface CodeGenerationOptionsOffset extends CodeGenerationOptionsBase {
+    addressOffset: number;
+}
+
+export type CodeGenerationOptions = CodeGenerationOptionsLabel | CodeGenerationOptionsOffset;
+
+export const hasAddressLabel = (options: CodeGenerationOptions): options is CodeGenerationOptionsLabel => {
+    return !!((options as CodeGenerationOptionsLabel).addressLabel || '').trim();
 };

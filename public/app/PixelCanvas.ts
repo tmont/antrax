@@ -7,7 +7,8 @@ import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import {
-    type AssemblyNumberFormatRadix,
+    type CodeGenerationOptions,
+    CodeGenerationDetailLevel,
     type Coordinate,
     type Dimensions,
     type DisplayModeColorIndex,
@@ -16,6 +17,7 @@ import {
     type DisplayModeName,
     formatAssemblyNumber,
     get2dContext,
+    hasAddressLabel,
     isLeftMouseButton,
     isPaletteIndex,
     nope,
@@ -66,29 +68,6 @@ export interface PixelDrawingEvent {
     row: number;
     col: number;
     behavior: PixelDrawingBehavior;
-}
-
-export interface CodeGenerationOptionsBase {
-    indentChar: string;
-    labelColon: boolean;
-    addressOffsetRadix: AssemblyNumberFormatRadix;
-    byteRadix: AssemblyNumberFormatRadix;
-    object: boolean;
-    header: boolean;
-}
-
-export interface CodeGenerationOptionsLabel extends CodeGenerationOptionsBase {
-    addressLabel: string;
-}
-
-export interface CodeGenerationOptionsOffset extends CodeGenerationOptionsBase {
-    addressOffset: number;
-}
-
-export type CodeGenerationOptions = CodeGenerationOptionsLabel | CodeGenerationOptionsOffset;
-
-const hasAddressLabel = (options: CodeGenerationOptions): options is CodeGenerationOptionsLabel => {
-    return !!((options as CodeGenerationOptionsLabel).addressLabel || '').trim();
 }
 
 type PixelCanvasEventMap = {
@@ -1256,14 +1235,33 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
             const address = addressLabel ? `${addressLabel}${offset !== 0 ? ' + ' + offsetFormatted : ''}` : offsetFormatted;
 
-            code.push(`${indent}ORG ${address} ; line ${i + 1}`);
+            const orgComment = options.commentLevel >= CodeGenerationDetailLevel.Some ? ` ; line ${i + 1}` : '';
+            code.push(`${indent}ORG ${address}${orgComment}`);
             code.push('');
 
-            const comment = i === pixelData.length - 1 ? '' : '; ';
-            code.push(`${comment}${this.asmLabel}${options.labelColon ? ':' : ''}`);
+            if (i === pixelData.length - 1) {
+                code.push(`${this.asmLabel}${options.labelColon ? ':' : ''}`);
+            } else if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
+                code.push(`; ${this.asmLabel}`);
+            }
 
             const bytes = this.displayMode.convertPixelsToBytes(row);
-            bytes.forEach(byte => code.push(`${indent}.byte ${formatAssemblyNumber(byte, options.byteRadix)}`));
+
+            let pixelColors: string[][] = [];
+            if (options.commentLevel >= CodeGenerationDetailLevel.Lots) {
+                const colorLabels = this.getColors().map(color => color.colors.map(c => c.label));
+                pixelColors = row.map(pixel => colorLabels[pixel.modeColorIndex || 0] || [ `[${pixel.modeColorIndex}]?` ]);
+            }
+
+            bytes.forEach((byte, i) => {
+                let line = `${indent}.byte ${formatAssemblyNumber(byte, options.byteRadix)}`;
+                const byteColors = pixelColors.slice(i * this.displayMode.pixelsPerByte, (i + 1) * this.displayMode.pixelsPerByte);
+                let comment = options.commentLevel >= CodeGenerationDetailLevel.Some ?
+                    ' ; ' + byteColors.map(label => label.join(',')).join(' ') :
+                    '';
+
+                code.push(line + comment);
+            });
 
             code.push('');
         }
@@ -1292,11 +1290,35 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const widthBits = (~widthInBytes + 1) & widthBitsMask;
         const byte2 = formatAssemblyNumber((paletteIndex << DisplayMode.encodedWidthBits) | widthBits, 2);
 
+        const headerSegments: string[] = [];
+        const paletteSegments: string[] = [];
+        const paletteExtra: string[] = [];
+
+        if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
+            paletteSegments.push(`Palette=${paletteIndex}`);
+            paletteSegments.push(`ByteWidth=${widthInBytes}`);
+        }
+
+        if (options.commentLevel >= CodeGenerationDetailLevel.Lots) {
+            headerSegments.push(`Mode=${this.displayMode.name}${this.editorSettings.kangarooMode ? '[K]' : ''}`);
+            headerSegments.push(`Width=${this.width}`);
+            headerSegments.push(`Height=${this.height}`);
+            headerSegments.push(`PixelsPerByte=${this.displayMode.pixelsPerByte}`);
+
+            paletteExtra.push(`${indent}                └─┘└───┘`);
+            paletteExtra.push(`${indent}    Palette ${paletteIndex} ───┘   ` +
+                `└───── ~(${this.width} / ${this.displayMode.pixelsPerByte}) + 1 & %${widthBitsMask.toString(2)}`);
+
+        } else if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
+            headerSegments.push(`Mode=${this.displayMode.name}`);
+            headerSegments.push(`Dimensions=${this.width}x${this.height}`);
+        }
+
         const code = [
-            `/* ${this.name} (Mode=${this.displayMode.name}, Dimensions=${this.width}x${this.height}, ` +
-                `PixelsPerByte=${this.displayMode.pixelsPerByte})`,
+            `/* ${this.name}${headerSegments.length ? ` (${headerSegments.join(', ')})` : ''}`,
             `${indent}Address:       ${this.asmLabel}`,
-            `${indent}Palette/Width: ${byte2} (Palette=${paletteIndex}, ByteWidth=${this.width / this.displayMode.pixelsPerByte})`,
+            `${indent}Palette/Width: ${byte2}${paletteSegments.length ? ` (${paletteSegments.join(', ')})` : ''}`,
+            ...paletteExtra,
         ];
 
         code.push('*/');

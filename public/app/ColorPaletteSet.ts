@@ -1,11 +1,11 @@
 import { ColorPalette, type ColorPaletteSerialized } from './ColorPalette.ts';
 import { ColorPicker } from './ColorPicker.ts';
-import { type Atari7800Color, colors, colorToJson, type ColorSerialized } from './colors.ts';
+import { type Atari7800Color, colors, type ColorSerialized, colorToJson } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
-import type { CodeGenerationOptions } from './PixelCanvas.ts';
 import {
-    type AssemblyNumberFormatRadix,
+    CodeGenerationDetailLevel,
+    type CodeGenerationOptions,
     type ColorIndex,
     findElement,
     formatAssemblyNumber,
@@ -174,13 +174,23 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
             `Palette${options.labelColon ? ':' : ''}`,
         ];
 
-        const format: AssemblyNumberFormatRadix = 16;
-        code.push(`${indent}.byte ${formatAssemblyNumber(this.backgroundColor.index, format)} ; BG`);
+        const generateCodeLine = (color: Atari7800Color, label: string): string => {
+            let line = `${indent}.byte ${formatAssemblyNumber(color.index, 16)}`;
+            if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
+                line += ` ; ${label}`;
+                if (options.commentLevel >= CodeGenerationDetailLevel.Lots) {
+                    line += ' '.repeat(Math.max(0, 4 - label.length)) + ` - ${color.hex}`;
+                }
+            }
+
+            return line;
+        };
+
+        code.push(generateCodeLine(this.backgroundColor, 'BG'));
 
         this.palettes.forEach((palette) => {
             palette.colors.forEach((color, colorIndex) => {
-                code.push(`${indent}.byte ${formatAssemblyNumber(color.index, format)} ` +
-                    `; ${palette.name}C${colorIndex}`);
+                code.push(generateCodeLine(color, palette.name + 'C' + colorIndex));
             });
         });
 
