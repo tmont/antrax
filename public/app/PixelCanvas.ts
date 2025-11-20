@@ -1256,7 +1256,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             bytes.forEach((byte, i) => {
                 let line = `${indent}.byte ${formatAssemblyNumber(byte, options.byteRadix)}`;
                 const byteColors = pixelColors.slice(i * this.displayMode.pixelsPerByte, (i + 1) * this.displayMode.pixelsPerByte);
-                let comment = options.commentLevel >= CodeGenerationDetailLevel.Some ?
+                let comment = options.commentLevel >= CodeGenerationDetailLevel.Lots ?
                     ' ; ' + byteColors.map(label => label.join(',')).join(' ') :
                     '';
 
