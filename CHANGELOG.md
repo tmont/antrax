@@ -1,3 +1,11 @@
+## v0.0.17 (2025-11-19)
+- Added detail level option to ASM export
+- Fixed color order (again) for `320B`
+- Added 0.5x zoom level
+- Tweaked initial position and zoom level of canvas
+- Prompt for filename when saving
+- Changed header/palette exported code to be comments instead of code
+
 ## v0.0.16 (2025-11-17)
 - Drawing modes
     - Basic: Draw/Erase/Fill/Eye dropper
