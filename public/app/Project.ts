@@ -90,7 +90,7 @@ const groupOverflowTmpl = `
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm" class="disabled"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
     <li class="dropdown-item divider"></li>
-    <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger disabled"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
+    <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
 </ul>
 `;
 
@@ -318,17 +318,19 @@ export class Project extends EventEmitter<ProjectEventMap> {
             anchor.addEventListener('click', (e) => {
                 e.preventDefault();
 
+                overflowPopover.hide();
+
                 const action = anchor.getAttribute('data-action');
                 switch (action) {
                     case 'edit':
-                        overflowPopover.hide();
                         $input.value = canvas.group.getName();
                         editPopover.show($groupName);
                         $input.focus();
                         break;
+                    case 'delete':
+                        this.removeGroup(canvas.group);
+                        break;
                 }
-
-                overflowPopover.hide();
             });
         });
 
@@ -680,6 +682,16 @@ export class Project extends EventEmitter<ProjectEventMap> {
             // remove group if it has no objects
             this.$container.querySelector(`.project-item-group[data-group-id="${canvas.group.id}"]`)?.remove();
         }
+    }
+
+    public removeGroup(group: ObjectGroup): void {
+        const objects = this.getObjectsInGroup(group);
+        while (objects.length) {
+            const canvas = objects.pop()!;
+            this.removeObject(canvas);
+        }
+
+        // the "group" is removed from the UI when its last object is removed
     }
 
     public update(): void {
