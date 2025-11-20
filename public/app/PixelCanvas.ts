@@ -362,9 +362,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger.debug('hiding');
         this.disable();
 
-        // TODO this is unnecessary, we can just show/hide the .frame-container parent element instead of
-        // all <canvas> elements
-        this.execOnCanvasElements(canvasEl => canvasEl.style.display = 'none');
+        this.$frameContainer.style.display = 'none';
     }
 
     public show(): void {
@@ -390,7 +388,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             this.$el.insertAdjacentElement('afterend', this.$transientEl);
         }
 
-        this.execOnCanvasElements(canvasEl => canvasEl.style.display = '');
+        this.$frameContainer.style.display = '';
 
         this.render();
         this.enable();
