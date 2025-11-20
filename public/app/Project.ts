@@ -31,6 +31,7 @@ import {
     findTemplateContent,
     parseTemplate,
     type PixelInfo,
+    get2dContext
 } from './utils.ts';
 
 // https://stackoverflow.com/a/13139830
@@ -91,8 +92,8 @@ const groupOverflowTmpl = `
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
-    <li class="dropdown-item"><a href="#" data-action="export-image" class="disabled"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
-    <li class="dropdown-item"><a href="#" data-action="export-image" class="disabled"><i class="fa-solid fa-fw fa-film icon"></i>Export animation</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-images"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-animation" class="disabled"><i class="fa-solid fa-fw fa-film icon"></i>Export animation</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
 </ul>
@@ -337,6 +338,52 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     case 'export-asm':
                         this.showExportASMModalForGroup(canvas.group);
                         break;
+                    case 'export-images': {
+                        const objects = this.getObjectsInGroup(canvas.group);
+
+                        // this is necessary if you export after (e.g.) zooming: only the active canvas is updated
+                        // so if you export after a zoom, other canvases will be blank.
+                        // i could keep track of which canvases are out of sync with their render state, and then
+                        // only render those at this time. an optimization for another time, though.
+                        // TODO
+                        objects.forEach(canvas => canvas.render());
+
+                        // render each canvas onto a new canvas in a row
+                        const $canvas = document.createElement('canvas');
+                        const gap = 10;
+                        const padding = 10;
+                        const totalWidth = objects.reduce((total, canvas) => total + canvas.getDisplayDimensions().width, 0)
+                            + (gap * (objects.length - 1));
+                        const maxHeight = objects.reduce((max, canvas) => Math.max(max, canvas.getDisplayDimensions().height), 0);
+
+                        $canvas.width = totalWidth + (padding * 2);
+                        $canvas.height = maxHeight + (padding * 2);
+
+                        const ctx = get2dContext($canvas);
+                        ctx.fillStyle = '#363636';
+                        ctx.fillRect(0, 0, $canvas.width, $canvas.height);
+
+                        let xOffset = padding;
+                        objects.forEach((canvas) => {
+                            ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), xOffset, padding);
+                            ctx.drawImage(canvas.getUnderlyingEditorCanvas(), xOffset, padding);
+                            xOffset += canvas.getDisplayDimensions().width + gap;
+                        });
+
+                        $canvas.toBlob((blob) => {
+                            if (!blob) {
+                                Popover.toast({
+                                    type: 'danger',
+                                    content: `Failed to generate image data`,
+                                });
+                                return;
+                            }
+
+                            window.open(URL.createObjectURL(blob));
+                        }, 'image/png');
+
+                        break;
+                    }
                 }
             });
         });

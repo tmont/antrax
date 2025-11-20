@@ -19,7 +19,6 @@ import {
     formatAssemblyNumber,
     generateId,
     get2dContext,
-    hasAddressLabel,
     isLeftMouseButton,
     isPaletteIndex,
     nope,
@@ -239,6 +238,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         };
     }
 
+    public getDisplayDimensions(): Dimensions {
+        return {
+            width: this.displayWidth,
+            height: this.displayHeight,
+        };
+    }
+
     public getHTMLRect(): Dimensions & Coordinate {
         const { width, height, x, y } = this.$el.getBoundingClientRect();
         return {
@@ -251,6 +257,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public getContainer(): HTMLElement {
         return this.$container;
+    }
+
+    public getUnderlyingBackgroundCanvas(): HTMLCanvasElement {
+        return this.$bgEl;
+    }
+
+    public getUnderlyingEditorCanvas(): HTMLCanvasElement {
+        return this.$el;
     }
 
     public getName(): string {
