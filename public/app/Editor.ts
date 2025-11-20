@@ -60,6 +60,22 @@ const colorItemTmpl = `
 </div>
 `;
 
+const saveAsFormTmpl = `
+<form class="form-vertical" style="width: 16em">
+    <div class="form-row">
+        <input class="filename-input form-control"
+               value="antrax.json.gz"
+               type="text"
+               minlength="1"
+               maxlength="100"
+               placeholder="antrax.json.gz" />
+    </div>
+    <div class="submit-container">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
+`;
+
 export interface UndoCheckpoint {
     pixelData: PixelCanvas['pixelData'];
 }
@@ -577,8 +593,37 @@ export class Editor {
             });
         });
 
-        findElement(this.$projectControls, '.save-btn').addEventListener('click', () => {
-            this.save();
+        const $saveBtn = findElement(this.$projectControls, '.save-btn');
+        $saveBtn.addEventListener('click', () => {
+            const $form = parseTemplate(saveAsFormTmpl);
+            if (!($form instanceof HTMLFormElement)) {
+                throw new Error(`saveAsFormTmpl is misconfigured, no <form> element`);
+            }
+
+            const popover = new Popover({
+                content: $form,
+            });
+
+            popover.show($saveBtn);
+
+            const $filenameInput = findInput($form, 'input.filename-input');
+
+            // TODO set this to project name once that's actually a thing that can be renamed
+            const entropy = new Date().toISOString()
+                .replace(/T/, '_')
+                .replace(/\..*$/, '')
+                .replace(/\W/g, '')
+
+            const prefix = `antrax_${entropy}`;
+            $filenameInput.value = `${prefix}.json.gz`;
+
+            $filenameInput.focus();
+            $filenameInput.setSelectionRange(0, prefix.length);
+            $form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.save($filenameInput.value.trim());
+                popover.hide();
+            });
         });
 
         const $loadFileInput = findInput(this.$projectControls, '.load-btn input[type="file"]');
@@ -1079,25 +1124,27 @@ export class Editor {
         };
     }
 
-    public save(): void {
+    public save(filename?: string): void {
         const json = this.toJSON();
         const stringified = JSON.stringify(json);
-
         const blobStream = new Blob([ stringified ]).stream();
-
         const compressedStream = blobStream.pipeThrough(new CompressionStream('gzip'));
+
         new Response(compressedStream)
             .blob()
-            .then(blob => blob.arrayBuffer())
-            .then((buffer) => {
-                const bytes = new Uint8Array(buffer);
-                const base64 = window.btoa(String.fromCharCode(...bytes));
-                const filename = `antrax.json.gz`;
+            .then((blob) => {
                 const anchor = document.createElement('a');
-                anchor.download = filename;
-                anchor.href = 'data:application/gzip;base64,' + base64;
-                anchor.target = '_blank';
+                anchor.download = filename || `antrax.json.gz`;
+                anchor.href = URL.createObjectURL(blob);
                 anchor.click();
+            })
+            .catch((err) => {
+                let msg = hasMessage(err) ? ': ' + err.message : '';
+                Popover.toast({
+                    type: 'danger',
+                    title: 'Save failed',
+                    content: `Failed to generate downloadable gzip stream of JSON${msg}`,
+                });
             });
     }
 
