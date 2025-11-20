@@ -1,15 +1,23 @@
 import { nope } from './utils';
 
-const hasName = (instance: object): instance is { name: string } => typeof (instance as any).name === 'string' &&
-    (instance as any).name;
+interface HasName {
+    name: string;
+}
+
+interface HasNameGetter {
+    getName(): string;
+}
+
+const hasName = (instance: any): instance is HasName =>
+    !!instance &&
+    typeof instance.name === 'string' &&
+    !!instance.name;
 
 export class Logger {
-    public constructor(public readonly name: string) {
-    }
+    public constructor(private readonly instance: HasName | HasNameGetter) {}
 
-    public static from(instance: object): Logger {
-        const name = hasName(instance) ? instance.name : instance.constructor.name;
-        return new Logger(name);
+    public static from(instance: HasName | HasNameGetter): Logger {
+        return new Logger(instance);
     }
 
     private log(level: 'debug' | 'info' | 'warn' | 'error', ...objects: any[]): void {
@@ -21,9 +29,11 @@ export class Logger {
             case 'debug':
             case 'info':
             case 'warn':
-            case 'error':
-                console[level](`%c[${this.name}]`, `color: #666699`, ...objects);
+            case 'error': {
+                const name = hasName(this.instance) ? this.instance.name : this.instance.getName();
+                console[level](`%c[${name}]`, `color: #666699`, ...objects);
                 break;
+            }
             default:
                 nope(level);
                 break;
