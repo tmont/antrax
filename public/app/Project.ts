@@ -121,7 +121,7 @@ const editGroupTmpl = `
         <input class="group-name-input form-control" type="text" maxlength="50" minlength="1" required />
     </div>
     <div class="form-row">
-        <select class="palette-set-select form-control"></select>
+        <select class="group-palette-set-select form-control" disabled></select>
     </div>
     <div class="submit-container">
         <button type="submit" class="btn btn-primary">Save</button>
@@ -290,6 +290,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         const $groupName = findElement($group, '.group-name');
         const $input = findInput($editForm, '.group-name-input');
+        const $paletteSetSelect = findSelect($editForm, '.group-palette-set-select');
+
+        while ($paletteSetSelect.options.length) {
+            $paletteSetSelect.options.remove(0);
+        }
+
+        const paletteSets = [ canvas.group.getPaletteSet() ];
+        paletteSets.forEach((paletteSet) => {
+            const option = document.createElement('option');
+            option.value = paletteSet.id;
+            option.innerText = paletteSet.getName();
+            option.selected = paletteSet === canvas.group.getPaletteSet();
+            $paletteSetSelect.options.add(option);
+        });
 
         $editForm.addEventListener('submit', (e) => {
             e.preventDefault();
