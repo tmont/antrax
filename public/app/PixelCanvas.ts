@@ -1207,43 +1207,19 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.render();
     }
 
-    private get asmLabel(): string {
+    public get asmLabel(): string {
         return this.name.replace(/[^a-z0-9]/ig, '');
     }
 
-    public generateCode(options: CodeGenerationOptions): string {
+    public generateByteLineChunks(options: CodeGenerationOptions): string[][] {
         const indent = options.indentChar;
 
-        const code: string[] = [];
-        let addressOffset = 0;
-        let addressLabel = '';
-
-        if (hasAddressLabel(options)) {
-            addressLabel = options.addressLabel;
-        } else {
-            addressOffset = options.addressOffset || 0;
-        }
-
+        const lines: string[][] = [];
         const pixelData = this.pixelData.slice(0, this.height);
 
         for (let i = pixelData.length - 1; i >= 0; i--) {
             const row = pixelData[i]!.slice(0, this.width);
-            const coefficient = pixelData.length - i - 1;
-
-            const offset = addressOffset + (0x100 * coefficient);
-            const offsetFormatted = formatAssemblyNumber(offset, options.addressOffsetRadix);
-
-            const address = addressLabel ? `${addressLabel}${offset !== 0 ? ' + ' + offsetFormatted : ''}` : offsetFormatted;
-
-            const orgComment = options.commentLevel >= CodeGenerationDetailLevel.Some ? ` ; line ${i + 1}` : '';
-            code.push(`${indent}ORG ${address}${orgComment}`);
-            code.push('');
-
-            if (i === pixelData.length - 1) {
-                code.push(`${this.asmLabel}${options.labelColon ? ':' : ''}`);
-            } else if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
-                code.push(`; ${this.asmLabel}`);
-            }
+            const lineBytes: string[] = [];
 
             const bytes = this.displayMode.convertPixelsToBytes(row);
 
@@ -1260,13 +1236,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     ' ; ' + byteColors.map(label => label.join(',')).join(' ') :
                     '';
 
-                code.push(line + comment);
+                lineBytes.push(line + comment);
             });
 
-            code.push('');
+            lines.push(lineBytes);
         }
 
-        return code.join('\n');
+        return lines;
     }
 
     public generateHeaderCode(options: CodeGenerationOptions): string {
@@ -1304,6 +1280,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             headerSegments.push(`Width=${this.width}`);
             headerSegments.push(`Height=${this.height}`);
             headerSegments.push(`PixelsPerByte=${this.displayMode.pixelsPerByte}`);
+            headerSegments.push(`TotalSize=${widthInBytes * this.height}`);
 
             paletteExtra.push(`${indent}                └─┘└───┘`);
             paletteExtra.push(`${indent}    Palette ${paletteIndex} ───┘   ` +

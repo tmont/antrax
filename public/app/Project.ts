@@ -1,3 +1,4 @@
+import { CodeGenerator } from './CodeGenerator.ts';
 import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { Atari7800Color } from './colors.ts';
@@ -88,7 +89,10 @@ const objectGroupTmpl = `
 const groupOverflowTmpl = `
 <ul class="project-item-overflow list-unstyled dropdown-menu">
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
-    <li class="dropdown-item"><a href="#" data-action="export-asm" class="disabled"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-image" class="disabled"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-image" class="disabled"><i class="fa-solid fa-fw fa-film icon"></i>Export animation</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
 </ul>
@@ -330,11 +334,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     case 'delete':
                         this.removeGroup(canvas.group);
                         break;
+                    case 'export-asm':
+                        this.showExportASMModalForGroup(canvas.group);
+                        break;
                 }
             });
         });
 
         $overflowBtn.addEventListener('click', () => {
+            const canvases = this.getObjectsInGroup(canvas.group);
+
+            // disable "Export ASM" option if it's not supported by anything in the group
+            const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
+            $exportAsm.classList.toggle('disabled', !canvases.some(canvas => canvas.canExportToASM()));
+
             overflowPopover.show($overflowBtn);
         });
 
@@ -464,7 +477,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         this.exportCanvasToImage(canvas);
                         break;
                     case 'export-asm': {
-                        this.showExportASMModal(canvas);
+                        this.showExportASMModal([ canvas ]);
                         break;
                     }
                     case 'delete':
@@ -502,11 +515,34 @@ export class Project extends EventEmitter<ProjectEventMap> {
         }, 'full');
     }
 
-    public showExportASMModal(canvas?: PixelCanvas | null): void {
-        canvas = canvas || this.getActiveCanvas();
-        if (!canvas || !canvas.canExportToASM()) {
+    public showExportASMModalForGroup(group: ObjectGroup): void {
+        this.showExportASMModal(this.getObjectsInGroup(group));
+    }
+
+    /**
+     * @param canvases If omitted, defaults to the active canvas
+     */
+    public showExportASMModal(canvases?: PixelCanvas[]): void {
+        if (!canvases) {
+            const activeCanvas = this.getActiveCanvas();
+            if (!activeCanvas) {
+                return;
+            }
+
+            canvases = [ activeCanvas ];
+        }
+
+        canvases = canvases.filter(canvas => canvas.canExportToASM());
+        if (!canvases[0]) {
             return;
         }
+
+        const firstCanvas = canvases[0];
+
+        // can only export multiple canvases if they are all the same group (since each
+        // group can have a different palette set). this should not be possible to achieve
+        // using the UI.
+        canvases = canvases.filter(canvas => canvas.group === firstCanvas.group);
 
         const exportId = 'export';
         const content = findTemplateContent(document, '#modal-content-export-form');
@@ -569,13 +605,15 @@ export class Project extends EventEmitter<ProjectEventMap> {
             const genThunks: Array<() => string> = [];
 
             if ($exportHeaderInput.checked) {
-                genThunks.push(() => canvas?.generateHeaderCode(options));
+                canvases.forEach(canvas => genThunks.push(() => canvas.generateHeaderCode(options)));
             }
             if ($exportObjectInput.checked) {
-                genThunks.push(() => canvas?.generateCode(options));
+                genThunks.push(() => CodeGenerator.generate(canvases, options));
+                // canvases.forEach(canvas => genThunks.push(() => canvas.generateCode(options)));
             }
             if ($exportPalettesInput.checked) {
-                genThunks.push(() => canvas?.generatePalettesCode(options));
+                // only need to export one palette set, as all canvases share the same one
+                genThunks.push(() => firstCanvas.generatePalettesCode(options));
             }
 
             try {
@@ -614,9 +652,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 input.addEventListener('change', generateCode);
             });
 
+        const titleName = canvases.length === 1 ? firstCanvas.getName() : `all in ${firstCanvas.group.getName()}`;
+
         const exportModal = Modal.create({
             type: 'default',
-            title: `Export ${canvas.getName()}`,
+            title: `Export ${titleName}`,
             actions: [
                 'cancel',
                 {
