@@ -90,10 +90,10 @@ const objectGroupTmpl = `
 const groupOverflowTmpl = `
 <ul class="project-item-overflow list-unstyled dropdown-menu">
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
+    <li class="dropdown-item"><a href="#" data-action="animate"><i class="fa-solid fa-fw fa-film icon"></i>Animate&hellip;</a></li>
     <li class="dropdown-item divider"></li>
-    <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
     <li class="dropdown-item"><a href="#" data-action="export-images"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
-    <li class="dropdown-item"><a href="#" data-action="export-animation" class="disabled"><i class="fa-solid fa-fw fa-film icon"></i>Export animation</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
 </ul>
@@ -101,11 +101,11 @@ const groupOverflowTmpl = `
 
 const objectOverflowTmpl = `
 <ul class="project-item-overflow list-unstyled dropdown-menu">
-    <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit</a></li>
+    <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit&hellip;</a></li>
     <li class="dropdown-item"><a href="#" data-action="clone"><i class="fa-solid fa-fw fa-clone icon"></i>Clone</a></li>
     <li class="dropdown-item"><a href="#" data-action="clear"><i class="fa-solid fa-fw fa-eraser icon"></i>Clear</a></li>
     <li class="dropdown-item divider"></li>
-    <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
     <li class="dropdown-item"><a href="#" data-action="export-image"><i class="fa-solid fa-fw fa-image icon"></i>Export image</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
@@ -384,6 +384,85 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
                         break;
                     }
+                    case 'animate': {
+                        const objects = this.getObjectsInGroup(canvas.group);
+                        if (!objects[0]) {
+                            break;
+                        }
+
+                        // see comment above for why this is necessary
+                        objects.forEach(canvas => canvas.render());
+
+                        let currentFrame = 0;
+                        const content = findTemplateContent(document, '#modal-content-animate-form');
+                        const $el = content.cloneNode(true) as ParentNode;
+                        const $fpsInput = findInput($el, '#animate-fps');
+                        const $preview = findOrDie($el, 'canvas', node => node instanceof HTMLCanvasElement);
+                        const ctx = get2dContext($preview);
+
+                        const firstCanvas = objects[0];
+
+                        const maxSize = 480;
+                        const { width, height } = firstCanvas.getDisplayDimensions();
+                        const maxDimension = Math.max(width, height);
+
+                        const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
+
+                        $preview.width = width * scale;
+                        $preview.height = height * scale;
+
+                        this.logger.debug(`animation preview set to ${$preview.width}x${$preview.height} (scale=${scale})`);
+
+                        const drawFrame = () => {
+                            const canvas = objects[currentFrame];
+
+                            if (canvas) {
+                                ctx.clearRect(0, 0, $preview.width, $preview.height);
+                                ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), 0, 0, $preview.width, $preview.height);
+                                ctx.drawImage(canvas.getUnderlyingEditorCanvas(), 0, 0, $preview.width, $preview.height);
+                            }
+
+                            let fps = Number($fpsInput.value);
+                            if (isNaN(fps) || fps <= 0 || fps > 120) {
+                                fps = 30;
+                                $fpsInput.value = fps.toString();
+                            }
+
+                            currentFrame = (currentFrame + 1) % objects.length;
+                            const lastFrame = Date.now();
+                            const waitMs = (1 / fps) * 1000;
+
+                            const wait = () => {
+                                if (Date.now() - lastFrame >= waitMs) {
+                                    drawFrame();
+                                    return;
+                                }
+
+                                window.requestAnimationFrame(wait);
+                            };
+
+                            wait();
+                        };
+
+                        const modal = Modal.create({
+                            type: 'default',
+                            title: `Animate ${canvas.group.getName()}`,
+                            actions: 'ok',
+                            contentHtml: $el,
+                        });
+
+                        modal.show();
+
+                        modal.on('action', (action) => {
+                            if (action.id === '$ok') {
+                                modal.destroy();
+                            }
+                        });
+
+                        drawFrame();
+
+                        break;
+                    }
                 }
             });
         });
@@ -394,6 +473,13 @@ export class Project extends EventEmitter<ProjectEventMap> {
             // disable "Export ASM" option if it's not supported by anything in the group
             const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
             $exportAsm.classList.toggle('disabled', !canvases.some(canvas => canvas.canExportToASM()));
+
+            // disable "Export spritesheet" and "Animate" options if there are less than two objects
+            const $exportSpritesheet = findElement($overflowContent, '[data-action="export-images"]');
+            const $animate = findElement($overflowContent, '[data-action="animate"]');
+            [ $exportSpritesheet, $animate ].forEach(($el) => {
+                $el.classList.toggle('disabled', canvases.length < 2);
+            });
 
             overflowPopover.show($overflowBtn);
         });

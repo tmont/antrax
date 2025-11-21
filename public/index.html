@@ -355,6 +355,30 @@
             </div>
         </template>
 
+        <template id="modal-content-animate-form">
+            <div class="animate-form">
+                <table class="form">
+                    <tr>
+                        <th><label for="animate-fps">FPS:</label></th>
+                        <td>
+                            <input type="number"
+                                   class="form-control"
+                                   id="animate-fps"
+                                   value="3"
+                                   min="1"
+                                   max="30"
+                                   step="1"
+                                   autocomplete="off" />
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="animate-form-preview">
+                    <canvas></canvas>
+                </div>
+            </div>
+        </template>
+
         <script src="/app.js"></script>
     </body>
 </html>
