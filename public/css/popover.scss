@@ -25,10 +25,8 @@
         0 0 5px rgba(black, 0.35);
     background-color: config.$card-body-bg;
 
+    $arrow-size: 16px;
     .arrow {
-        $arrow-size: 16px;
-
-        content: "";
         position: absolute;
         top: -3px;
         height: $arrow-size;
@@ -39,6 +37,25 @@
         box-shadow: inherit;
         transform: translateX($arrow-size) rotate(45deg) translateX(-50%);
         z-index: -1;
+    }
+
+    &.up {
+        transform: translateX((-1.25 * config.$gutter)) translateY(-(config.$gutter));
+        .arrow {
+            top: auto;
+            bottom: -3px;
+            transform: translateX(6px) rotate(225deg) translateX(-50%);
+        }
+    }
+
+    &.right {
+        transform: translateX((1.25 * config.$gutter)) translateY(config.$gutter);
+        &.up {
+            transform: translateX((1.25 * config.$gutter)) translateY(-(config.$gutter));
+        }
+        .arrow {
+            transform: translateX(-3px) rotate(45deg) translateX(-50%);
+        }
     }
 
     &.toast {

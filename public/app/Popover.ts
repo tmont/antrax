@@ -110,16 +110,30 @@ export class Popover extends EventEmitter<PopoverEventMap> {
 
             if (!this.isToast) {
                 const position = $target?.getBoundingClientRect() || { left: 0, top: 0, height: 0, width: 0 };
-                this.$el.style.left = position.left + 'px';
-                this.$el.style.top = (position.top + position.height) + 'px';
+
+                const hangingOffBottomEdge =
+                    position.top + position.height + this.$el.offsetHeight >= window.innerHeight - 50;
+                const hangingOffRightEdge = position.left + this.$el.offsetWidth >= window.innerWidth - 50;
+                this.$el.classList.toggle('up', hangingOffBottomEdge);
+                this.$el.classList.toggle('right', hangingOffRightEdge);
+
+                this.$el.style.left = hangingOffRightEdge ?
+                    (position.left + position.width - this.$el.offsetWidth) + 'px' :
+                    position.left + 'px';
+                this.$el.style.top = hangingOffBottomEdge ?
+                    (position.top - this.$el.offsetHeight) + 'px' :
+                    (position.top + position.height) + 'px';
+
                 const $arrow = this.$el.querySelector('.arrow') as HTMLElement;
                 if ($arrow) {
                     switch (this.arrowAlign) {
                         case 'center':
-                            $arrow.style.left = (position.width / 2) + 'px';
+                            $arrow.style.left = hangingOffRightEdge ? 'auto' : (position.width / 2) + 'px';
+                            $arrow.style.right = hangingOffRightEdge ? (position.width / 2) + 'px' : 'auto';
                             break;
                         case 'left':
-                            $arrow.style.left = '1rem';
+                            $arrow.style.left = hangingOffRightEdge ? 'auto' : '1rem';
+                            $arrow.style.right = hangingOffRightEdge ? '1rem' : 'auto';
                             break;
                         default:
                             nope(this.arrowAlign);
