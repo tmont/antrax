@@ -149,6 +149,10 @@ export class Modal extends EventEmitter<ModalEventMap> {
         }
     }
 
+    public static isActive(): boolean {
+        return !!Modal.current;
+    }
+
     public show(): void {
         if (!this.isConnected) {
             document.body.appendChild(this.$el);
@@ -185,5 +189,6 @@ export class Modal extends EventEmitter<ModalEventMap> {
     public destroy(): void {
         this.hide();
         this.$el.remove();
+        Modal.current = null;
     }
 }

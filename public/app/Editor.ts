@@ -765,6 +765,10 @@ export class Editor {
                 return;
             }
 
+            if (Modal.isActive()) {
+                return;
+            }
+
             if (
                 (e.target instanceof HTMLInputElement && ignoredInputs[e.target.type]) ||
                 e.target instanceof HTMLTextAreaElement
