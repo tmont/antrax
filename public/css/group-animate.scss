@@ -1,6 +1,8 @@
 @use "./config";
 
 .animate-form {
+    flex: 1;
+
     .animate-form-preview {
         display: flex;
         justify-content: center;
