@@ -1,3 +1,21 @@
+## v0.0.18 (2025-11-20)
+- Groups
+    - Can edit group name
+    - Can export all objects together
+    - Can view animation of group's objects
+    - Can delete a group and all its objects
+    - Can export all of a group's objects as a combined spritesheet
+- Groups are now collapsible in the sidebar
+- Active object's palette is now highlighted in the header
+- Fixed active object palette info in sidebar not updating when palette changed
+- Removed trailing semicolon in ASM export
+- Disabled keyboard shortcuts while a modal is open
+- Dropdowns/popups now detect the edge of the screen and flip the opposite direction
+- Fixed corruption when loading data that had previously deleted objects in it. This
+  should be backward compatible, so loading a corrupted save should fix itself
+  automatically.
+- Updated favicon to MEEF
+
 ## v0.0.17 (2025-11-19)
 - Added detail level option to ASM export
 - Fixed color order (again) for `320B`
