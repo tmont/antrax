@@ -1001,6 +1001,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public setColorPalette(palette: ColorPalette): void {
         this.activeCanvas?.setColorPalette(palette);
+        this.updateActiveObjectInfo();
     }
 
     public setBackgroundColor(color: Atari7800Color): void {
