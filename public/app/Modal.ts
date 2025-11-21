@@ -1,5 +1,5 @@
 import { EventEmitter } from './EventEmitter.ts';
-import { findElement, findOrDie, nope, parseTemplate } from './utils.ts';
+import { findElement, nope, parseTemplate } from './utils.ts';
 
 export interface ModalActionObjectBase {
     id: string;
@@ -17,7 +17,7 @@ export interface ModalActionObjectText extends ModalActionObjectBase {
 
 export type ModalActionObject = ModalActionObjectHtml | ModalActionObjectText;
 
-export type ModalAction = 'ok' | 'cancel' | ModalActionObject;
+export type ModalAction = 'ok' | 'cancel' | 'close' | ModalActionObject;
 
 // noinspection SuspiciousTypeOfGuard
 const isModalActionHtml = (action: ModalActionObject): action is ModalActionObjectHtml =>
@@ -25,7 +25,7 @@ const isModalActionHtml = (action: ModalActionObject): action is ModalActionObje
 
 interface ModalOptionsBase {
     title: string;
-    actions?: 'ok' | 'ok/cancel' | ModalAction[];
+    actions?: 'ok' | 'close' | 'ok/cancel' | ModalAction[];
     type?: 'danger' | 'success' | 'default';
 }
 
@@ -96,10 +96,13 @@ export class Modal extends EventEmitter<ModalEventMap> {
 
         const okAction: ModalActionObject = { id: '$ok', labelText: 'OK', type: 'primary', align: 'end' };
         const cancelAction: ModalActionObject = { id: '$cancel', labelText: 'Cancel', type: 'secondary', align: 'start' };
+        const closeAction: ModalActionObject = { id: '$close', labelText: 'Close', type: 'primary', align: 'end' };
 
         const actions = !options.actions || options.actions === 'ok' ?
             [ okAction ]:
-            (options.actions === 'ok/cancel' ? [ cancelAction, okAction ] : options.actions);
+            (options.actions === 'ok/cancel' ? [ cancelAction, okAction ] :
+                (options.actions === 'close' ? [ closeAction ] : options.actions)
+            );
 
         const $startActions = findElement($footer, '.actions-start');
         const $endActions = findElement($footer, '.actions-end');
@@ -109,6 +112,8 @@ export class Modal extends EventEmitter<ModalEventMap> {
                 action = cancelAction;
             } else if (action === 'ok') {
                 action = okAction;
+            } else if (action === 'close') {
+                action = closeAction;
             }
 
             const $btn = document.createElement('button');
@@ -121,7 +126,7 @@ export class Modal extends EventEmitter<ModalEventMap> {
                 $btn.innerText = action.labelText;
             }
             $btn.addEventListener('click', () => {
-                if (action.id === '$cancel') {
+                if (action.id === '$cancel' || action.id === '$close') {
                     this.destroy();
                 }
 

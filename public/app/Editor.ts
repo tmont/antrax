@@ -1015,7 +1015,7 @@ export class Editor {
 
                 const modal = Modal.create({
                     contentHtml: infoContent.cloneNode(true),
-                    actions: 'ok',
+                    actions: 'close',
                     title: 'Info',
                     type: 'default',
                 });
@@ -1033,7 +1033,7 @@ export class Editor {
 
                 const modal = Modal.create({
                     contentHtml: changelogContent.cloneNode(true),
-                    actions: 'ok',
+                    actions: 'close',
                     title: 'Changelog',
                     type: 'default',
                 });

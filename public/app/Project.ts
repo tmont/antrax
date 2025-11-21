@@ -446,20 +446,16 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
                         const modal = Modal.create({
                             type: 'default',
-                            title: `Animate ${canvas.group.getName()}`,
-                            actions: 'ok',
+                            title: `Animating ${canvas.group.getName()}`,
+                            actions: 'close',
                             contentHtml: $el,
                         });
 
                         modal.show();
 
-                        modal.on('action', (action) => {
-                            if (action.id === '$ok') {
-                                modal.destroy();
-                            }
-                        });
-
                         drawFrame();
+
+                        $fpsInput.focus();
 
                         break;
                     }
