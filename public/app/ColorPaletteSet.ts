@@ -107,6 +107,16 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         return this.name;
     }
 
+    public containsPalette(palette: ColorPalette): boolean {
+        return this.palettes.indexOf(palette) !== -1;
+    }
+
+    public setActivePalette(palette: ColorPalette | null): void {
+        this.palettes.forEach((p) => {
+            p.setActiveState(p === palette);
+        });
+    }
+
     public init(): void {
         if (this.initialized) {
             return;

@@ -341,6 +341,9 @@ export class Editor {
         $paletteSelect.disabled = displayMode.name === 'none';
 
         this.updateCanvasSidebarColors();
+        this.settings.activeColorPaletteSet.setActivePalette(
+            displayMode.hasSinglePalette ? canvas.getColorPalette() : null,
+        );
 
         this.$kangarooModeInput.disabled = !canvas.supportsKangarooMode();
 
@@ -448,6 +451,8 @@ export class Editor {
 
         // update color list
         this.updateCanvasSidebarColors();
+
+        this.settings.activeColorPaletteSet.setActivePalette(canvas.getDisplayMode().hasSinglePalette ? palette : null);
     }
 
     private onCanvasDimensionsChanged(canvas: PixelCanvas): void {

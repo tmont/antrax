@@ -87,6 +87,11 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
         });
     }
 
+    public setActivePalette(palette: ColorPalette): void {
+        const set = this.paletteSets.find(set => set.containsPalette(palette));
+        set?.setActivePalette(palette);
+    }
+
     public toJSON(): ColorPaletteSetCollectionSerialized {
         return {
             paletteSets: this.paletteSets.map(set => set.toJSON()),

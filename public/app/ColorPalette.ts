@@ -110,6 +110,10 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         this.initialized = true;
     }
 
+    public setActiveState(isActive: boolean): void {
+        this.$el?.classList.toggle('active', isActive);
+    }
+
     public updateColors(): void {
         const $el = this.$el;
         if (!$el) {
