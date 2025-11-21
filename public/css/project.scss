@@ -90,6 +90,9 @@
         position: relative;
         border-top-left-radius: 3px;
         border-bottom-left-radius: 3px;
+        cursor: pointer;
+
+        $thumbnail-width: 1.25rem;
 
         &:hover {
             &:not(&.active) {
@@ -100,14 +103,7 @@
         &.active {
             background-color: config.$canvas-sidebar-bg;
             border-color: config.$border-color;
-
-            a {
-                cursor: default;
-            }
-
-            .object-info {
-                display: flex;
-            }
+            cursor: default;
 
             .item-name {
                 color: config.$primary-color;
@@ -116,15 +112,34 @@
         }
 
         .object-info {
-            display: none;
-            flex-direction: column;
+            display: flex;
+            align-items: center;
             gap: config.$gutter-eighth;
-            font-size: 80%;
+            overflow: hidden;
+
+            .drag-handle {
+                flex-basis: $thumbnail-width;
+                flex-grow: 0;
+                flex-shrink: 0;
+                opacity: 0.75;
+                cursor: move;
+                transition: opacity linear 100ms;
+                &:hover {
+                    opacity: 1;
+                }
+            }
 
             .object-details {
+                flex: 1;
                 display: flex;
-                gap: config.$gutter-half;
-                margin: 0 auto;
+                justify-content: space-between;
+                gap: config.$gutter-quarter;
+                font-size: 80%;
+            }
+
+            .display-mode-details {
+                display: flex;
+                gap: config.$gutter-quarter;
             }
 
             .canvas-palette-details {
@@ -140,8 +155,8 @@
         }
 
         .object-thumbnail {
-            width: 1.25rem;
-            height: 1.25rem;
+            width: $thumbnail-width;
+            height: $thumbnail-width;
             object-fit: contain;
             display: block;
         }

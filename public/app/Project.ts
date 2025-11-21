@@ -41,7 +41,7 @@ const objectItemTmpl = `
 <div class="project-item">
     <div class="project-list-item">
         <img alt="" class="object-thumbnail" src="${emptyGif}" />
-        <a href="#" class="item-name clamp-1"></a>
+        <div class="item-name clamp-1"></div>
         <div class="item-controls">
             <button type="button" class="btn btn-sm btn-success clone-object-btn" title="Clone object in same group">
                 <i class="fa-solid fa-clone"></i>
@@ -52,18 +52,16 @@ const objectItemTmpl = `
         </div>
     </div>
     <div class="object-info">
+        <i class="icon fa-solid fa-grip drag-handle disabled" title="re-order this object"></i>
         <div class="object-details">
-            <div>
-                <span class="canvas-size"></span>
-                <span class="text-muted">/</span>
-                <span class="pixel-size"></span>
-            </div>
-            <span>&middot;</span>
-            <div class="display-mode-name"></div>
-            <span>&middot;</span>
-            <div class="canvas-palette-details">
-                <div class="palette-name"></div>
-                <div class="palette-color-list"></div>
+            <span class="canvas-size"></span>
+            <div class="display-mode-details">
+                <div class="display-mode-name"></div>
+                <span class="text-muted">&middot;</span>
+                <div class="canvas-palette-details">
+                    <div class="palette-name"></div>
+                    <div class="palette-color-list"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -540,8 +538,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const newItem = parseTemplate(objectItemTmpl);
         const parent = findElement(this.$container, `.project-objects`);
 
-        findElement(newItem, '.item-name').addEventListener('click', (e) => {
-            e.preventDefault();
+        newItem.addEventListener('click', (e) => {
+            if (e.target instanceof HTMLElement && e.target.closest('button')) {
+                // if they click inside one of the buttons, let that event take precedence
+                return;
+            }
+
             this.activateCanvas(canvas);
         });
 
@@ -904,19 +906,19 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateActiveThumbnail();
 
         const { width, height } = canvas.getDimensions();
-        const { width: pixelWidth, height: pixelHeight } = canvas.getPixelDimensions();
 
         findElement($el, '.canvas-size').innerText = `${width}×${height}`;
-        findElement($el, '.pixel-size').innerText = `${pixelWidth}×${pixelHeight}`;
 
         const displayMode = canvas.getDisplayMode();
         findElement($el, '.display-mode-name').innerText = displayMode.name;
 
         const $paletteName = findElement($el, '.palette-name');
         const $colorList = findElement($el, '.palette-color-list');
+        const $displayModeDetails = findElement($el, '.display-mode-details');
         $colorList.innerHTML = '';
 
         if (displayMode.hasSinglePalette) {
+            $displayModeDetails.style.display = '';
             $paletteName.innerText = canvas.getColorPalette().name;
 
             canvas.getColorPalette().colors.forEach((color) => {
@@ -926,8 +928,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 $colorList.appendChild($swatch);
             });
         } else {
-            $colorList.innerText = 'n/a';
             $paletteName.innerHTML = '';
+            $displayModeDetails.style.display = 'none';
         }
     }
 
