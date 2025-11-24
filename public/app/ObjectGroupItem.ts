@@ -54,7 +54,7 @@ const objectOverflowTmpl = `
     <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
     <li class="dropdown-item"><a href="#" data-action="export-image"><i class="fa-solid fa-fw fa-image icon"></i>Export image</a></li>
     <li class="dropdown-item divider"></li>
-    <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete</a></li>
+    <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete&hellip;</a></li>
 </ul>
 `;
 
