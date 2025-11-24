@@ -499,6 +499,8 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                         this.logger.debug(`animation preview set to ${$preview.width}x${$preview.height} (scale=${scale})`);
 
+                        const maxFPS = Number($fpsInput.max) || 30;
+                        const minFPS = Number($fpsInput.min) || 1;
                         const drawFrame = () => {
                             const canvas = canvases[currentFrame];
 
@@ -508,12 +510,9 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                                 ctx.drawImage(canvas.getUnderlyingEditorCanvas(), 0, 0, $preview.width, $preview.height);
                             }
 
-                            let fps = Number($fpsInput.value);
-                            const maxFPS = 30;
-                            if (isNaN(fps) || fps <= 0 || fps > maxFPS) {
-                                fps = maxFPS;
-                                $fpsInput.value = fps.toString();
-                            }
+                            let fps = Number($fpsInput.value) || 0;
+                            fps = Math.min(maxFPS, Math.max(minFPS, fps));
+                            $fpsInput.value = fps.toString();
 
                             currentFrame = (currentFrame + 1) % canvases.length;
                             const lastFrame = Date.now();
