@@ -743,10 +743,18 @@ export class Editor {
             this.$canvasArea.style.top = (canvasTop - deltaY) + 'px';
         };
 
+        let lastWheelEvent = 0;
         canvasContainer.addEventListener('wheel', (e) => {
             if (e.deltaY === 0) {
                 return;
             }
+
+            // some kinda hacky heuristics to handle scrolling inertia
+            if (Date.now() - lastWheelEvent < 75 && Math.abs(e.deltaY) < 40) {
+                return;
+            }
+
+            lastWheelEvent = Date.now();
 
             const dir = e.deltaY < 0 ? 1 : -1;
 
