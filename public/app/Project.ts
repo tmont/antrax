@@ -83,6 +83,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.logger = Logger.from(this);
     }
 
+    private get eventNamespace(): string {
+        return 'project';
+    }
+
     private get canvases(): Readonly<PixelCanvas[]> {
         return this.groups.reduce((canvases, group) => canvases.concat(group.getCanvases()), [] as PixelCanvas[]);
     }
@@ -114,9 +118,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateNameUI();
         this.updateAllThumbnails();
 
-        // TODO remove _only_ this event listener on destroy
-        GlobalEvents.instance.off();
-        GlobalEvents.instance.on('draggable_reorder', (e) => {
+        GlobalEvents.instance.on(`draggable_reorder.${this.eventNamespace}`, (e) => {
             const { $item: $element, type } = e;
             if (type !== 'object-group') {
                 return;
@@ -173,6 +175,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     public destroy(): void {
         this.activeItem = null;
         this.groups.forEach(group => group.destroy());
+        GlobalEvents.instance.off(`*.${this.eventNamespace}`);
     }
 
     public getActiveCanvas(): PixelCanvas | null {

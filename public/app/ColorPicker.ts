@@ -92,7 +92,7 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
             content: $el,
         });
 
-        this.popover.bubble('hide', this);
+        this.popover.on('hide', () => this.emit('hide'));
     }
 
     public hide(): void {
