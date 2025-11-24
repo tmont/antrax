@@ -781,51 +781,56 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.eventMap.push([ target, name, listener ]);
     }
 
-    private generateURLTimeoutId: number | null = null;
-
     public generateDataURL(callback: (url: string | null) => void, size: GeneratedImageSize = 'thumbnail'): void {
-        if (this.generateURLTimeoutId) {
-            window.clearTimeout(this.generateURLTimeoutId);
-            this.generateURLTimeoutId = null;
+        const $canvas = document.createElement('canvas');
+
+        $canvas.width = this.$el.width;
+        $canvas.height = this.$el.height;
+
+        let scaleFactor = 1;
+        if (size === 'thumbnail') {
+            const maxSize = 128;
+            const maxLength = Math.max(this.$el.width, this.$el.height);
+            scaleFactor = Math.min(1, maxSize / maxLength);
         }
 
-        this.generateURLTimeoutId = window.setTimeout(() => {
-            const $canvas = document.createElement('canvas');
+        $canvas.width = Math.round(scaleFactor * this.$el.width);
+        $canvas.height = Math.round(scaleFactor * this.$el.height);
 
-            $canvas.width = this.$el.width;
-            $canvas.height = this.$el.height;
+        const ctx = $canvas.getContext('2d');
+        if (!ctx) {
+            callback(null);
+            return;
+        }
 
-            let scaleFactor = 1;
-            if (size === 'thumbnail') {
-                const maxSize = 128;
-                const maxLength = Math.max(this.$el.width, this.$el.height);
-                scaleFactor = Math.min(1, maxSize / maxLength);
-            }
+        this.logger.debug('generating image of canvas');
+        const start = Date.now();
+        ctx.drawImage(this.$bgEl, 0, 0, $canvas.width, $canvas.height);
+        ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
 
-            $canvas.width = Math.round(scaleFactor * this.$el.width);
-            $canvas.height = Math.round(scaleFactor * this.$el.height);
-
-            const ctx = $canvas.getContext('2d');
-            if (!ctx) {
+        $canvas.toBlob((blob) => {
+            if (!blob) {
                 callback(null);
                 return;
             }
 
-            this.logger.debug('generating image of canvas');
-            const start = Date.now();
-            ctx.drawImage(this.$bgEl, 0, 0, $canvas.width, $canvas.height);
-            ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
+            this.logger.debug(`image generated in ${Date.now() - start}ms`);
+            callback(URL.createObjectURL(blob));
+        }, 'image/png');
+    }
 
-            $canvas.toBlob((blob) => {
-                if (!blob) {
-                    callback(null);
-                    return;
-                }
+    public copyImageToCanvas($canvas: HTMLCanvasElement, maxSize: number = Infinity): void {
+        const width = this.displayWidth;
+        const height = this.displayHeight;
+        const maxDimension = Math.max(width, height);
+        const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
 
-                this.logger.debug(`image generated in ${Date.now() - start}ms`);
-                callback(URL.createObjectURL(blob));
-            }, 'image/png');
-        }, 50);
+        $canvas.width = width * scale;
+        $canvas.height = height * scale;
+
+        const ctx = get2dContext($canvas);
+        ctx.drawImage(this.$bgEl, 0, 0, $canvas.width, $canvas.height);
+        ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
     }
 
     private setDrawState(newState: PixelCanvasDrawState): void {

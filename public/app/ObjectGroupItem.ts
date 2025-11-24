@@ -7,17 +7,16 @@ import type { ObjectGroup } from './ObjectGroup.ts';
 import { PixelCanvas, type PixelCanvasSerialized } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
-    emptyGif,
     findElement,
-    findImage,
     findInput,
-    parseTemplate,
+    findOrDie,
+    parseTemplate
 } from './utils.ts';
 
 const objectItemTmpl = `
 <div class="project-item" data-drag-item="object-group">
     <div class="project-list-item">
-        <img alt="" class="object-thumbnail" src="${emptyGif}" />
+        <canvas class="object-thumbnail" width="32" height="32"></canvas>
         <div class="item-name clamp-1"></div>
         <div class="item-controls">
             <button type="button" class="btn btn-sm btn-success clone-object-btn" title="Clone object in same group">
@@ -94,6 +93,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
     private readonly logger: Logger;
     private $container: HTMLElement;
     private readonly $el: HTMLElement;
+    private readonly $thumbnail: HTMLCanvasElement;
     private initialized = false;
 
     public constructor(options: ObjectGroupItemOptions) {
@@ -103,6 +103,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         this.$container = options.mountEl;
         this.$el = parseTemplate(objectItemTmpl);
         this.$el.setAttribute('data-item-id', this.id);
+        this.$thumbnail = findOrDie(this.$el, '.object-thumbnail', node => node instanceof HTMLCanvasElement);
 
         this.logger = Logger.from(this);
     }
@@ -272,9 +273,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
     }
 
     public updateThumbnail(): void {
-        this.canvas.generateDataURL((url) => {
-            findImage(this.$el, `.object-thumbnail`).src = url || emptyGif;
-        });
+        this.canvas.copyImageToCanvas(this.$thumbnail, 20);
     }
 
     public updateObjectInfo(): void {

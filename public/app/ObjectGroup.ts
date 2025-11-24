@@ -482,18 +482,9 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         $objectList.innerHTML = '';
                         $objectList.style.maxWidth = `${$preview.width}px`;
                         canvases.forEach((canvas, i) => {
-                            const maxSize = 48;
-                            const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
-
                             const $canvas = document.createElement('canvas');
-                            $canvas.width = width * scale;
-                            $canvas.height = height * scale;
                             $canvas.setAttribute('title', `[${i}] ${canvas.getName()}`);
-
-                            const ctx = get2dContext($canvas);
-                            ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), 0, 0, $canvas.width, $canvas.height);
-                            ctx.drawImage(canvas.getUnderlyingEditorCanvas(), 0, 0, $canvas.width, $canvas.height);
-
+                            canvas.copyImageToCanvas($canvas, 48);
                             $objectList.appendChild($canvas);
                         });
 
