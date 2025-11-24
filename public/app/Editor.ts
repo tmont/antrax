@@ -227,6 +227,10 @@ export class Editor {
                 this.onCanvasDimensionsChanged(activeCanvas);
                 this.onDisplayModeChanged(activeCanvas);
                 this.onCanvasPaletteChanged(activeCanvas);
+
+                // among other things, this helps cloned items have an initial undo state that
+                // is not blank
+                pushUndoItem(activeCanvas);
             }
 
             this.syncDisplayModeControl();
@@ -261,8 +265,9 @@ export class Editor {
         this.project.on('pixel_hover', (coordinate) => {
             this.$canvasCoordinates.innerText = `${coordinate.x},${coordinate.y}`;
         });
-        this.project.on('canvas_reset', () => {
+        this.project.on('canvas_reset', (canvas) => {
             this.syncDisplayModeControl(false);
+            pushUndoItem(canvas);
         });
         this.project.on('draw_start', (canvas) => {
             pushUndoItem(canvas);
