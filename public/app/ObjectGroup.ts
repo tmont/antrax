@@ -7,7 +7,7 @@ import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroupItem, type ObjectGroupItemOptions, type ObjectGroupItemSerialized } from './ObjectGroupItem.ts';
-import type { PixelCanvas } from './PixelCanvas.ts';
+import { PixelCanvas } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
     findElement,
@@ -56,6 +56,7 @@ const objectGroupTmpl = `
 const groupOverflowTmpl = `
 <ul class="project-item-overflow list-unstyled dropdown-menu">
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit&hellip;</a></li>
+    <li class="dropdown-item"><a href="#" data-action="add"><i class="fa-solid fa-fw fa-add icon"></i>Object</a></li>
     <li class="dropdown-item"><a href="#" data-action="animate"><i class="fa-solid fa-fw fa-film icon"></i>Animate&hellip;</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
@@ -80,6 +81,7 @@ const editGroupTmpl = `
 `;
 
 export type ObjectGroupEventMap = {
+    action_add: [];
     action_export_asm: [ Readonly<ObjectGroupItem[]> ];
     name_change: [];
     item_activate: [ ObjectGroupItem ];
@@ -392,9 +394,12 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                 const action = anchor.getAttribute('data-action');
                 switch (action) {
                     case 'edit':
-                        $input.value = this.name
+                        $input.value = this.name;
                         editPopover.show($groupName);
                         $input.focus();
+                        break;
+                    case 'add':
+                        this.emit('action_add');
                         break;
                     case 'delete': {
                         const count = this.items.length;

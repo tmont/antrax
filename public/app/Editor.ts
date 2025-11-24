@@ -5,7 +5,7 @@ import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
-import { PixelCanvas, type PixelDrawingBehavior } from './PixelCanvas.ts';
+import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
@@ -300,6 +300,12 @@ export class Editor {
             }
 
             this.setGroupName(activeCanvas.getGroup());
+        });
+        this.project.on('group_action_add', (group) => {
+            this.project?.createObject({
+                ...this.getDefaultCanvasOptions(),
+                group,
+            });
         });
     }
 
@@ -604,26 +610,11 @@ export class Editor {
 
         this.$el.querySelectorAll('.new-object-btn').forEach((newObjBtn) => {
             newObjBtn.addEventListener('click', () => {
-                const defaultColorPalette = this.settings.activeColorPaletteSet.getPalettes()[0];
-                if (!defaultColorPalette) {
-                    throw new Error(`Could not find default color palette in ` +
-                        `ColorPaletteSet{${this.settings.activeColorPaletteSet.id}}`);
-                }
-
                 if (!this.project) {
                     return;
                 }
 
-                this.project.createObjectInNewGroup({
-                    mountEl: this.$canvasArea,
-                    width: 16,
-                    height: 16,
-                    pixelHeight: 8,
-                    pixelWidth: 8,
-                    editorSettings: this.settings,
-                    displayMode: DisplayMode.ModeNone,
-                    palette: defaultColorPalette,
-                });
+                this.project.createObjectInNewGroup(this.getDefaultCanvasOptions());
             });
         });
 
@@ -1154,6 +1145,18 @@ export class Editor {
 
         this.logger.debug(`applying checkpoint[${undoContext.current}] to canvas ${canvas.id}`);
         this.project?.applyCheckpoint(canvas, checkpoint);
+    }
+
+    private getDefaultCanvasOptions(): Omit<CanvasOptions, 'group' | 'palette'> {
+        return {
+            mountEl: this.$canvasArea,
+            width: 16,
+            height: 16,
+            pixelHeight: 8,
+            pixelWidth: 8,
+            editorSettings: this.settings,
+            displayMode: DisplayMode.ModeNone,
+        };
     }
 
     public toJSON(): EditorSerialized {

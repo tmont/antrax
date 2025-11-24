@@ -59,6 +59,7 @@ export type ProjectEventMap = {
     canvas_palette_change: [ PixelCanvas ];
     canvas_active_color_change: [ PixelCanvas ];
     canvas_group_change: [ PixelCanvas ];
+    group_action_add: [ ObjectGroup ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -393,6 +394,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
             }
         });
 
+        group.on('action_add', () => {
+            this.emit('group_action_add', group);
+        });
+
         group.on('action_export_asm', (items) => {
             this.showExportASMModal(items.map(item => item.canvas));
         });
@@ -413,11 +418,26 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
     }
 
-    public createObjectInNewGroup(options: Omit<CanvasOptions, 'group'>): ObjectGroupItem {
+    public createObjectInNewGroup(options: Omit<CanvasOptions, 'group' | 'palette'>): ObjectGroupItem {
         const group = this.addGroup();
-        const canvas = new PixelCanvas({
+
+        return this.createObject({
             ...options,
             group,
+        });
+    }
+
+    public createObject(options: Omit<CanvasOptions, 'palette'>): ObjectGroupItem {
+        const group = options.group;
+        const defaultColorPalette = group.getPaletteSet().getPalettes()[0];
+        if (!defaultColorPalette) {
+            throw new Error(`Could not find default color palette in ` +
+                `ColorPaletteSet{${group.getPaletteSet().id}}`);
+        }
+
+        const canvas = new PixelCanvas({
+            ...options,
+            palette: defaultColorPalette,
         });
 
         const item = group.createItem({
