@@ -83,6 +83,7 @@ type PixelCanvasEventMap = {
     palette_change: [];
     active_color_change: [ DisplayModeColorIndex ];
     group_change: [];
+    name_change: [];
 };
 
 export interface PixelCanvasSerialized {
@@ -1209,7 +1210,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public setName(newName: string): void {
+        if (this.name === newName) {
+            return;
+        }
+
         this.name = newName;
+        this.emit('name_change');
     }
 
     public setPixelData(pixelData: PixelInfo[][]): void {

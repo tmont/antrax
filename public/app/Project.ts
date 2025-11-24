@@ -405,6 +405,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.wireUpCanvas(e.cloned.canvas);
             this.activateItem(e.cloned);
         });
+
+        group.on('name_change', () => {
+            if (group === this.activeGroup) {
+                this.emit('active_group_name_change', group);
+            }
+        });
     }
 
     public createObjectInNewGroup(options: Omit<CanvasOptions, 'group'>): ObjectGroupItem {
@@ -464,6 +470,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
         canvas.on('group_change', () => {
             this.emit('canvas_group_change', canvas);
+        });
+        canvas.on('name_change', () => {
+            if (this.activeCanvas === canvas) {
+                this.emit('active_object_name_change', canvas);
+            }
         });
     }
 
