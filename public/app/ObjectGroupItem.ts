@@ -3,6 +3,7 @@ import type { EditorSettings } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
+import { Modal } from './Modal.ts';
 import type { ObjectGroup } from './ObjectGroup.ts';
 import { PixelCanvas, type PixelCanvasSerialized } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
@@ -230,9 +231,18 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
                     case 'export-asm':
                         this.emit('action_export_asm');
                         break;
-                    case 'delete':
-                        this.delete();
+                    case 'delete': {
+                        const modal = Modal.confirm(
+                            {
+                                title: `Delete ${this.canvas.getName()}`,
+                                contentText: `Are you sure you want to delete this object? This cannot be undone.`,
+                            },
+                            () => this.delete(),
+                        );
+
+                        modal.show();
                         break;
+                    }
                 }
 
                 overflowPopover.hide();

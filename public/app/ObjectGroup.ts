@@ -256,7 +256,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
             return false;
         }
         this.items.splice(index, 1);
-        this.logger.debug(`removed item: ${this.items.map(item => item.id).join(',')}`);
+        this.logger.info(`removed ${item.name} at index ${index}`);
         return true;
     }
 
@@ -396,9 +396,21 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         editPopover.show($groupName);
                         $input.focus();
                         break;
-                    case 'delete':
-                        this.delete();
+                    case 'delete': {
+                        const count = this.items.length;
+                        const modal = Modal.confirm(
+                            {
+                                title: `Delete ${this.name}`,
+                                contentText: `Are you sure you want to delete this group` +
+                                    (count === 1 ? ' and 1 object' : (count === 0 ? '' : ' and ' + count + ' objects')) +
+                                    `? This cannot be undone.`,
+                            },
+                            () => this.delete(),
+                        );
+
+                        modal.show();
                         break;
+                    }
                     case 'export-asm':
                         this.emit('action_export_asm', this.items);
                         break;

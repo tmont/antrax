@@ -84,6 +84,28 @@ export class Modal extends EventEmitter<ModalEventMap> {
         return modal;
     }
 
+    public static confirm(options: Omit<Partial<ModalOptionsText>, 'actions'>, onConfirmed: () => void): Modal {
+        const modal = this.create({
+            title: options.title || 'Are you sure?',
+            type: options.type || 'danger',
+            contentText: options.contentText || 'Are you sure you want to do this?',
+            actions: [
+                { align: 'end', id: '$cancel', labelText: 'Never mind', type: 'secondary' },
+                { align: 'end', id: 'yes', labelText: 'Yes', type: 'danger' },
+            ],
+        });
+
+        modal.on('action', (action) => {
+            if (action.id === 'yes') {
+                onConfirmed();
+            }
+
+            modal.destroy();
+        });
+
+        return modal;
+    }
+
     private constructor(options: ModalOptions) {
         super();
         this.$el = parseTemplate(tmpl);
@@ -91,6 +113,19 @@ export class Modal extends EventEmitter<ModalEventMap> {
         const $title = findElement(this.$el, '.modal-title');
         const $body = findElement(this.$el, '.modal-body');
         const $footer = findElement(this.$el, '.modal-footer');
+
+        switch (options.type) {
+            case 'danger':
+            case 'success':
+                this.$el.classList.add(`modal-${options.type}`);
+                break;
+            case 'default':
+            case undefined:
+                break;
+            default:
+                nope(options.type);
+                break;
+        }
 
         $title.innerText = options.title;
 

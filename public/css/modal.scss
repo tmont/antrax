@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "./config";
 
 $modal-z-index: config.$z-index-modal-overlay;
@@ -30,27 +31,36 @@ $modal-z-index: config.$z-index-modal-overlay;
     $modal-padding-x: config.$gutter;
     $modal-padding-y: config.$gutter-half;
 
+    &.modal-danger {
+        .modal-title {
+            background-color: config.$danger-bg;
+        }
+
+        .modal-title {
+            border-color: config.$danger-border;
+        }
+    }
+
     .modal-title, .modal-footer {
         padding: $modal-padding-y $modal-padding-x;
+        background-color: config.$accent-bg;
     }
 
     .modal-title {
         font-weight: bold;
         font-size: 1.25rem;
-        background-color: config.$accent-bg;
         border-bottom: 2px solid config.$border-color;
         text-shadow: 1px 1px 1px black;
     }
 
     .modal-footer {
-        background-color: config.$accent-bg;
         border-top: 2px solid config.$border-color;
         display: flex;
         justify-content: space-between;
 
         .actions-container {
             display: flex;
-            gap: config.$gutter-eighth;
+            gap: config.$gutter-half;
             align-items: center;
         }
     }
