@@ -452,13 +452,13 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         break;
                     }
                     case 'animate': {
-                        const objects = this.items.map(item => item.canvas);
-                        if (!objects[0]) {
+                        const canvases = this.items.map(item => item.canvas);
+                        if (!canvases[0]) {
                             break;
                         }
 
                         // see comment above for why this is necessary
-                        objects.forEach(canvas => canvas.render());
+                        canvases.forEach(canvas => canvas.render());
 
                         let currentFrame = 0;
                         const content = findTemplateContent(document, '#modal-content-animate-form');
@@ -467,7 +467,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         const $preview = findOrDie($el, 'canvas', node => node instanceof HTMLCanvasElement);
                         const ctx = get2dContext($preview);
 
-                        const firstCanvas = objects[0];
+                        const firstCanvas = canvases[0];
 
                         const maxSize = 480;
                         const { width, height } = firstCanvas.getDisplayDimensions();
@@ -478,10 +478,29 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         $preview.width = width * scale;
                         $preview.height = height * scale;
 
+                        const $objectList = findElement($el, '.animate-form-object-list');
+                        $objectList.innerHTML = '';
+                        $objectList.style.maxWidth = `${$preview.width}px`;
+                        canvases.forEach((canvas, i) => {
+                            const maxSize = 48;
+                            const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
+
+                            const $canvas = document.createElement('canvas');
+                            $canvas.width = width * scale;
+                            $canvas.height = height * scale;
+                            $canvas.setAttribute('title', `[${i}] ${canvas.getName()}`);
+
+                            const ctx = get2dContext($canvas);
+                            ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), 0, 0, $canvas.width, $canvas.height);
+                            ctx.drawImage(canvas.getUnderlyingEditorCanvas(), 0, 0, $canvas.width, $canvas.height);
+
+                            $objectList.appendChild($canvas);
+                        });
+
                         this.logger.debug(`animation preview set to ${$preview.width}x${$preview.height} (scale=${scale})`);
 
                         const drawFrame = () => {
-                            const canvas = objects[currentFrame];
+                            const canvas = canvases[currentFrame];
 
                             if (canvas) {
                                 ctx.clearRect(0, 0, $preview.width, $preview.height);
@@ -490,12 +509,13 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                             }
 
                             let fps = Number($fpsInput.value);
-                            if (isNaN(fps) || fps <= 0 || fps > 120) {
-                                fps = 30;
+                            const maxFPS = 30;
+                            if (isNaN(fps) || fps <= 0 || fps > maxFPS) {
+                                fps = maxFPS;
                                 $fpsInput.value = fps.toString();
                             }
 
-                            currentFrame = (currentFrame + 1) % objects.length;
+                            currentFrame = (currentFrame + 1) % canvases.length;
                             const lastFrame = Date.now();
                             const waitMs = (1 / fps) * 1000;
 
