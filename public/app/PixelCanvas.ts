@@ -23,7 +23,7 @@ import {
     isPaletteIndex,
     nope,
     type PixelInfo,
-    type PixelInfoSerialized,
+    type PixelInfoSerialized
 } from './utils.ts';
 
 export interface CanvasOptions extends Dimensions {
@@ -1256,7 +1256,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const lines: string[][] = [];
         const pixelData = this.pixelData.slice(0, this.height);
 
-        for (let i = pixelData.length - 1; i >= 0; i--) {
+        if (options.padToHeight && isFinite(options.padToHeight)) {
+            // add empty rows to the bottom to make up for the remaining height
+            while (pixelData.length < options.padToHeight) {
+                pixelData.push(new Array(this.width).fill({ modeColorIndex: null }));
+            }
+        }
+
+        for (let i = 0; i < pixelData.length; i++) {
             const row = pixelData[i]!.slice(0, this.width);
             const lineBytes: string[] = [];
 
@@ -1268,13 +1275,21 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 pixelColors = row.map(pixel => colorLabels[pixel.modeColorIndex || 0] || [ `[${pixel.modeColorIndex}]?` ]);
             }
 
-            bytes.forEach((byte, i) => {
+            bytes.forEach((byte, byteIndex) => {
                 let line = `${indent}.byte ${formatAssemblyNumber(byte, options.byteRadix)}`;
-                const byteColors = pixelColors.slice(i * this.displayMode.pixelsPerByte, (i + 1) * this.displayMode.pixelsPerByte);
-                let comment = options.commentLevel >= CodeGenerationDetailLevel.Lots ?
-                    ' ; ' + byteColors.map(label => label.join(',')).join(' ') :
-                    '';
+                const byteColors = pixelColors.slice(byteIndex * this.displayMode.pixelsPerByte, (byteIndex + 1) * this.displayMode.pixelsPerByte);
+                let comment = '';
+                if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
+                    if (options.commentLevel >= CodeGenerationDetailLevel.Lots) {
+                        comment += byteColors.map(label => label.join(',')).join(' ');
+                    }
 
+                    if (i >= this.height) {
+                        comment += ' (padded)';
+                    }
+                }
+
+                comment = comment ? ' ; ' + comment : '';
                 lineBytes.push(line + comment);
             });
 

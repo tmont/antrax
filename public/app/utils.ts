@@ -146,6 +146,7 @@ export interface CodeGenerationOptionsBase {
     object: boolean;
     header: boolean;
     commentLevel: ValueOf<typeof CodeGenerationDetailLevel>;
+    padToHeight?: number;
 }
 
 export interface CodeGenerationOptionsLabel extends CodeGenerationOptionsBase {

@@ -8,7 +8,10 @@ import {
 
 export class CodeGenerator {
     public static generate(canvases: PixelCanvas[], options: CodeGenerationOptions): string {
-        const canvasByteLines = canvases.map(canvas => ({ canvas, lines: canvas.generateByteLineChunks(options) }));
+        const maxHeight = canvases.reduce((maxHeight, canvas) =>
+            Math.max(maxHeight, canvas.getDimensions().height), 0);
+        const canvasByteLines = canvases.map(canvas =>
+            ({ canvas, lines: canvas.generateByteLineChunks({ ...options, padToHeight: maxHeight }) }));
 
         const indent = options.indentChar;
 
@@ -39,7 +42,8 @@ export class CodeGenerator {
             canvasByteLines.forEach((data) => {
                 const chunks = data.lines[row];
                 if (!chunks) {
-                    // this canvas does not have data for this row
+                    // this canvas does not have data for this row (this shouldn't happen if the
+                    // padToHeight stuff works the way it's supposed to)
                     return;
                 }
 
