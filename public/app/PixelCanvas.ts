@@ -6,7 +6,7 @@ import type { EditorSettings } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
-import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
+import { ObjectGroup } from './ObjectGroup.ts';
 import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
@@ -82,6 +82,7 @@ type PixelCanvasEventMap = {
     display_mode_change: [];
     palette_change: [];
     active_color_change: [ DisplayModeColorIndex ];
+    group_change: [];
 };
 
 export interface PixelCanvasSerialized {
@@ -91,7 +92,6 @@ export interface PixelCanvasSerialized {
     pixelHeight: PixelCanvas['pixelHeight'];
     width: PixelCanvas['width'];
     height: PixelCanvas['height'];
-    group: ObjectGroupSerialized;
     pixelData: PixelInfoSerialized[][];
     displayModeName: DisplayModeName;
     paletteId: string | number;
@@ -118,7 +118,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private readonly $frameContainer: HTMLDivElement;
     private name: string;
     public readonly id: string;
-    public readonly group: ObjectGroup;
+    private group: ObjectGroup;
     private destroyed = false;
     private displayMode: DisplayMode;
     private palette: ColorPalette;
@@ -255,10 +255,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         };
     }
 
-    public getContainer(): HTMLElement {
-        return this.$container;
-    }
-
     public getUnderlyingBackgroundCanvas(): HTMLCanvasElement {
         return this.$bgEl;
     }
@@ -370,8 +366,27 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.emit('palette_change');
     }
 
+    public getGroup(): ObjectGroup {
+        return this.group;
+    }
+
+    public setGroup(newGroup: ObjectGroup): void {
+        if (this.group === newGroup) {
+            return;
+        }
+
+        this.logger.debug(`setting group to "${newGroup.getName()}" (${newGroup.id})`);
+        this.group = newGroup;
+
+        this.emit('group_change');
+    }
+
     public hide(): void {
         if (this.destroyed) {
+            return;
+        }
+
+        if (this.$frameContainer.style.display === 'none') {
             return;
         }
 
@@ -386,21 +401,19 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        if (this.$frameContainer.isConnected && this.$frameContainer.style.display !== 'none') {
+            // it's currently visible and has already been attached to the DOM
+            return;
+        }
+
         this.logger.debug('showing');
 
         if (!this.$frameContainer.isConnected) {
+            this.logger.debug('appending frame container and canvases');
             this.$container.appendChild(this.$frameContainer);
-        }
-        if (!this.$gridEl.isConnected) {
             this.$el.insertAdjacentElement('afterend', this.$gridEl);
-        }
-        if (!this.$hoverEl.isConnected) {
             this.$el.insertAdjacentElement('afterend', this.$hoverEl);
-        }
-        if (!this.$bgEl.isConnected) {
             this.$el.insertAdjacentElement('afterend', this.$bgEl);
-        }
-        if (!this.$transientEl.isConnected) {
             this.$el.insertAdjacentElement('afterend', this.$transientEl);
         }
 
@@ -820,11 +833,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public clear(): void {
-        this.logger.info(`clearing canvas`);
+        this.logger.debug(`clearing canvas`);
         this.clearRect(0, 0, this.displayWidth, this.displayHeight);
     }
 
     public reset(): void {
+        this.logger.debug(`resetting canvas`);
         this.clear();
         this.fillPixelDataArray(true);
         this.emit('reset');
@@ -1141,9 +1155,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.renderGrid();
     }
 
-    public setZoomLevel(render = true): void {
+    public setZoomLevel(forceRender = true): void {
         this.setCanvasDimensions();
-        if (render) {
+        if (forceRender) {
             this.render();
         }
     }
@@ -1321,6 +1335,22 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.group.getPaletteSet().generateCode(options);
     }
 
+    public clone(): PixelCanvas {
+        return new PixelCanvas({
+            mountEl: this.$container,
+            pixelWidth: this.pixelWidth,
+            pixelHeight: this.pixelHeight,
+            width: this.width,
+            height: this.height,
+            pixelData: this.clonePixelData(),
+            displayMode: this.displayMode,
+            palette: this.palette,
+            editorSettings: this.editorSettings,
+            group: this.group,
+            activeColor: this.activeColor,
+        });
+    }
+
     public toJSON(): PixelCanvasSerialized {
         return {
             pixelWidth: this.pixelWidth,
@@ -1329,7 +1359,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             height: this.height,
             name: this.name,
             id: this.id,
-            group: this.group.toJSON(),
             displayModeName: this.displayMode?.name || null,
             paletteId: this.palette.id,
             activeColor: this.activeColor,
@@ -1347,22 +1376,16 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         json: object,
         mountEl: HTMLElement,
         editorSettings: EditorSettings,
-        groupCache: Record<ObjectGroup['id'], ObjectGroup>,
+        group: ObjectGroup,
         paletteSets: Readonly<ColorPaletteSet[]>,
     ): PixelCanvas {
-        this.ensureSerialized(json);
-
-        let group = groupCache[json.group.id];
-        if (!group) {
-            group = ObjectGroup.fromJSON(json.group, paletteSets);
-            groupCache[group.id] = group;
-        }
+        const serialized = this.transformSerialized(json);
 
         const colorPalettes = paletteSets
             .map(set => set.getPalettes())
             .reduce((flattened, palettes) => flattened.concat(palettes), []);
 
-        let colorPalette = colorPalettes.find(palette => palette.id === json.paletteId);
+        let colorPalette = colorPalettes.find(palette => palette.id === serialized.paletteId);
         if (!colorPalette) {
             colorPalette = colorPalettes[0];
             if (!colorPalette) {
@@ -1371,23 +1394,23 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         return new PixelCanvas({
-            id: String(json.id),
-            name: json.name,
-            width: json.width,
-            height: json.height,
-            pixelWidth: json.pixelWidth,
-            pixelHeight: json.pixelHeight,
+            id: String(serialized.id),
+            name: serialized.name,
+            width: serialized.width,
+            height: serialized.height,
+            pixelWidth: serialized.pixelWidth,
+            pixelHeight: serialized.pixelHeight,
             editorSettings,
             mountEl,
             group,
-            displayMode: json.displayModeName,
+            displayMode: serialized.displayModeName,
             palette: colorPalette,
-            activeColor: json.activeColor,
-            pixelData: json.pixelData.map(row => row.map(item => ({ modeColorIndex: item.modeColorIndex }))),
+            activeColor: serialized.activeColor,
+            pixelData: serialized.pixelData.map(row => row.map(item => ({ modeColorIndex: item.modeColorIndex }))),
         });
     }
 
-    public static ensureSerialized(json: any): asserts json is PixelCanvasSerialized {
+    public static transformSerialized(json: any): PixelCanvasSerialized {
         const context: SerializationContext = 'PixelCanvas';
 
         if (!json.id || (typeof json.id !== 'string' && typeof json.id !== 'number')) {
@@ -1417,9 +1440,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             throw new SerializationTypeError(context, 'paletteId', 'non-empty string or number', json.paletteId);
         }
 
-        if (!json.group || typeof json.group !== 'object') {
-            throw new SerializationTypeError(context, 'group', 'non-null object', json.group);
-        }
+        return json;
     }
 
     public hasData(): boolean {

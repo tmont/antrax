@@ -83,6 +83,8 @@ export const findInput = (ancestor: ParentNode, selector: string): HTMLInputElem
     findOrDie(ancestor, selector, node => node instanceof HTMLInputElement);
 export const findSelect = (ancestor: ParentNode, selector: string): HTMLSelectElement =>
     findOrDie(ancestor, selector, node => node instanceof HTMLSelectElement);
+export const findImage = (ancestor: ParentNode, selector: string): HTMLImageElement =>
+    findOrDie(ancestor, selector, node => node instanceof HTMLImageElement);
 export const findTemplateContent = (ancestor: ParentNode, selector: string): DocumentFragment =>
     findOrDie(ancestor, selector, node => node instanceof HTMLTemplateElement).content;
 
@@ -164,3 +166,8 @@ const idArr = new Uint32Array(2);
 export const generateId = (): string => Array.from(crypto.getRandomValues(idArr))
     .map(i32 => i32.toString(36))
     .join('_');
+
+// https://stackoverflow.com/a/13139830
+export const emptyGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+
+export type SiblingInsertOrder = 'before' | 'after';

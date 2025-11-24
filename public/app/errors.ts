@@ -3,6 +3,7 @@ export type SerializationContext =
     'Project' |
     'ColorPaletteSet' |
     'ObjectGroup' |
+    'ObjectGroupItem' |
     'PixelCanvas';
 
 export class SerializationError extends Error {}

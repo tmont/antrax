@@ -217,7 +217,7 @@ export class Editor {
         this.project = project;
         this.project.off();
         this.project.on('canvas_activate', (activeCanvas) => {
-            this.$activeGroupName.innerText = activeCanvas?.group.getName() || 'n/a';
+            this.setGroupName(activeCanvas?.getGroup());
             this.$activeObjectName.innerText = activeCanvas?.getName() || 'n/a';
 
             this.$canvasCoordinates.innerText = `0,0`;
@@ -228,6 +228,8 @@ export class Editor {
                 this.onDisplayModeChanged(activeCanvas);
                 this.onCanvasPaletteChanged(activeCanvas);
             }
+
+            this.syncDisplayModeControl();
 
             const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
             $displayModeSelect.value = activeCanvas?.getDisplayMode()?.name || 'none';
@@ -286,6 +288,18 @@ export class Editor {
         this.project.on('canvas_active_color_change', (activeCanvas) => {
             this.setActiveColor(activeCanvas.getActiveColor());
         });
+        this.project.on('canvas_group_change', (canvas) => {
+            const activeCanvas = this.project?.getActiveCanvas();
+            if (canvas !== activeCanvas) {
+                return;
+            }
+
+            this.setGroupName(activeCanvas.getGroup());
+        });
+    }
+
+    private setGroupName(group?: ObjectGroup | null): void {
+        this.$activeGroupName.innerText = group?.getName() || 'n/a';
     }
 
     private syncDisplayModeControl(hasData?: boolean): void {
@@ -340,7 +354,6 @@ export class Editor {
         const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         $paletteSelect.disabled = displayMode.name === 'none';
 
-        this.updateCanvasSidebarColors();
         this.settings.activeColorPaletteSet.setActivePalette(
             displayMode.hasSinglePalette ? canvas.getColorPalette() : null,
         );
@@ -349,22 +362,27 @@ export class Editor {
 
         // forcefully toggle out of Kangaroo mode if the display does not support it
         if (this.settings.kangarooMode && !canvas.supportsKangarooMode()) {
+            this.logger.debug(`setting kangarooMode=false because not supported for displayMode=${displayMode.name}`);
             this.settings.kangarooMode = false;
             this.onKangarooModeChanged();
         }
+
+        this.syncCanvasSidebarColors();
 
         // certain display modes have a different color0, which is used as the background, so
         // we need to update it (e.g. 320D in Kangaroo mode)
         canvas.renderBg();
     }
 
-    private updateCanvasSidebarColors(): void {
+    private syncCanvasSidebarColors(): void {
         const canvas = this.project?.getActiveCanvas();
         if (!canvas) {
+            this.logger.info(`syncCanvasSidebarColors: no canvas, doing nothing`);
             return;
         }
 
-        this.logger.debug('updating canvas sidebar colors');
+        const displayMode = canvas.getDisplayMode();
+        this.logger.debug(`syncing canvas sidebar colors (displayMode=${displayMode.name})`);
 
         const palette = canvas.getColorPalette();
         const paletteSet = this.paletteSets.getPaletteSets().find(set => set.getPalettes().some(p => p === palette));
@@ -372,7 +390,6 @@ export class Editor {
             throw new Error(`Could not find PaletteSet for ColorPalette{${palette.id}}`);
         }
 
-        const displayMode = canvas.getDisplayMode();
         const colors = canvas.getColors();
 
         const $paletteList = findElement(this.$canvasSidebar, '.canvas-palette-colors');
@@ -391,6 +408,7 @@ export class Editor {
                 $paletteList.appendChild($swatch);
             });
         } else {
+            this.logger.debug(`hiding palette <select> and color list`);
             $paletteList.style.display = 'none';
             $paletteSelect.style.display = 'none';
             $paletteNotAllowed.style.display = 'block';
@@ -450,7 +468,7 @@ export class Editor {
         $select.selectedIndex = index;
 
         // update color list
-        this.updateCanvasSidebarColors();
+        this.syncCanvasSidebarColors();
 
         this.settings.activeColorPaletteSet.setActivePalette(canvas.getDisplayMode().hasSinglePalette ? palette : null);
     }
@@ -505,11 +523,11 @@ export class Editor {
         this.paletteSets = paletteSets;
         this.paletteSets.on('color_change', (paletteSet, palette, color, index) => {
             this.project?.updatePaletteColor(palette, index);
-            this.updateCanvasSidebarColors();
+            this.syncCanvasSidebarColors();
         });
         this.paletteSets.on('bg_select', (paletteSet, color) => {
             this.project?.setBackgroundColor(color);
-            this.updateCanvasSidebarColors();
+            this.syncCanvasSidebarColors();
         });
     }
 
@@ -545,7 +563,7 @@ export class Editor {
     public updateKangarooModeUI(): void {
         this.$kangarooModeInput.checked = this.settings.kangarooMode;
         this.$uncolorPixelInput.disabled = this.settings.kangarooMode;
-        this.updateCanvasSidebarColors();
+        this.syncCanvasSidebarColors();
     }
 
     private onKangarooModeChanged(): void {
@@ -587,7 +605,11 @@ export class Editor {
                         `ColorPaletteSet{${this.settings.activeColorPaletteSet.id}}`);
                 }
 
-                this.project?.addObject({
+                if (!this.project) {
+                    return;
+                }
+
+                this.project.createObjectInNewGroup({
                     mountEl: this.$canvasArea,
                     width: 16,
                     height: 16,
@@ -596,9 +618,6 @@ export class Editor {
                     editorSettings: this.settings,
                     displayMode: DisplayMode.ModeNone,
                     palette: defaultColorPalette,
-                    group: new ObjectGroup({
-                        paletteSet: this.settings.activeColorPaletteSet,
-                    }),
                 });
             });
         });
@@ -880,7 +899,7 @@ export class Editor {
 
             if (e.key.toLowerCase() === 'x') {
                 if (e.shiftKey) {
-                    this.project?.exportCanvasToImage();
+                    this.project?.exportActiveCanvasToImage();
                 } else {
                     this.project?.showExportASMModal();
                 }

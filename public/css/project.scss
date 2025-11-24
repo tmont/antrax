@@ -117,7 +117,7 @@
             gap: config.$gutter-eighth;
             overflow: hidden;
 
-            .drag-handle {
+            [data-drag-handle] {
                 flex-basis: $thumbnail-width;
                 flex-grow: 0;
                 flex-shrink: 0;

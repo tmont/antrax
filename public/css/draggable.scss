@@ -1,0 +1,57 @@
+@use "./config";
+
+body.draggable-dragging {
+    &, * {
+        user-select: none !important;
+        cursor: move !important;
+    }
+
+    // pointer-events stuff: basically prevent everything except a drop target from receiving
+    // pointer events.
+    * {
+        pointer-events: none !important;
+    }
+
+    [data-drag-item], [data-empty-drop-target] {
+        // no pointer events on the thing that's currently being dragged
+        &:not(.draggable-active-item) {
+            pointer-events: all !important;
+        }
+    }
+
+    [data-drag-item].draggable-active-item {
+        filter: contrast(125%);
+        background-color: rgba(255, 255, 0, 0.1);
+    }
+
+    [data-empty-drop-target] {
+        min-height: 2rem;
+        position: relative;
+        &:after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            background-image: repeating-linear-gradient(
+                135deg,
+                transparent,
+                transparent 10px,
+                rgba(yellow, 0.03) 10px,
+                rgba(yellow, 0.03) 20px
+            );
+            background-size: 200% 200%;
+            pointer-events: none;
+            animation: drop-target 10s linear infinite;
+        }
+    }
+}
+
+// https://css-tricks.com/books/fundamental-css-tactics/striped-barberpole-animation/
+@keyframes drop-target {
+    100% {
+        background-position: 100% 100%;
+    }
+}

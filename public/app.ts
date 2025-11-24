@@ -1,5 +1,6 @@
 import { ColorPaletteSet } from './app/ColorPaletteSet.ts';
 import { Editor } from './app/Editor.ts';
+import { enableDraggableItems } from './app/draggable.ts';
 import { findElement } from './app/utils.ts';
 
 const contentHeader = findElement(document, '.content-header');
@@ -10,6 +11,8 @@ for (let i = 0; i < 5; i++) {
         mountEl: contentHeader,
     }));
 }
+
+enableDraggableItems();
 
 const editor = new Editor({
     mountEl: findElement(document, '.app'),
