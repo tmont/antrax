@@ -1337,14 +1337,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.pixelData = [];
 
-        pixelData.forEach((row) => {
-            const newRow: PixelInfo[] = [];
-            row.forEach((data) => {
-                newRow.push({ modeColorIndex: data.modeColorIndex });
-            });
-
-            this.pixelData.push(newRow);
-        });
+        for (let row = 0; row < this.height; row++) {
+            this.pixelData[row] = [];
+            for (let col = 0; col < this.width; col++) {
+                this.pixelData[row]!.push({
+                    modeColorIndex: pixelData[row]?.[col]?.modeColorIndex || null,
+                });
+            }
+        }
 
         this.render();
     }
@@ -1362,9 +1362,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 const data = row[j]!;
                 let actualCol = location.x + j;
                 if (this.pixelData[actualRow]?.[actualCol]) {
-                    this.pixelData[actualRow][actualCol] = {
-                        modeColorIndex: data.modeColorIndex,
-                    }
+                    this.pixelData[actualRow][actualCol].modeColorIndex = data.modeColorIndex;
                 } else {
                     this.logger.warn(`applyPartialPixelData: pixel[${actualRow}][${actualCol}] does not exist`);
                 }
