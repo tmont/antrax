@@ -85,8 +85,8 @@ export const findInput = (ancestor: ParentNode, selector: string): HTMLInputElem
     findOrDie(ancestor, selector, node => node instanceof HTMLInputElement);
 export const findSelect = (ancestor: ParentNode, selector: string): HTMLSelectElement =>
     findOrDie(ancestor, selector, node => node instanceof HTMLSelectElement);
-export const findImage = (ancestor: ParentNode, selector: string): HTMLImageElement =>
-    findOrDie(ancestor, selector, node => node instanceof HTMLImageElement);
+export const findCanvas = (ancestor: ParentNode, selector: string): HTMLCanvasElement =>
+    findOrDie(ancestor, selector, node => node instanceof HTMLCanvasElement);
 export const findTemplateContent = (ancestor: ParentNode, selector: string): DocumentFragment =>
     findOrDie(ancestor, selector, node => node instanceof HTMLTemplateElement).content;
 

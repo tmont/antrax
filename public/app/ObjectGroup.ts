@@ -10,9 +10,9 @@ import { ObjectGroupItem, type ObjectGroupItemOptions, type ObjectGroupItemSeria
 import { PixelCanvas } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
+    findCanvas,
     findElement,
     findInput,
-    findOrDie,
     findSelect,
     findTemplateContent,
     generateId,
@@ -481,7 +481,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         const content = findTemplateContent(document, '#modal-content-animate-form');
                         const $el = content.cloneNode(true) as ParentNode;
                         const $fpsInput = findInput($el, '#animate-fps');
-                        const $preview = findOrDie($el, 'canvas', node => node instanceof HTMLCanvasElement);
+                        const $preview = findCanvas($el, 'canvas');
                         const ctx = get2dContext($preview);
 
                         const firstCanvas = canvases[0];

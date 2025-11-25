@@ -8,9 +8,9 @@ import type { ObjectGroup } from './ObjectGroup.ts';
 import { PixelCanvas, type PixelCanvasSerialized } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
+    findCanvas,
     findElement,
     findInput,
-    findOrDie,
     parseTemplate
 } from './utils.ts';
 
@@ -104,7 +104,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         this.$container = options.mountEl;
         this.$el = parseTemplate(objectItemTmpl);
         this.$el.setAttribute('data-item-id', this.id);
-        this.$thumbnail = findOrDie(this.$el, '.object-thumbnail', node => node instanceof HTMLCanvasElement);
+        this.$thumbnail = findCanvas(this.$el, '.object-thumbnail');
 
         this.logger = Logger.from(this);
     }
