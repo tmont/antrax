@@ -23,8 +23,16 @@ import {
     isDrawMode,
     isLeftMouseButton,
     nope,
-    parseTemplate
+    parseTemplate,
+    type PixelInfo,
+    type Rect
 } from './utils.ts';
+
+export interface CopiedCanvasData {
+    pixelData: PixelInfo[][];
+    originalCanvas: PixelCanvas;
+    displayMode: DisplayMode;
+}
 
 export interface EditorSettings {
     showGrid: boolean;
@@ -508,7 +516,9 @@ export class Editor {
         if (!force && this.settings.drawMode === newMode) {
             return;
         }
-        if (!this.project?.getActiveCanvas()) {
+
+        const canvas = this.project?.getActiveCanvas();
+        if (!canvas) {
             return;
         }
 
@@ -526,6 +536,8 @@ export class Editor {
         });
 
         this.logger.debug(`drawMode set to ${this.settings.drawMode}`);
+
+        canvas.resetDrawContext();
     }
 
     public setPaletteSets(paletteSets: ColorPaletteSetCollection): void {
@@ -788,6 +800,7 @@ export class Editor {
             number: 1,
         };
 
+        let copySelection: CopiedCanvasData | null = null;
         document.addEventListener('keydown', (e) => {
             if (panning) {
                 return;
@@ -801,6 +814,59 @@ export class Editor {
                 (e.target instanceof HTMLInputElement && ignoredInputs[e.target.type]) ||
                 e.target instanceof HTMLTextAreaElement
             ) {
+                return;
+            }
+
+            // TODO this is a little janky
+            if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+                const canvas = this.project?.getActiveCanvas();
+                if (canvas) {
+                    copySelection = {
+                        pixelData: canvas.getSelectionPixelData(),
+                        originalCanvas: canvas,
+                        displayMode: canvas.getDisplayMode(),
+                    };
+
+                    if (copySelection.pixelData[0]) {
+                        this.logger.info(`copied selection from ${canvas.getName()}`);
+                        const numPixels = copySelection.pixelData.length * copySelection.pixelData[0].length;
+                        e.preventDefault();
+                        Popover.toast({
+                            type: 'success',
+                            content: `Copied selection from ${canvas.getName()} (${numPixels} pixels)`,
+                        });
+                    } else {
+                        copySelection = null;
+                    }
+                } else {
+                    copySelection = null;
+                }
+                return;
+            }
+
+            // TODO this is a little janky
+            if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+                const canvas = this.project?.getActiveCanvas();
+                if (copySelection && canvas) {
+                    this.logger.info(`pasting copied selection from ${copySelection.originalCanvas.getName()}`);
+                    if (canvas.getDisplayMode() !== copySelection.displayMode) {
+                        Popover.toast({
+                            type: 'danger',
+                            content: `Cannot apply selection from ${copySelection.displayMode.name} to ${canvas.getDisplayMode().name}`,
+                        });
+                    } else {
+                        const location: Rect = canvas.getCurrentSelection() || {
+                            x: 0,
+                            y: 0,
+                            ...canvas.getDimensions(),
+                        };
+                        canvas.applyPartialPixelData(copySelection.pixelData, location);
+                        Popover.toast({
+                            type: 'success',
+                            content: `Pasted selection from ${copySelection.originalCanvas.getName()}`,
+                        });
+                    }
+                }
                 return;
             }
 
@@ -877,6 +943,10 @@ export class Editor {
             }
             if (e.key.toLowerCase() === 'l') {
                 this.setDrawMode('line');
+                return;
+            }
+            if (e.key.toLowerCase() === 'z') {
+                this.setDrawMode('select');
                 return;
             }
 

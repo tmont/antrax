@@ -15,6 +15,8 @@ export interface Coordinate {
     y: number;
 }
 
+export type Rect = Dimensions & Coordinate;
+
 export type DisplayModeNameLo = '160A' | '160B';
 export type DisplayModeNameHi = '320A' | '320B' | '320C' | '320D';
 export type DisplayModeName = DisplayModeNameLo | DisplayModeNameHi | 'none';
@@ -111,11 +113,11 @@ export const isLeftMouseButton = (e: MouseEvent): boolean => e.button === 0;
 
 export type DrawMode =
     'draw' | 'erase' | 'fill' | 'dropper' |
-    'rect' | 'rect-filled' |
-    'ellipse' | 'ellipse-filled' |
-    'line';
+    'rect' | 'rect-filled' | 'ellipse' | 'ellipse-filled' |
+    'line' | 'select';
 const drawModeMap: Record<DrawMode, 1> = {
     ellipse: 1, 'ellipse-filled': 1, draw: 1, erase: 1, dropper: 1, fill: 1, line: 1, rect: 1, 'rect-filled': 1,
+    select: 1,
 };
 export const isDrawMode = (mode: unknown): mode is DrawMode =>
     typeof mode === 'string' && !!drawModeMap[mode as unknown as DrawMode];
