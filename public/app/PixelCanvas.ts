@@ -1414,7 +1414,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 let comment = '';
                 if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
                     if (options.commentLevel >= CodeGenerationDetailLevel.Lots) {
-                        comment += byteColors.map(label => label.join(',')).join(' ');
+                        comment += ' ' + byteColors.map(label => label.join(',')).join(' ');
                     }
 
                     if (i >= this.height) {
@@ -1422,7 +1422,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     }
                 }
 
-                comment = comment ? ' ; ' + comment : '';
+                comment = comment ? ' ;' + comment : '';
                 lineBytes.push(line + comment);
             });
 
