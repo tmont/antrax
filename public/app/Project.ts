@@ -416,6 +416,15 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 this.emit('active_group_name_change', group);
             }
         });
+
+        group.on('delete', () => {
+            group.off();
+            const index = this.groups.indexOf(group);
+            if (index !== -1) {
+                this.groups.splice(index, 1);
+                this.logger.info(`deleted group ${group.getName()} at index ${index}`);
+            }
+        });
     }
 
     public createObjectInNewGroup(options: Omit<CanvasOptions, 'group' | 'palette'>): ObjectGroupItem {
