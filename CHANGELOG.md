@@ -1,3 +1,24 @@
+## v0.0.19 (2025-11-24)
+- Rewrote almost everything
+    - Saves should be theoretically backward-compatible
+- Object info in sidebar is now always visible
+- Show object list in animation modal
+- Can reorder objects within groups, and move them between groups
+- FPS for animation now goes in increments of `0.5`
+- Added confirmation dialogs for deletion actions
+- Fixed long names of things without spaces not being ellipsis-ized
+- Improved thumbnail generation
+- Scrollwheel inertia is now significantly less infuriating when selecting
+  colors or zooming
+- Fixed "Clear" actions behaving strangely with the undo stack
+- Added "Add object" item to group overflow menu
+- Fixed twice reversed output in ASM export
+- Pad shorter objects with zeroes when exporting ASM as a group
+- Implemented _very_ rough version of rectangular selection. Right now the
+  only thing you can do is Ctrl+C to copy selected pixels, and then Ctrl+V
+  to paste it in another canvas (with or without a selection) or the same
+  canvas.
+
 ## v0.0.18 (2025-11-20)
 - Groups
     - Can edit group name
