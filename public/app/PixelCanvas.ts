@@ -441,10 +441,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         this.disable();
-        this.$el.remove();
-        this.$hoverEl.remove();
-        this.$gridEl.remove();
-        this.$bgEl.remove();
+        this.$frameContainer.remove();
         this.destroyed = true;
     }
 
