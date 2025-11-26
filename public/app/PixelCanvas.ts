@@ -484,11 +484,40 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         const transientCtx = this.transientCtx;
 
+        const clampedDrawModes: Partial<Record<DrawMode, 1>> = {
+            ellipse: 1,
+            'ellipse-filled': 1,
+            rect: 1,
+            'rect-filled': 1,
+            select: 1,
+        };
+
         const activatePixelAtCursor = (e: MouseEvent): void => {
+            switch (this.drawContext.state) {
+                case 'drawing':
+                case 'selecting':
+                    break;
+                case 'idle':
+                case 'selected':
+                    return;
+                default:
+                    nope(this.drawContext.state);
+                    return;
+            }
+
             const { clientX, clientY, ctrlKey: erasing } = e;
             const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
-            const trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
-            const trueY = clientY + document.documentElement.scrollTop - offsetTop;
+            let trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
+            let trueY = clientY + document.documentElement.scrollTop - offsetTop;
+            const { drawMode } = this.editorSettings;
+
+            if (clampedDrawModes[drawMode]) {
+                // in modes where you're dragging, we allow dragging off canvas, and we'll just
+                // activate the closest pixel. this way the user won't have to have such precision
+                // while dragging to keep the cursor on the canvas.
+                trueX = Math.max(0, Math.min(trueX, this.displayWidth - 1));
+                trueY = Math.max(0, Math.min(trueY, this.displayHeight - 1));
+            }
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });
             if (!pixelData.pixel) {
@@ -506,7 +535,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 y: pixelData.row,
             };
 
-            switch (this.editorSettings.drawMode) {
+            switch (drawMode) {
                 case 'fill': {
                     let drawn = false;
                     const seen: Record<string, 1> = {};
@@ -598,7 +627,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                                 continue;
                             }
 
-                            if (this.editorSettings.drawMode === 'rect') {
+                            if (drawMode === 'rect') {
                                 // only color the outer edges
                                 if (
                                     row !== start.y &&
@@ -608,10 +637,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                                 ) {
                                     continue;
                                 }
-                            } else if (
-                                this.editorSettings.drawMode === 'ellipse-filled' ||
-                                this.editorSettings.drawMode === 'ellipse'
-                            ) {
+                            } else if (drawMode === 'ellipse-filled' || drawMode === 'ellipse') {
                                 const w = Math.floor(width / 2);
                                 const h = Math.floor(height / 2);
                                 const x = col - start.x - w;
@@ -619,7 +645,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
                                 const value = ((x * x) / (w * w)) + ((y * y) / (h * h));
 
-                                if (this.editorSettings.drawMode === 'ellipse-filled') {
+                                if (drawMode === 'ellipse-filled') {
                                     if (value >= 1) {
                                         continue;
                                     }
@@ -632,7 +658,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                                         continue;
                                     }
                                 }
-                            } else if (this.editorSettings.drawMode === 'line') {
+                            } else if (drawMode === 'line') {
                                 if (isNaN(m)) {
                                     // vertical line
                                     if (col !== mouseDownOrigin.col) {
@@ -765,15 +791,24 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             this.unhighlightPixel();
 
             activatePixelAtCursor(e);
-            this.addEvent(this.$el, 'mousemove', onMouseMove);
+            this.addEvent(this.$el.ownerDocument, 'mousemove', onMouseMove);
         };
 
         const onMouseUp = () => {
             this.$el.removeEventListener('mousemove', onMouseMove);
-            if (this.drawContext.state === 'selecting') {
-                this.setDrawState('selected');
-            } else if (this.drawContext.state !== 'idle') {
-                this.setDrawState('idle');
+            switch (this.drawContext.state) {
+                case 'drawing':
+                    this.setDrawState('idle');
+                    break;
+                case 'selecting':
+                    this.setDrawState('selected');
+                    break;
+                case 'selected':
+                case 'idle':
+                    break;
+                default:
+                    nope(this.drawContext.state);
+                    break;
             }
 
             mouseDownOrigin = null;
