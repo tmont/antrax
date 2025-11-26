@@ -69,6 +69,9 @@
                                 <button type="button" class="btn btn-sm btn-tertiary" data-mode="select" title="Select region [Z]">
                                     <i class="fa-solid fa-fw fa-arrow-pointer"></i>
                                 </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="move" title="Move region [M]" disabled>
+                                    <i class="fa-solid fa-fw fa-up-down-left-right"></i>
+                                </button>
                             </div>
                             <hr/>
                             <section class="canvas-palette-details">
@@ -106,11 +109,53 @@
                         </div>
                     </div>
                     <div class="canvas-container">
+                        <div class="canvas-gutter top">
+                            <div class="gutter-list gutter-list-sm canvas-selection-controls">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="copy" title="Copy selection" autocomplete="off" disabled>
+                                    <i class="fa-solid fa-fw fa-copy"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="delete" title="Delete selection" autocomplete="off" disabled>
+                                    <i class="fa-solid fa-fw fa-trash"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="rotate" title="Rotate selection" autocomplete="off" disabled>
+                                    <i class="fa-solid fa-fw fa-rotate-left"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-h" title="Flip selection horizontally" autocomplete="off" disabled>
+                                    <i class="fa-solid fa-fw fa-arrows-left-right"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-v" title="Flip selection vertically" autocomplete="off" disabled>
+                                    <i class="fa-solid fa-fw fa-arrows-up-down"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="paste" title="Paste selection" autocomplete="off" disabled>
+                                    <i class="fa-solid fa-fw fa-paste"></i>
+                                </button>
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <div class="canvas-info gutter-list">
+                                <div>
+                                    <label>Pixels:</label>
+                                    <input class="pixel-entry" type="number" id="option-pixel-width" step="1" min="1" max="32" autocomplete="off"/>
+                                    <span>&times;</span>
+                                    <input class="pixel-entry" type="number" id="option-pixel-height" step="1" min="1" max="32" autocomplete="off"/>
+                                </div>
+
+                                <div>
+                                    <label>Canvas:</label>
+                                    <input class="pixel-entry" type="number" id="option-canvas-width" step="1" min="1" max="320" autocomplete="off"/>
+                                    <span>&times;</span>
+                                    <input class="pixel-entry" type="number" id="option-canvas-height" step="1" min="1" max="320" autocomplete="off"/>
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+                        </div>
                         <div class="canvas-area"></div>
                     </div>
                 </div>
 
-                <div class="canvas-gutter">
+                <div class="canvas-gutter bottom">
                     <div class="global-info gutter-list">
                         <div class="link-list">
                             <a class="help-link" href="#" title="Help and keyboard shortcuts">
@@ -153,24 +198,6 @@
                         <div style="display: flex; align-items: center; gap: 0.25rem">
                             <input type="checkbox" id="option-kangaroo-mode" autocomplete="off" disabled />
                             <label for="option-kangaroo-mode" title="toggle Kangaroo mode">&#x1f998;</label>
-                        </div>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="canvas-info gutter-list">
-                        <div>
-                            <label>Pixels:</label>
-                            <input class="pixel-entry" type="number" id="option-pixel-width" step="1" min="1" max="32" autocomplete="off" />
-                            <span>&times;</span>
-                            <input class="pixel-entry" type="number" id="option-pixel-height" step="1" min="1" max="32" autocomplete="off" />
-                        </div>
-
-                        <div>
-                            <label>Canvas:</label>
-                            <input class="pixel-entry" type="number" id="option-canvas-width" step="1" min="1" max="320" autocomplete="off" />
-                            <span>&times;</span>
-                            <input class="pixel-entry" type="number" id="option-canvas-height" step="1" min="1" max="320" autocomplete="off" />
                         </div>
                     </div>
 

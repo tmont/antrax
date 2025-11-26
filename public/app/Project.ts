@@ -26,7 +26,7 @@ import {
     findOrDie,
     findSelect,
     findTemplateContent,
-    parseTemplate,
+    parseTemplate, type PixelCanvasDrawStateContext,
     type PixelInfo
 } from './utils.ts';
 
@@ -50,6 +50,7 @@ export type ProjectEventMap = {
     pixel_draw: [ PixelDrawingEvent, PixelCanvas ];
     pixel_draw_aggregate: [ Pick<PixelDrawingEvent, 'behavior'>, PixelCanvas ];
     canvas_reset: [ PixelCanvas ];
+    canvas_draw_state_change: [ Readonly<PixelCanvasDrawStateContext>, PixelCanvas ];
     active_object_name_change: [ PixelCanvas ];
     active_group_name_change: [ ObjectGroup ];
     draw_start: [ PixelCanvas ];
@@ -504,6 +505,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
             if (this.activeCanvas === canvas) {
                 this.emit('active_object_name_change', canvas);
             }
+        });
+        canvas.on('draw_state_change', (newState) => {
+            this.emit('canvas_draw_state_change', newState, canvas);
         });
     }
 

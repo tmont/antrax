@@ -16,12 +16,15 @@ import {
     type DisplayModeColorValue,
     type DisplayModeColorValueSerialized,
     type DisplayModeName,
+    type DrawMode,
     formatAssemblyNumber,
     generateId,
     get2dContext,
     isLeftMouseButton,
     isPaletteIndex,
     nope,
+    type PixelCanvasDrawState,
+    type PixelCanvasDrawStateContext,
     type PixelInfo,
     type PixelInfoSerialized,
     type Rect
@@ -57,13 +60,6 @@ interface DrawPixelOptions {
 
 export type GeneratedImageSize = 'thumbnail' | 'full';
 
-export type PixelCanvasDrawState = 'idle' | 'drawing' | 'selecting' | 'selected';
-
-interface PixelCanvasDrawStateContext {
-    state: PixelCanvasDrawState;
-    selection: Rect | null;
-}
-
 export type PixelDrawingBehavior =
     // the user initiated the draw action
     'user' |
@@ -89,6 +85,7 @@ type PixelCanvasEventMap = {
     pixel_hover: [ Coordinate, PixelInfo ];
     reset: [];
     draw_start: [];
+    draw_state_change: [ Readonly<PixelCanvasDrawStateContext> ];
     pixel_dimensions_change: [];
     canvas_dimensions_change: [];
     display_mode_change: [];
@@ -720,19 +717,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                         y: Math.min(mouseDownOrigin.row, pixelData.row),
                     };
 
-                    this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, transientCtx);
-                    const dashSize = Math.max(2, Math.round(this.displayPixelWidth / 15));
-                    transientCtx.strokeStyle = 'rgba(80, 80, 164, 0.75)';
-                    transientCtx.setLineDash([ dashSize, dashSize ]);
-                    transientCtx.lineWidth = Math.max(1, Math.round(this.displayPixelWidth / 12));
-                    transientCtx.fillStyle = 'rgba(164, 164, 255, 0.35)';
+                    this.clearTransientRect();
 
                     const x = start.x * this.displayPixelWidth;
                     const y = start.y * this.displayPixelHeight;
                     const w = width * this.displayPixelWidth;
                     const h = height * this.displayPixelHeight;
-                    transientCtx.fillRect(x, y, w, h);
-                    transientCtx.strokeRect(x, y, w, h);
+
+                    this.drawHoverStyleRect(transientCtx, x, y, w, h, 12);
 
                     this.drawContext.selection = {
                         x: start.x,
@@ -744,8 +736,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 }
 
                 default:
-                    nope(this.editorSettings.drawMode);
-                    throw new Error(`Unknow drawMode "${this.editorSettings.drawMode}"`);
+                    nope(drawMode);
+                    throw new Error(`Unknow drawMode "${drawMode}"`);
             }
 
             lastDrawnPixel = pixelData.pixel;
@@ -901,6 +893,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     private setDrawState(newState: PixelCanvasDrawState): void {
+        if (this.drawContext.state === newState) {
+            return;
+        }
+
         this.logger.info(`setting drawState to ${newState}`);
         this.drawContext.state = newState;
 
@@ -916,6 +912,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 nope(this.drawContext.state);
                 throw new Error(`unknown draw state "${this.drawContext.state}"`);
         }
+
+        this.emit('draw_state_change', this.drawContext);
     }
 
     public resetDrawContext(): void {
@@ -941,6 +939,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (drawn) {
             this.emit('pixel_draw_aggregate', { behavior: 'user' });
         }
+    }
+
+    public getDrawState(): PixelCanvasDrawState {
+        return this.drawContext.state;
     }
 
     public getSelectionPixelData(): PixelInfo[][] {
@@ -991,6 +993,28 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         ctx.clearRect(x, y, width, height);
+    }
+
+    private clearTransientRect(): void {
+        this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, this.transientCtx);
+    }
+
+    private drawHoverStyleRect(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        lineWidthDivisor = 25,
+    ): void {
+        const dashSize = Math.max(2, Math.round(this.displayPixelWidth / 15));
+        ctx.strokeStyle = 'rgba(80, 80, 164, 0.75)';
+        ctx.setLineDash([ dashSize, dashSize ]);
+        ctx.lineWidth = Math.max(1, Math.round(this.displayPixelWidth / lineWidthDivisor));
+        ctx.fillStyle = 'rgba(164, 164, 255, 0.35)';
+        ctx.strokeRect(x, y, width, height);
+        ctx.fillRect(x, y, width, height);
+
     }
 
     public render(): void {
@@ -1234,16 +1258,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return false;
         }
 
-        const ctx = this.hoverCtx;
-        const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
-
-        const dashSize = Math.max(2, Math.round(this.displayPixelWidth / 15));
-        ctx.strokeStyle = 'rgba(80, 80, 164, 0.75)';
-        ctx.setLineDash([ dashSize, dashSize ]);
-        ctx.lineWidth = Math.max(1, Math.round(this.displayPixelWidth / 25));
-        ctx.strokeRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
-        ctx.fillStyle = 'rgba(164, 164, 255, 0.35)';
-        ctx.fillRect(absoluteCoordinate.x, absoluteCoordinate.y, this.displayPixelWidth, this.displayPixelHeight);
+        const { x, y } = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
+        this.drawHoverStyleRect(this.hoverCtx, x, y, this.displayPixelWidth, this.displayPixelHeight);
 
         this.emit('pixel_hover', pixelRowAndCol, pixel);
 
@@ -1385,8 +1401,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
      * Applies a rectangular set of pixel data to a rectangular part of the
      * canvas. The rectangles do not need to be the same size, the new data
      * will fit to the given location and discard unused pixels.
+     * @return {int} The number of pixels that were drawn
      */
-    public applyPartialPixelData(pixelData: PixelInfo[][], location: Rect): void {
+    public applyPartialPixelData(pixelData: PixelInfo[][], location: Rect): number {
+        let drawCount = 0;
+        const totalCount = pixelData.length & (pixelData[0]?.length || 0);
         for (let i = 0; i < pixelData.length && i < location.height; i++) {
             const row = pixelData[i]!;
             let actualRow = location.y + i;
@@ -1395,16 +1414,19 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 let actualCol = location.x + j;
                 if (this.pixelData[actualRow]?.[actualCol]) {
                     this.pixelData[actualRow][actualCol].modeColorIndex = data.modeColorIndex;
-                } else {
-                    this.logger.warn(`applyPartialPixelData: pixel[${actualRow}][${actualCol}] does not exist`);
+                    drawCount++;
                 }
             }
         }
+
+        this.logger.info(`applied ${drawCount}/${totalCount} pixels from external pixel data`);
 
         this.render();
 
         // this is important so that we push onto the undo stack
         this.emit('pixel_draw_aggregate', { behavior: 'user' });
+
+        return drawCount;
     }
 
     public getCurrentSelection(): Readonly<PixelCanvasDrawStateContext['selection']> {

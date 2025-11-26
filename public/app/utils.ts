@@ -87,6 +87,8 @@ export const findSelect = (ancestor: ParentNode, selector: string): HTMLSelectEl
     findOrDie(ancestor, selector, node => node instanceof HTMLSelectElement);
 export const findCanvas = (ancestor: ParentNode, selector: string): HTMLCanvasElement =>
     findOrDie(ancestor, selector, node => node instanceof HTMLCanvasElement);
+export const findButton = (ancestor: ParentNode, selector: string): HTMLButtonElement =>
+    findOrDie(ancestor, selector, node => node instanceof HTMLButtonElement);
 export const findTemplateContent = (ancestor: ParentNode, selector: string): DocumentFragment =>
     findOrDie(ancestor, selector, node => node instanceof HTMLTemplateElement).content;
 
@@ -174,3 +176,14 @@ export const generateId = (): string => Array.from(crypto.getRandomValues(idArr)
 export const emptyGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
 export type SiblingInsertOrder = 'before' | 'after';
+
+export type PixelCanvasDrawState = 'idle' | 'drawing' | 'selecting' | 'selected';
+
+export interface PixelCanvasDrawStateContext {
+    state: PixelCanvasDrawState;
+    selection: Rect | null;
+}
+
+export const chars = {
+    times: String.fromCharCode(0xd7),
+} as const;

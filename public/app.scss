@@ -11,6 +11,7 @@
 @use "./css/config.scss";
 
 @use "./css/button.scss";
+@use "./css/canvas-gutter.scss";
 @use "./css/changelog.scss";
 @use "./css/color-picker.scss";
 @use "./css/draggable.scss";
@@ -247,69 +248,8 @@ hr {
     background-size: 8px 8px;
 }
 
-.canvas-gutter {
-    display: flex;
-    flex-shrink: 0;
-    align-items: center;
-    gap: config.$gutter;
-
-    height: config.$editor-gutter-height;
-    border-top: 2px solid config.$border-color;
-    background-color: config.$sidebar-bg-color;
-    font-size: 80%;
-    padding-left: config.$gutter;
-
-    .gutter-list {
-        display: flex;
-        gap: config.$gutter;
-        align-items: center;
-        padding: config.$editor-gutter-padding;
-    }
-
-    .link-list {
-        font-size: 0.9rem;
-        display: flex;
-        gap: config.$gutter-half;
-        a {
-            opacity: 0.75;
-            transition: opacity linear 100ms;
-            text-shadow: 1px 1px 1px rgba(black, 0.35);
-
-            &:hover {
-                opacity: 1;
-            }
-        }
-    }
-
-    .zoom-level-label {
-        cursor: pointer;
-    }
-
-    .zoom-level-value {
-        display: inline-block;
-        width: 2.2em; // totally rock solid
-    }
-
-    .divider {
-        height: 100%;
-        border-right: 2px solid config.$border-color;
-    }
-
-    .breadcrumb {
-        display: flex;
-        gap: config.$gutter-eighth;
-        .active-group-name, .active-object-name {
-            max-width: 10em;
-        }
-
-        .breadcrumb-divider {
-            color: config.$muted-color;
-        }
-    }
-}
-
 canvas {
-    $editor-z-index: 5;
+    $editor-z-index: config.$z-index-canvas;
     $canvas-border-width: 2px;
     &.editor {
         border: $canvas-border-width solid gray;

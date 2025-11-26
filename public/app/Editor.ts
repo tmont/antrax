@@ -9,10 +9,12 @@ import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './Pi
 import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
+    chars,
     type DisplayModeColorIndex,
     type DisplayModeColorValue,
     type DisplayModeName,
     type DrawMode,
+    findButton,
     findElement,
     findInput,
     findOrDie,
@@ -30,7 +32,7 @@ import {
 
 export interface CopiedCanvasData {
     pixelData: PixelInfo[][];
-    originalCanvas: PixelCanvas;
+    canvas: PixelCanvas;
     displayMode: DisplayMode;
 }
 
@@ -94,11 +96,23 @@ export interface UndoContext {
     current: number;
 }
 
+interface SelectionButtons {
+    readonly $copy: HTMLButtonElement;
+    readonly $delete: HTMLButtonElement;
+    readonly $rotate: HTMLButtonElement;
+    readonly $flipH: HTMLButtonElement;
+    readonly $flipV: HTMLButtonElement;
+    readonly $paste: HTMLButtonElement;
+}
+
+type CopyBuffer = CopiedCanvasData[];
+
 export class Editor {
     private project: Project | null = null;
     private readonly logger: Logger;
     private readonly $el: HTMLElement;
-    private readonly $gutter: HTMLElement;
+    private readonly $gutterBottom: HTMLElement;
+    private readonly $gutterTop: HTMLElement;
     private readonly $gridInput: HTMLInputElement;
     private readonly $uncolorPixelInput: HTMLInputElement;
     private readonly $zoomValue: HTMLElement;
@@ -114,8 +128,10 @@ export class Editor {
     private readonly $canvasSidebar: HTMLElement;
     private readonly $displayModeSelect: HTMLSelectElement;
     private readonly $kangarooModeInput: HTMLInputElement;
+    private readonly selectionButtons: SelectionButtons;
     private initialized = false;
     private settings: EditorSettings;
+    private readonly copyBuffer: CopyBuffer = [];
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
@@ -129,22 +145,33 @@ export class Editor {
 
         this.logger = Logger.from(this);
 
-        this.$gutter = findElement(this.$el, '.canvas-gutter');
+        this.$gutterBottom = findElement(this.$el, '.canvas-gutter.bottom');
+        this.$gutterTop = findElement(this.$el, '.canvas-gutter.top');
         this.$canvasArea = findElement(this.$el, '.canvas-area');
-        this.$gridInput = findInput(this.$gutter, '#option-show-grid');
-        this.$uncolorPixelInput = findInput(this.$gutter, '#option-uncolored-pixel-behavior');
-        this.$kangarooModeInput = findInput(this.$gutter, '#option-kangaroo-mode');
-        this.$zoomValue = findElement(this.$gutter, '.zoom-level-value');
-        this.$pixelWidthInput = findInput(this.$gutter, '#option-pixel-width');
-        this.$pixelHeightInput = findInput(this.$gutter, '#option-pixel-height');
-        this.$canvasWidthInput = findInput(this.$gutter, '#option-canvas-width');
-        this.$canvasHeightInput = findInput(this.$gutter, '#option-canvas-height');
-        this.$canvasCoordinates = findElement(this.$gutter, '.current-coordinates');
-        this.$activeGroupName = findElement(this.$gutter, '.breadcrumb .active-group-name');
-        this.$activeObjectName = findElement(this.$gutter, '.breadcrumb .active-object-name');
+        this.$gridInput = findInput(this.$gutterBottom, '#option-show-grid');
+        this.$uncolorPixelInput = findInput(this.$gutterBottom, '#option-uncolored-pixel-behavior');
+        this.$kangarooModeInput = findInput(this.$gutterBottom, '#option-kangaroo-mode');
+        this.$zoomValue = findElement(this.$gutterBottom, '.zoom-level-value');
+        this.$pixelWidthInput = findInput(this.$gutterTop, '#option-pixel-width');
+        this.$pixelHeightInput = findInput(this.$gutterTop, '#option-pixel-height');
+        this.$canvasWidthInput = findInput(this.$gutterTop, '#option-canvas-width');
+        this.$canvasHeightInput = findInput(this.$gutterTop, '#option-canvas-height');
+        this.$canvasCoordinates = findElement(this.$gutterBottom, '.current-coordinates');
+        this.$activeGroupName = findElement(this.$gutterBottom, '.breadcrumb .active-group-name');
+        this.$activeObjectName = findElement(this.$gutterBottom, '.breadcrumb .active-object-name');
         this.$projectControls = findElement(this.$el, '.project-controls');
         this.$canvasSidebar = findElement(this.$el, '.canvas-sidebar');
         this.$displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
+
+        const btnSelector = (action: string) => `.canvas-selection-controls [data-action="${action}"]`;
+        this.selectionButtons = {
+            $copy: findButton(this.$gutterTop, btnSelector('copy')),
+            $delete: findButton(this.$gutterTop, btnSelector('delete')),
+            $rotate: findButton(this.$gutterTop, btnSelector('rotate')),
+            $flipH: findButton(this.$gutterTop, btnSelector('flip-h')),
+            $flipV: findButton(this.$gutterTop, btnSelector('flip-v')),
+            $paste: findButton(this.$gutterTop, btnSelector('paste')),
+        };
 
         const defaultPaletteSet = options.paletteSets[0];
         if (!defaultPaletteSet) {
@@ -167,6 +194,10 @@ export class Editor {
 
         this.setPaletteSets(this.paletteSets);
         this.onPaletteSetChanged();
+    }
+
+    private get activeCanvas(): PixelCanvas | null {
+        return this.project?.getActiveCanvas() || null;
     }
 
     public createProject(name: Project['name']): Project {
@@ -302,18 +333,20 @@ export class Editor {
             this.setActiveColor(activeCanvas.getActiveColor());
         });
         this.project.on('canvas_group_change', (canvas) => {
-            const activeCanvas = this.project?.getActiveCanvas();
-            if (canvas !== activeCanvas) {
+            if (canvas !== this.activeCanvas) {
                 return;
             }
 
-            this.setGroupName(activeCanvas.getGroup());
+            this.setGroupName(canvas.getGroup());
         });
         this.project.on('group_action_add', (group) => {
             this.project?.createObject({
                 ...this.getDefaultCanvasOptions(),
                 group,
             });
+        });
+        this.project.on('canvas_draw_state_change', (_, canvas) => {
+            this.syncSelectionActions(canvas);
         });
     }
 
@@ -322,7 +355,7 @@ export class Editor {
     }
 
     private syncDisplayModeControl(hasData?: boolean): void {
-        const canvas = this.project?.getActiveCanvas();
+        const canvas = this.activeCanvas;
         hasData = typeof hasData === 'undefined' ? canvas?.hasData() || false : hasData;
         this.$displayModeSelect.disabled = hasData;
     }
@@ -394,7 +427,7 @@ export class Editor {
     }
 
     private syncCanvasSidebarColors(): void {
-        const canvas = this.project?.getActiveCanvas();
+        const canvas = this.activeCanvas;
         if (!canvas) {
             this.logger.info(`syncCanvasSidebarColors: no canvas, doing nothing`);
             return;
@@ -493,7 +526,7 @@ export class Editor {
     }
 
     private onCanvasDimensionsChanged(canvas: PixelCanvas): void {
-        if (canvas !== this.project?.getActiveCanvas()) {
+        if (canvas !== this.activeCanvas) {
             return;
         }
 
@@ -503,7 +536,7 @@ export class Editor {
     }
 
     private onPixelDimensionsChanged(canvas: PixelCanvas): void {
-        if (canvas !== this.project?.getActiveCanvas()) {
+        if (canvas !== this.activeCanvas) {
             return;
         }
 
@@ -517,7 +550,7 @@ export class Editor {
             return;
         }
 
-        const canvas = this.project?.getActiveCanvas();
+        const canvas = this.activeCanvas;
         if (!canvas) {
             return;
         }
@@ -555,7 +588,7 @@ export class Editor {
     }
 
     private setActiveColor(colorValue: DisplayModeColorIndex): void {
-        const canvas = this.project?.getActiveCanvas();
+        const canvas = this.activeCanvas;
         if (!canvas) {
             return;
         }
@@ -767,7 +800,7 @@ export class Editor {
             const dir = e.deltaY < 0 ? 1 : -1;
 
             if (e.shiftKey) {
-                const canvas = this.project?.getActiveCanvas();
+                const canvas = this.activeCanvas;
                 const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || { width: 0, height: 0 };
 
                 let newZoomLevel = Math.max(0.5, Math.min(10, this.settings.zoomLevel + dir));
@@ -789,7 +822,7 @@ export class Editor {
             }
 
             // select prev/next color
-            const activeCanvas = this.project?.getActiveCanvas();
+            const activeCanvas = this.activeCanvas;
             if (activeCanvas) {
                 this.setActiveColor(activeCanvas.getActiveColor() - dir);
             }
@@ -800,7 +833,6 @@ export class Editor {
             number: 1,
         };
 
-        let copySelection: CopiedCanvasData | null = null;
         document.addEventListener('keydown', (e) => {
             if (panning) {
                 return;
@@ -817,55 +849,16 @@ export class Editor {
                 return;
             }
 
-            // TODO this is a little janky
             if (e.ctrlKey && e.key.toLowerCase() === 'c') {
-                const canvas = this.project?.getActiveCanvas();
-                if (canvas) {
-                    copySelection = {
-                        pixelData: canvas.getSelectionPixelData(),
-                        originalCanvas: canvas,
-                        displayMode: canvas.getDisplayMode(),
-                    };
-
-                    if (copySelection.pixelData[0]) {
-                        this.logger.info(`copied selection from ${canvas.getName()}`);
-                        const numPixels = copySelection.pixelData.length * copySelection.pixelData[0].length;
-                        e.preventDefault();
-                        Popover.toast({
-                            type: 'success',
-                            content: `Copied selection from ${canvas.getName()} (${numPixels} pixels)`,
-                        });
-                    } else {
-                        copySelection = null;
-                    }
-                } else {
-                    copySelection = null;
+                if (this.copyActiveCanvasSelection()) {
+                    e.preventDefault();
                 }
                 return;
             }
 
-            // TODO this is a little janky
             if (e.ctrlKey && e.key.toLowerCase() === 'v') {
-                const canvas = this.project?.getActiveCanvas();
-                if (copySelection && canvas) {
-                    this.logger.info(`pasting copied selection from ${copySelection.originalCanvas.getName()}`);
-                    if (canvas.getDisplayMode() !== copySelection.displayMode) {
-                        Popover.toast({
-                            type: 'danger',
-                            content: `Cannot apply selection from ${copySelection.displayMode.name} to ${canvas.getDisplayMode().name}`,
-                        });
-                    } else {
-                        const location: Rect = canvas.getCurrentSelection() || {
-                            x: 0,
-                            y: 0,
-                            ...canvas.getDimensions(),
-                        };
-                        canvas.applyPartialPixelData(copySelection.pixelData, location);
-                        Popover.toast({
-                            type: 'success',
-                            content: `Pasted selection from ${copySelection.originalCanvas.getName()}`,
-                        });
-                    }
+                if (this.pasteCopyBuffer()) {
+                    e.preventDefault();
                 }
                 return;
             }
@@ -888,8 +881,13 @@ export class Editor {
                 return;
             }
 
+            if (e.key === 'Escape') {
+                this.activeCanvas?.resetDrawContext();
+                return;
+            }
+
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
-                const canvas = this.project?.getActiveCanvas();
+                const canvas = this.activeCanvas;
                 const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
                 this.settings.zoomLevel = 1;
                 this.updateZoomLevelUI();
@@ -902,7 +900,7 @@ export class Editor {
 
             if (e.key.toLowerCase() === 'w' || e.key.toLowerCase() === 's' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
                 // select prev/next color
-                const activeCanvas = this.project?.getActiveCanvas();
+                const activeCanvas = this.activeCanvas;
                 if (activeCanvas) {
                     const dir = e.key.toLowerCase() === 'w' || e.code === 'ArrowUp' ? -1 : 1;
                     this.setActiveColor(activeCanvas.getActiveColor() + dir);
@@ -964,7 +962,7 @@ export class Editor {
             }
 
             if (e.key.toLowerCase() === 'k') {
-                if (this.project?.getActiveCanvas()?.supportsKangarooMode()) {
+                if (this.activeCanvas?.supportsKangarooMode()) {
                     this.settings.kangarooMode = !this.settings.kangarooMode;
                     this.onKangarooModeChanged();
                 }
@@ -981,7 +979,7 @@ export class Editor {
             }
 
             if (/^\d$/.test(e.key)) {
-                const canvas = this.project?.getActiveCanvas();
+                const canvas = this.activeCanvas;
                 const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || {
                     width: 0,
                     height: 0
@@ -1066,7 +1064,7 @@ export class Editor {
             this.onKangarooModeChanged();
         });
 
-        findElement(this.$gutter, '.zoom-level-label').addEventListener('click', () => {
+        findElement(this.$gutterBottom, '.zoom-level-label').addEventListener('click', () => {
             this.settings.zoomLevel = 1;
             this.updateZoomLevelUI();
             this.project?.zoomTo();
@@ -1189,12 +1187,19 @@ export class Editor {
             });
         });
 
+        this.selectionButtons.$copy.addEventListener('click', () => {
+            this.copyActiveCanvasSelection();
+        });
+        this.selectionButtons.$paste.addEventListener('click', () => {
+            this.pasteCopyBuffer();
+        });
+
         this.updateZoomLevelUI();
         this.initialized = true;
     }
 
     private applyCurrentCheckpoint(redo = false): void {
-        const canvas = this.project?.getActiveCanvas();
+        const canvas = this.activeCanvas;
         if (!canvas) {
             return;
         }
@@ -1215,6 +1220,115 @@ export class Editor {
 
         this.logger.debug(`applying checkpoint[${undoContext.current}] to canvas ${canvas.id}`);
         this.project?.applyCheckpoint(canvas, checkpoint);
+    }
+
+    private emptyCopyBuffer(): void {
+        while (this.copyBuffer.length) {
+            this.copyBuffer.pop();
+        }
+    }
+
+    public copyActiveCanvasSelection(): boolean {
+        const canvas = this.activeCanvas;
+        if (!canvas) {
+            return false;
+        }
+
+        const pixelData = canvas.getSelectionPixelData();
+        if (!pixelData[0]) {
+            return false;
+        }
+
+        // currently we only allow one item in the copy buffer, but that may change someday
+        this.emptyCopyBuffer();
+
+        this.copyBuffer.push({
+            canvas,
+            displayMode: canvas.getDisplayMode(),
+            pixelData,
+        });
+
+        const height = pixelData.length;
+        const width = pixelData[0].length;
+
+        this.logger.info(`copied ${width}${chars.times}${height} selection from ${canvas.getName()}`);
+        Popover.toast({
+            type: 'success',
+            content: parseTemplate(
+                `<div>` +
+                    `<i class="fa-solid fa-check"></i>` +
+                    `Copied ${width}${chars.times}${height} selection from ${canvas.getName()}` +
+                `</div>`
+            ),
+        });
+
+        this.syncPasteSelectionAction();
+
+        return true;
+    }
+
+    public pasteCopyBuffer(): boolean {
+        const copySelection = this.copyBuffer[0];
+        if (!copySelection || !copySelection.pixelData[0]) {
+            return false;
+        }
+
+        const canvas = this.activeCanvas;
+        if (!canvas) {
+            return false;
+        }
+
+        if (canvas.getDisplayMode() !== copySelection.displayMode) {
+            Popover.toast({
+                type: 'danger',
+                content: `Cannot apply selection from ${copySelection.displayMode.name} to ${canvas.getDisplayMode().name}`,
+            });
+            return false;
+        }
+        const location: Rect = canvas.getCurrentSelection() || {
+            x: 0,
+            y: 0,
+            ...canvas.getDimensions(),
+        };
+
+        const copiedHeight = copySelection.pixelData.length;
+        const copiedWidth = copySelection.pixelData[0].length;
+        const copiedSize = `${copiedWidth}${chars.times}${copiedHeight}`;
+
+        this.logger.info(`pasting ${copiedSize} selection from ${copySelection.canvas.getName()} ` +
+            `at ${location.x},${location.y}`);
+        const drawCount = canvas.applyPartialPixelData(copySelection.pixelData, location);
+
+        if (drawCount) {
+            Popover.toast({
+                type: 'success',
+                content: `Successfully applied ${drawCount} pixel${drawCount === 1 ? '' : 's'} originally ` +
+                    `from ${copySelection.canvas.getName()}`,
+            });
+        } else {
+            Popover.toast({
+                type: 'default',
+                content: `Selection from ${copySelection.canvas.getName()} was successfully applied, ` +
+                    `but no pixels were drawn`,
+            });
+        }
+
+        return true;
+    }
+
+    private syncSelectionActions(canvas: PixelCanvas): void {
+        const isActiveCanvas = canvas === this.activeCanvas;
+        const newState = canvas.getDrawState();
+        const isSelected = newState === 'selected';
+        const disabled = !isActiveCanvas || !isSelected;
+
+        const { $copy, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
+        $copy.disabled = $delete.disabled = $rotate.disabled = $flipH.disabled = $flipV.disabled = disabled;
+        this.syncPasteSelectionAction();
+    }
+
+    private syncPasteSelectionAction(): void {
+        this.selectionButtons.$paste.disabled = !this.copyBuffer.length;
     }
 
     private getDefaultCanvasOptions(): Omit<CanvasOptions, 'group' | 'palette'> {
@@ -1445,6 +1559,7 @@ export class Editor {
         }
 
         this.undoContext = {};
+        this.emptyCopyBuffer();
         this.paletteSets.init();
         this.project?.init();
         this.updateZoomLevelUI();
@@ -1452,6 +1567,7 @@ export class Editor {
         this.updateUncolorPixelBehaviorUI();
         this.updateKangarooModeUI();
         this.setDrawMode(this.settings.drawMode, true);
+        this.syncPasteSelectionAction();
 
         this.logger.info(`load successful in ${Date.now() - start}ms`);
     }

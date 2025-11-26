@@ -8,6 +8,7 @@ import type { ObjectGroup } from './ObjectGroup.ts';
 import { PixelCanvas, type PixelCanvasSerialized } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
+    chars,
     findCanvas,
     findElement,
     findInput,
@@ -296,7 +297,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         const $el = this.$el;
         const { width, height } = canvas.getDimensions();
 
-        findElement($el, '.canvas-size').innerText = `${width}×${height}`;
+        findElement($el, '.canvas-size').innerText = `${width}${chars.times}${height}`;
 
         const displayMode = canvas.getDisplayMode();
         findElement($el, '.display-mode-name').innerText = displayMode.name;

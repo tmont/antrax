@@ -18,8 +18,10 @@ $editor-gutter-height: 2rem;
 $editor-gutter-padding: $gutter-quarter;
 $canvas-sidebar-width: 8rem;
 
-$z-index-modal-overlay: 100;
+$z-index-canvas: 5;
+$z-index-gutter: $z-index-canvas + 1;
 $z-index-popover: 50;
+$z-index-modal-overlay: 100;
 $z-index-toast: 150;
 
 $bg-color: #363636;
