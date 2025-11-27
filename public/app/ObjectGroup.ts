@@ -18,6 +18,7 @@ import {
     generateId,
     get2dContext,
     parseTemplate,
+    setTextAndTitle,
     type SiblingInsertOrder
 } from './utils.ts';
 
@@ -146,10 +147,12 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         }
 
         this.name = newName;
-
-        const nameEl = findElement(this.$el, `.group-name`);
-        nameEl.innerText = this.name;
+        this.updateNameUI();
         this.emit('name_change');
+    }
+
+    private updateNameUI(): void {
+        setTextAndTitle(findElement(this.$el, `.group-name`), this.name);
     }
 
     public getPaletteSet(): ColorPaletteSet {
@@ -345,7 +348,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
         const $group = this.$el;
         $group.setAttribute('data-group-id', this.id);
-        $group.querySelector('.group-name')?.appendChild(document.createTextNode(this.name));
+        this.updateNameUI();
         $parent.appendChild($group);
 
         const $overflowContent = parseTemplate(groupOverflowTmpl);

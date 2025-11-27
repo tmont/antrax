@@ -12,7 +12,8 @@ import {
     findCanvas,
     findElement,
     findInput,
-    parseTemplate
+    parseTemplate,
+    setTextAndTitle
 } from './utils.ts';
 
 const objectItemTmpl = `
@@ -133,7 +134,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
 
         this.logger.debug(`setting name to "${newName}"`);
         this.canvas.setName(newName);
-        findElement(this.$el, '.item-name').innerText = this.canvasName;
+        setTextAndTitle(findElement(this.$el, '.item-name'),  this.canvasName);
     }
 
     public setGroup(newGroup: ObjectGroup): void {

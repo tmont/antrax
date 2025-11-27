@@ -28,7 +28,8 @@ import {
     nope,
     parseTemplate,
     type PixelInfo,
-    type Rect
+    type Rect,
+    setTextAndTitle
 } from './utils.ts';
 
 export interface CopiedCanvasData {
@@ -225,7 +226,7 @@ export class Editor {
         this.project.on('canvas_activate', (activeCanvas) => {
             this.logger.debug(`canvas "${activeCanvas?.getName()}" activated`);
             this.setGroupName(activeCanvas?.getGroup());
-            this.$activeObjectName.innerText = activeCanvas?.getName() || 'n/a';
+            this.setObjectName(activeCanvas);
 
             this.$canvasCoordinates.innerText = `0,0`;
 
@@ -285,10 +286,10 @@ export class Editor {
             this.pushUndoItem(canvas);
         });
         this.project.on('active_object_name_change', (activeCanvas) => {
-            this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
+            this.setObjectName(activeCanvas);
         });
         this.project.on('active_group_name_change', (group) => {
-            this.$activeGroupName.innerText = group.getName() || 'n/a';
+            this.setGroupName(group);
         });
         this.project.on('pixel_dimensions_change', (activeCanvas) => {
             this.onPixelDimensionsChanged(activeCanvas);
@@ -375,7 +376,11 @@ export class Editor {
     }
 
     private setGroupName(group?: ObjectGroup | null): void {
-        this.$activeGroupName.innerText = group?.getName() || 'n/a';
+        setTextAndTitle(this.$activeGroupName, group?.getName() || 'n/a');
+    }
+
+    private setObjectName(canvas?: PixelCanvas | null): void {
+        setTextAndTitle(this.$activeObjectName, canvas?.getName() || 'n/a');
     }
 
     private syncDisplayModeControl(hasData?: boolean): void {
