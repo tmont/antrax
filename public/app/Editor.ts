@@ -1193,15 +1193,11 @@ export class Editor {
             });
         });
 
-        this.selectionButtons.$copy.addEventListener('click', () => {
-            this.copyActiveCanvasSelection();
-        });
-        this.selectionButtons.$paste.addEventListener('click', () => {
-            this.pasteCopyBuffer();
-        });
-        this.selectionButtons.$delete.addEventListener('click', () => {
-            this.eraseActiveSelection();
-        });
+        this.selectionButtons.$copy.addEventListener('click', () => this.copyActiveCanvasSelection());
+        this.selectionButtons.$paste.addEventListener('click', () => this.pasteCopyBuffer());
+        this.selectionButtons.$delete.addEventListener('click', () => this.eraseActiveSelection());
+        this.selectionButtons.$flipV.addEventListener('click', () => this.flipActiveSelection('vertical'));
+        this.selectionButtons.$flipH.addEventListener('click', () => this.flipActiveSelection('horizontal'));
 
         this.updateZoomLevelUI();
         this.initialized = true;
@@ -1334,6 +1330,17 @@ export class Editor {
 
         this.logger.info(`erasing selected ${rect.width}${chars.times}${rect.height} pixels`);
         canvas.eraseSelection(rect);
+    }
+
+    public flipActiveSelection(dir: 'horizontal' | 'vertical'): void {
+        const canvas = this.activeCanvas;
+        const rect = canvas?.getCurrentSelection();
+        if (!canvas || !rect) {
+            return;
+        }
+
+        this.logger.info(`flipping selected ${rect.width}${chars.times}${rect.height} pixels ${dir}ly`);
+        canvas.flipSelection(rect, dir);
     }
 
     private syncSelectionActions(canvas: PixelCanvas | null): void {

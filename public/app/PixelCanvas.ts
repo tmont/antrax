@@ -56,6 +56,7 @@ interface DrawPixelOptions {
     emit?: boolean; // emit pixel_draw, defaults to true
     ctx?: CanvasRenderingContext2D;
     immutable?: boolean; // do not update the pixel's color, defaults to false
+    forceErase?: boolean; // erase even if it's not a user-initiated action
 }
 
 export type GeneratedImageSize = 'thumbnail' | 'full';
@@ -1001,6 +1002,67 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger.debug(`erased ${eraseCount}/${totalCount} pixel${eraseCount === 1 ? '' : 's'} from selection`);
     }
 
+    public flipSelection(rect: Rect, dir: 'horizontal' | 'vertical'): void {
+        if (!rect.width || !rect.height) {
+            return;
+        }
+        if ((rect.width === 1 && dir === 'horizontal') || (rect.height === 1 && dir === 'vertical')) {
+            // can't flip a single unit
+            return;
+        }
+
+        if (dir === 'horizontal') {
+            throw new Error('not implemented yet');
+        }
+
+        let flipCount = 0;
+        for (let y = 0; y < Math.floor(rect.height / 2); y++) {
+            const topY = rect.y + y;
+            const botY = rect.y + rect.height - 1 - y;
+            const topRow = this.pixelData[topY];
+            const bottomRow = this.pixelData[botY];
+            if (!topRow || !bottomRow) {
+                break;
+            }
+
+            for (let x = rect.x; x < rect.x + rect.width; x++) {
+                const topValue = topRow[x];
+                const bottomValue = bottomRow[x];
+                if (!topValue || !bottomValue) {
+                    break;
+                }
+
+                topRow[x] = bottomValue;
+                bottomRow[x] = topValue;
+                flipCount += 2;
+
+                // forceErase is needed since we are not clearing the selection first. normally we could
+                // we just clear the relevant rect and not need forceErase, but we are not processing the
+                // middle row if there is an odd number of rows, so it'll be erased entirely if we clear
+                // everything first.
+                this.drawPixelFromRowAndCol({ x, y: topY }, bottomValue, {
+                    emit: false,
+                    behavior: 'internal',
+                    immutable: true,
+                    forceErase: true
+                });
+                this.drawPixelFromRowAndCol({ x, y: botY }, topValue, {
+                    emit: false,
+                    behavior: 'internal',
+                    immutable: true,
+                    forceErase: true,
+                });
+            }
+        }
+
+        const totalCount = rect.width * rect.height;
+        this.logger.debug(`${dir}ly flipped ${flipCount}/${totalCount} pixel${flipCount === 1 ? '' : 's'} from selection`);
+
+        if (flipCount) {
+            this.emit('pixel_draw_aggregate', { behavior: 'user' });
+        }
+    }
+
     public clear(): void {
         this.logger.debug(`clearing canvas`);
         this.clearRect(0, 0, this.displayWidth, this.displayHeight);
@@ -1197,8 +1259,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const ctx = options.ctx || this.ctx;
         const behavior = options.behavior;
         const immutable = options.immutable === true;
-
         const isUserAction = behavior === 'user';
+        const shouldErase = isUserAction || options.forceErase === true;
 
         // if it's the user actually drawing something, we use the current palette/color, otherwise,
         // it's just an internal render, and we use the pixel's current palette/color
@@ -1219,7 +1281,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
 
         if (newColor === null) {
-            if (isUserAction) {
+            if (shouldErase) {
                 this.clearRect(
                     absoluteCoordinate.x,
                     absoluteCoordinate.y,
@@ -1232,7 +1294,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             const colorValue = this.getColorForModeIndex(newColor);
             if (!colorValue) {
                 this.logger.error(`color[${newColor}] not found in display mode ${this.displayMode.name}`);
-                if (isUserAction) {
+                if (shouldErase) {
                     this.clearRect(
                         absoluteCoordinate.x,
                         absoluteCoordinate.y,
@@ -1259,7 +1321,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                         ctx.fillStyle = this.backgroundColor.hex;
                         ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
                     } else if (color.value === 'transparent') {
-                        if (isUserAction) {
+                        if (shouldErase) {
                             this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight, ctx);
                         }
                     } else {
