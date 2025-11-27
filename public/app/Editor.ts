@@ -266,6 +266,7 @@ export class Editor {
                 this.onCanvasDimensionsChanged(activeCanvas);
                 this.onDisplayModeChanged(activeCanvas);
                 this.onCanvasPaletteChanged(activeCanvas);
+                this.syncSelectionActions(activeCanvas);
 
                 // among other things, this helps cloned items have an initial undo state that
                 // is not blank
@@ -1316,11 +1317,11 @@ export class Editor {
         return true;
     }
 
-    private syncSelectionActions(canvas: PixelCanvas): void {
-        const isActiveCanvas = canvas === this.activeCanvas;
-        const newState = canvas.getDrawState();
-        const isSelected = newState === 'selected';
-        const disabled = !isActiveCanvas || !isSelected;
+    private syncSelectionActions(canvas: PixelCanvas | null): void {
+        const isActiveCanvas = !!canvas && canvas === this.activeCanvas;
+        const drawState = canvas?.getDrawState();
+        const isSelected = drawState === 'selected';
+        const disabled = !canvas || !isActiveCanvas || !isSelected;
 
         const { $copy, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
         $copy.disabled = $delete.disabled = $rotate.disabled = $flipH.disabled = $flipV.disabled = disabled;
@@ -1567,7 +1568,7 @@ export class Editor {
         this.updateUncolorPixelBehaviorUI();
         this.updateKangarooModeUI();
         this.setDrawMode(this.settings.drawMode, true);
-        this.syncPasteSelectionAction();
+        this.syncSelectionActions(null);
 
         this.logger.info(`load successful in ${Date.now() - start}ms`);
     }
