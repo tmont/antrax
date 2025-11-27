@@ -1382,6 +1382,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             .join('\n');
     }
 
+    public static generateHashWithDimensions(data: PixelInfo[][], dimensions: Dimensions): string {
+        return `w:${dimensions.width},h:${dimensions.height}` + '\n' + this.generateHash(data);
+    }
+
     public highlightPixel(pixelRowAndCol: Coordinate): boolean {
         if (this.destroyed) {
             return false;

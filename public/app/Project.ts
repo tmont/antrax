@@ -609,6 +609,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             return;
         }
 
+        const { width, height } = checkpoint.canvasDimensions;
+        this.setCanvasDimensions(width, height);
         canvas.setPixelData(checkpoint.pixelData);
     }
 

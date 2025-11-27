@@ -10,6 +10,7 @@ import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
     chars,
+    type Dimensions,
     type DisplayModeColorIndex,
     type DisplayModeColorValue,
     type DisplayModeName,
@@ -89,6 +90,7 @@ const saveAsFormTmpl = `
 
 export interface UndoCheckpoint {
     pixelData: PixelCanvas['pixelData'];
+    canvasDimensions: Dimensions;
 }
 
 export interface UndoContext {
@@ -216,45 +218,6 @@ export class Editor {
 
         let undoTimeoutId: number | null = null;
 
-        const pushUndoItem = (canvas: PixelCanvas) => {
-            let undoContext = this.undoContext[canvas.id];
-            if (!undoContext) {
-                undoContext = this.undoContext[canvas.id] = {
-                    current: -1,
-                    stack: [],
-                };
-            }
-
-            // if current is not pointing to the most item on the stack, remove all elements
-            // to the end of the stack
-            if (undoContext.current !== undoContext.stack.length - 1) {
-                this.logger.info(`slicing undo stack since pointer was not at end ` +
-                    `(${undoContext.current} vs. ${undoContext.stack.length - 1})`);
-                undoContext.stack = undoContext.stack.slice(0, undoContext.current + 1);
-            }
-
-            const pixelData = canvas.clonePixelData();
-
-            const topOfStack = undoContext.stack[undoContext.stack.length - 1];
-            const currentHash = PixelCanvas.generateHash(pixelData);
-            const topHash = topOfStack ? PixelCanvas.generateHash(topOfStack.pixelData) : null;
-
-            if (topOfStack && currentHash === topHash) {
-                // top of stack has the same state, don't want consecutive undo items to be identical
-                this.logger.info(`undo stack has identical data, not pushing`);
-                return;
-            }
-
-            undoContext.stack.push({ pixelData });
-
-            while (undoContext.stack.length > 1000) {
-                undoContext.stack.shift();
-            }
-
-            undoContext.current = undoContext.stack.length - 1;
-            this.logger.debug(`pushing onto undo stack ${undoContext.current}/${undoContext.stack.length - 1}`);
-        };
-
         this.project = project;
         this.project.off();
         this.project.on('canvas_activate', (activeCanvas) => {
@@ -271,7 +234,7 @@ export class Editor {
 
                 // among other things, this helps cloned items have an initial undo state that
                 // is not blank
-                pushUndoItem(activeCanvas);
+                this.pushUndoItem(activeCanvas);
             } else {
                 // onDisplayModeChanged also calls syncSelectionActions so we didn't need this
                 // on the other side of the conditional here.
@@ -299,7 +262,7 @@ export class Editor {
                     undoTimeoutId = null;
                 }
 
-                undoTimeoutId = window.setTimeout(() => pushUndoItem(canvas), 250);
+                undoTimeoutId = window.setTimeout(() => this.pushUndoItem(canvas), 250);
             }
 
             this.syncDisplayModeControl();
@@ -312,10 +275,10 @@ export class Editor {
         });
         this.project.on('canvas_reset', (canvas) => {
             this.syncDisplayModeControl(false);
-            pushUndoItem(canvas);
+            this.pushUndoItem(canvas);
         });
         this.project.on('draw_start', (canvas) => {
-            pushUndoItem(canvas);
+            this.pushUndoItem(canvas);
         });
         this.project.on('active_object_name_change', (activeCanvas) => {
             this.$activeObjectName.innerText = activeCanvas.getName() || 'n/a';
@@ -354,6 +317,50 @@ export class Editor {
         this.project.on('canvas_draw_state_change', (_, canvas) => {
             this.syncSelectionActions(canvas);
         });
+    }
+
+    public pushUndoItem(canvas: PixelCanvas): void {
+        let undoContext = this.undoContext[canvas.id];
+        if (!undoContext) {
+            undoContext = this.undoContext[canvas.id] = {
+                current: -1,
+                stack: [],
+            };
+        }
+
+        // if current is not pointing to the most item on the stack, remove all elements
+        // to the end of the stack
+        if (undoContext.current !== undoContext.stack.length - 1) {
+            this.logger.info(`slicing undo stack since pointer was not at end ` +
+                `(${undoContext.current} vs. ${undoContext.stack.length - 1})`);
+            undoContext.stack = undoContext.stack.slice(0, undoContext.current + 1);
+        }
+
+        const pixelData = canvas.clonePixelData();
+
+        const topOfStack = undoContext.stack[undoContext.stack.length - 1];
+        const currentHash = PixelCanvas.generateHashWithDimensions(pixelData, canvas.getDimensions());
+        const topHash = topOfStack ?
+            PixelCanvas.generateHashWithDimensions(topOfStack.pixelData, topOfStack.canvasDimensions) :
+            null;
+
+        if (topOfStack && currentHash === topHash) {
+            // top of stack has the same state, don't want consecutive undo items to be identical
+            this.logger.info(`undo stack has identical data, not pushing`);
+            return;
+        }
+
+        undoContext.stack.push({
+            canvasDimensions: canvas.getDimensions(),
+            pixelData,
+        });
+
+        while (undoContext.stack.length > 250) {
+            undoContext.stack.shift();
+        }
+
+        undoContext.current = undoContext.stack.length - 1;
+        this.logger.debug(`pushing onto undo stack ${undoContext.current}/${undoContext.stack.length - 1}`);
     }
 
     private setGroupName(group?: ObjectGroup | null): void {
@@ -1296,6 +1303,7 @@ export class Editor {
             width = width + (canvasWidthMultiple - (width % canvasWidthMultiple));
         }
 
+        this.pushUndoItem(canvas);
         this.project?.setCanvasDimensions(width, rect.height);
         canvas.setPixelData(pixelData);
         canvas.setSelection({
@@ -1303,6 +1311,7 @@ export class Editor {
             y: 0,
             ...canvas.getDimensions(),
         });
+        this.pushUndoItem(canvas);
     }
 
     public pasteCopyBuffer(): boolean {
