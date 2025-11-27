@@ -615,7 +615,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                         y: pixelData.col < mouseDownOrigin.col ? pixelData.row : mouseDownOrigin.row,
                     };
 
-                    this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, transientCtx);
+                    this.clearTransientRect();
                     this.transientState = [];
                     for (let row = start.y; row <= start.y + height; row++) {
                         for (let col = start.x; col <= start.x + width; col++) {
@@ -717,21 +717,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                         y: Math.min(mouseDownOrigin.row, pixelData.row),
                     };
 
-                    this.clearTransientRect();
-
-                    const x = start.x * this.displayPixelWidth;
-                    const y = start.y * this.displayPixelHeight;
-                    const w = width * this.displayPixelWidth;
-                    const h = height * this.displayPixelHeight;
-
-                    this.drawHoverStyleRect(transientCtx, x, y, w, h, 12);
-
                     this.drawContext.selection = {
                         x: start.x,
                         y: start.y,
                         width,
                         height,
                     };
+
+                    this.renderTransient();
                     break;
                 }
 
@@ -1043,6 +1036,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger.debug(`drew ${pixelsDrawn}/${totalPixels} pixel${pixelsDrawn === 1 ? '' : 's'}`);
 
         this.renderGrid();
+        this.renderTransient();
         this.logger.debug(`rendering complete in ${Date.now() - start}ms`);
         this.emit('pixel_draw_aggregate', { behavior: 'internal' });
     }
@@ -1135,6 +1129,22 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         ctx.stroke();
+    }
+
+    public renderTransient(): void {
+        const { selection, state } = this.drawContext;
+        if (!selection || (state !== 'selected' && state !== 'selecting')) {
+            return;
+        }
+
+        this.logger.debug(`rendering selection on transient canvas`);
+        const x = selection.x * this.displayPixelWidth;
+        const y = selection.y * this.displayPixelHeight;
+        const w = selection.width * this.displayPixelWidth;
+        const h = selection.height * this.displayPixelHeight;
+
+        this.clearTransientRect();
+        this.drawHoverStyleRect(this.transientCtx, x, y, w, h, 12);
     }
 
     private getColorForModeIndex(index: DisplayModeColorIndex): DisplayModeColorValue | null {
