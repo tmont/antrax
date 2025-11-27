@@ -968,6 +968,39 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return copiedData;
     }
 
+    public eraseSelection(rect: Rect): void {
+        if (!rect.width || !rect.height) {
+            return;
+        }
+
+        let eraseCount = 0;
+        for (let y = rect.y; y < rect.y + rect.height; y++) {
+            const row = this.pixelData[y];
+            if (!row) {
+                continue;
+            }
+
+            for (let x = rect.x; x < rect.x + rect.width; x++) {
+                const pixel = row[x];
+                if (!pixel) {
+                    break;
+                }
+                pixel.modeColorIndex = null;
+                eraseCount++;
+            }
+        }
+
+        this.clearRect(
+            rect.x * this.displayPixelWidth,
+            rect.y * this.displayPixelHeight,
+            rect.width * this.displayPixelWidth,
+            rect.height * this.displayPixelHeight,
+        );
+
+        const totalCount = rect.width * rect.height;
+        this.logger.debug(`erased ${eraseCount}/${totalCount} pixel${eraseCount === 1 ? '' : 's'} from selection`);
+    }
+
     public clear(): void {
         this.logger.debug(`clearing canvas`);
         this.clearRect(0, 0, this.displayWidth, this.displayHeight);

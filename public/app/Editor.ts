@@ -887,6 +887,11 @@ export class Editor {
                 return;
             }
 
+            if (e.key === 'Delete') {
+                this.eraseActiveSelection();
+                return;
+            }
+
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
                 const canvas = this.activeCanvas;
                 const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
@@ -1194,6 +1199,9 @@ export class Editor {
         this.selectionButtons.$paste.addEventListener('click', () => {
             this.pasteCopyBuffer();
         });
+        this.selectionButtons.$delete.addEventListener('click', () => {
+            this.eraseActiveSelection();
+        });
 
         this.updateZoomLevelUI();
         this.initialized = true;
@@ -1315,6 +1323,17 @@ export class Editor {
         }
 
         return true;
+    }
+
+    public eraseActiveSelection(): void {
+        const canvas = this.activeCanvas;
+        const rect = canvas?.getCurrentSelection();
+        if (!canvas || !rect) {
+            return;
+        }
+
+        this.logger.info(`erasing selected ${rect.width}${chars.times}${rect.height} pixels`);
+        canvas.eraseSelection(rect);
     }
 
     private syncSelectionActions(canvas: PixelCanvas | null): void {
