@@ -109,6 +109,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         }
 
         this.groups.forEach(group => this.wireUpGroup(group));
+        this.canvases.forEach(canvas => this.wireUpCanvas(canvas));
 
         if (this.activeItem) {
             this.activateItem(this.activeItem);

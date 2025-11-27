@@ -221,6 +221,7 @@ export class Editor {
         this.project = project;
         this.project.off();
         this.project.on('canvas_activate', (activeCanvas) => {
+            this.logger.debug(`canvas "${activeCanvas?.getName()}" activated`);
             this.setGroupName(activeCanvas?.getGroup());
             this.$activeObjectName.innerText = activeCanvas?.getName() || 'n/a';
 
@@ -1386,6 +1387,7 @@ export class Editor {
     }
 
     private syncSelectionActions(canvas: PixelCanvas | null): void {
+        this.logger.debug('syncing selection actions');
         const isActiveCanvas = !!canvas && canvas === this.activeCanvas;
         const drawState = canvas?.getDrawState();
         const isSelected = drawState === 'selected';
