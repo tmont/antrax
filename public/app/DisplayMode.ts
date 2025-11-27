@@ -222,6 +222,60 @@ class DisplayMode {
         }
     }
 
+    public get supportsHorizontalFlip(): boolean {
+        switch (this.name) {
+            case 'none':
+            case '160A':
+            case '160B':
+            case '320A':
+            case '320B':
+            case '320C':
+                return true;
+            case '320D':
+                return false;
+            default:
+                nope(this.name);
+                throw new Error(`Invalid type "${this.name}"`);
+        }
+    }
+
+    /**
+     * @return {number[]} Mapping from the current mode color index to the reflected one
+     */
+    public getReflectedColorMapping(colors: DisplayModeColorValue[]): number[] {
+        switch (this.name) {
+            case 'none':
+            case '160A':
+            case '160B':
+                return colors.map((_, i) => i); // identity mapping
+            case '320A':
+                if (colors.length !== 4) {
+                    throw new Error(`expected mode ${this.name} to have exactly 4 colors`);
+                }
+                return [ 0, 2, 1, 3 ];
+            case '320B':
+                if (colors.length !== 16) {
+                    throw new Error(`expected mode ${this.name} to have exactly 16 colors`);
+                }
+                return [ 0, 2, 1, 3, 8, 10, 9, 11, 4, 6, 5, 7, 12, 14, 13, 15 ];
+            case '320C':
+                if (colors.length !== 13) {
+                    throw new Error(`expected mode ${this.name} to have exactly 13 colors`);
+                }
+                return [
+                    0, 2, 1, 3,
+                    5, 4, 6,
+                    8, 7, 9,
+                    11, 10, 12
+                ];
+            case '320D':
+                throw new Error(`${this.name} does not support reflection`);
+            default:
+                nope(this.name);
+                throw new Error(`Invalid type "${this.name}"`);
+        }
+    }
+
     public getColorAt(
         paletteSet: ColorPaletteSet,
         palette: ColorPalette,

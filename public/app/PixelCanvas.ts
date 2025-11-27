@@ -1011,47 +1011,72 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        if (dir === 'horizontal') {
-            throw new Error('not implemented yet');
-        }
+        // forceErase is needed since we are not clearing the selection first. normally we could
+        // we just clear the relevant rect and not need forceErase, but we are not processing the
+        // middle row if there is an odd number of rows, so it'll be erased entirely if we clear
+        // everything first.
+        const drawOptions: DrawPixelOptions = {
+            emit: false,
+            behavior: 'internal',
+            immutable: true,
+            forceErase: true,
+        };
 
         let flipCount = 0;
-        for (let y = 0; y < Math.floor(rect.height / 2); y++) {
-            const topY = rect.y + y;
-            const botY = rect.y + rect.height - 1 - y;
-            const topRow = this.pixelData[topY];
-            const bottomRow = this.pixelData[botY];
-            if (!topRow || !bottomRow) {
-                break;
-            }
-
-            for (let x = rect.x; x < rect.x + rect.width; x++) {
-                const topValue = topRow[x];
-                const bottomValue = bottomRow[x];
-                if (!topValue || !bottomValue) {
+        if (dir === 'horizontal') {
+            const colors = this.getColors();
+            const mapping = this.displayMode.getReflectedColorMapping(colors);
+            for (let y = rect.y; y < rect.y + rect.height; y++) {
+                const row = this.pixelData[y];
+                if (!row) {
                     break;
                 }
 
-                topRow[x] = bottomValue;
-                bottomRow[x] = topValue;
-                flipCount += 2;
+                for (let x = 0; x < Math.floor(rect.width / 2); x++) {
+                    const leftX = rect.x + x;
+                    const rightX = rect.x + rect.width - 1 - x;
+                    const leftValue = row[leftX];
+                    const rightValue = row[rightX];
+                    if (!leftValue || !rightValue) {
+                        break;
+                    }
 
-                // forceErase is needed since we are not clearing the selection first. normally we could
-                // we just clear the relevant rect and not need forceErase, but we are not processing the
-                // middle row if there is an odd number of rows, so it'll be erased entirely if we clear
-                // everything first.
-                this.drawPixelFromRowAndCol({ x, y: topY }, bottomValue, {
-                    emit: false,
-                    behavior: 'internal',
-                    immutable: true,
-                    forceErase: true
-                });
-                this.drawPixelFromRowAndCol({ x, y: botY }, topValue, {
-                    emit: false,
-                    behavior: 'internal',
-                    immutable: true,
-                    forceErase: true,
-                });
+                    row[leftX] = {
+                        modeColorIndex: mapping[rightValue.modeColorIndex || 0] as any,
+                    };
+                    row[rightX] = {
+                        modeColorIndex: mapping[leftValue.modeColorIndex || 0] as any,
+                    };
+                    flipCount += 2;
+
+                    this.drawPixelFromRowAndCol({ x: leftX, y }, row[leftX], drawOptions);
+                    this.drawPixelFromRowAndCol({ x: rightX, y }, row[rightX], drawOptions);
+                }
+            }
+        } else {
+            for (let y = 0; y < Math.floor(rect.height / 2); y++) {
+                const topY = rect.y + y;
+                const botY = rect.y + rect.height - 1 - y;
+                const topRow = this.pixelData[topY];
+                const bottomRow = this.pixelData[botY];
+                if (!topRow || !bottomRow) {
+                    break;
+                }
+
+                for (let x = rect.x; x < rect.x + rect.width; x++) {
+                    const topValue = topRow[x];
+                    const bottomValue = bottomRow[x];
+                    if (!topValue || !bottomValue) {
+                        break;
+                    }
+
+                    topRow[x] = bottomValue;
+                    bottomRow[x] = topValue;
+                    flipCount += 2;
+
+                    this.drawPixelFromRowAndCol({ x, y: topY }, bottomValue, drawOptions);
+                    this.drawPixelFromRowAndCol({ x, y: botY }, topValue, drawOptions);
+                }
             }
         }
 

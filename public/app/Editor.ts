@@ -266,11 +266,14 @@ export class Editor {
                 this.onCanvasDimensionsChanged(activeCanvas);
                 this.onDisplayModeChanged(activeCanvas);
                 this.onCanvasPaletteChanged(activeCanvas);
-                this.syncSelectionActions(activeCanvas);
 
                 // among other things, this helps cloned items have an initial undo state that
                 // is not blank
                 pushUndoItem(activeCanvas);
+            } else {
+                // onDisplayModeChanged also calls syncSelectionActions so we didn't need this
+                // on the other side of the conditional here.
+                this.syncSelectionActions(null);
             }
 
             this.syncDisplayModeControl();
@@ -421,6 +424,7 @@ export class Editor {
         }
 
         this.syncCanvasSidebarColors();
+        this.syncSelectionActions(canvas); // some actions are disabled based on the display mode (e.g. horizontal flip)
 
         // certain display modes have a different color0, which is used as the background, so
         // we need to update it (e.g. 320D in Kangaroo mode)
@@ -1350,7 +1354,8 @@ export class Editor {
         const disabled = !canvas || !isActiveCanvas || !isSelected;
 
         const { $copy, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
-        $copy.disabled = $delete.disabled = $rotate.disabled = $flipH.disabled = $flipV.disabled = disabled;
+        $copy.disabled = $delete.disabled = $rotate.disabled = $flipV.disabled = disabled;
+        $flipH.disabled = disabled || !canvas?.getDisplayMode().supportsHorizontalFlip;
         this.syncPasteSelectionAction();
     }
 
