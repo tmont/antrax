@@ -98,10 +98,11 @@ export interface UndoContext {
 
 interface SelectionButtons {
     readonly $copy: HTMLButtonElement;
+    readonly $crop: HTMLButtonElement;
     readonly $delete: HTMLButtonElement;
     readonly $rotate: HTMLButtonElement;
-    readonly $flipH: HTMLButtonElement;
     readonly $flipV: HTMLButtonElement;
+    readonly $flipH: HTMLButtonElement;
     readonly $paste: HTMLButtonElement;
 }
 
@@ -166,6 +167,7 @@ export class Editor {
         const btnSelector = (action: string) => `.canvas-selection-controls [data-action="${action}"]`;
         this.selectionButtons = {
             $copy: findButton(this.$gutterTop, btnSelector('copy')),
+            $crop: findButton(this.$gutterTop, btnSelector('crop')),
             $delete: findButton(this.$gutterTop, btnSelector('delete')),
             $rotate: findButton(this.$gutterTop, btnSelector('rotate')),
             $flipH: findButton(this.$gutterTop, btnSelector('flip-h')),
@@ -1198,10 +1200,11 @@ export class Editor {
         });
 
         this.selectionButtons.$copy.addEventListener('click', () => this.copyActiveCanvasSelection());
-        this.selectionButtons.$paste.addEventListener('click', () => this.pasteCopyBuffer());
+        this.selectionButtons.$crop.addEventListener('click', () => this.cropToActiveSelection());
         this.selectionButtons.$delete.addEventListener('click', () => this.eraseActiveSelection());
         this.selectionButtons.$flipV.addEventListener('click', () => this.flipActiveSelection('vertical'));
         this.selectionButtons.$flipH.addEventListener('click', () => this.flipActiveSelection('horizontal'));
+        this.selectionButtons.$paste.addEventListener('click', () => this.pasteCopyBuffer());
 
         this.updateZoomLevelUI();
         this.initialized = true;
@@ -1274,6 +1277,32 @@ export class Editor {
         this.syncPasteSelectionAction();
 
         return true;
+    }
+
+    public cropToActiveSelection(): void {
+        const canvas = this.activeCanvas;
+        const rect = canvas?.getCurrentSelection();
+        const pixelData = canvas?.getSelectionPixelData();
+        if (!canvas || !rect || !pixelData) {
+            return;
+        }
+
+        this.logger.info(`cropping to ${rect.width}${chars.times}${rect.height}`);
+        canvas.clear();
+
+        let width = rect.width;
+        const canvasWidthMultiple = canvas.getDisplayMode().pixelsPerByte;
+        if (canvasWidthMultiple > 0 && width % canvasWidthMultiple !== 0) {
+            width = width + (canvasWidthMultiple - (width % canvasWidthMultiple));
+        }
+
+        this.project?.setCanvasDimensions(width, rect.height);
+        canvas.setPixelData(pixelData);
+        canvas.setSelection({
+            x: 0,
+            y: 0,
+            ...canvas.getDimensions(),
+        });
     }
 
     public pasteCopyBuffer(): boolean {
@@ -1353,8 +1382,8 @@ export class Editor {
         const isSelected = drawState === 'selected';
         const disabled = !canvas || !isActiveCanvas || !isSelected;
 
-        const { $copy, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
-        $copy.disabled = $delete.disabled = $rotate.disabled = $flipV.disabled = disabled;
+        const { $copy, $crop, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
+        $copy.disabled = $crop.disabled = $delete.disabled = $rotate.disabled = $flipV.disabled = disabled;
         $flipH.disabled = disabled || !canvas?.getDisplayMode().supportsHorizontalFlip;
         this.syncPasteSelectionAction();
     }
