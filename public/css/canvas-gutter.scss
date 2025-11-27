@@ -1,6 +1,9 @@
 @use "./config";
 
 .canvas-gutter {
+    $gutter-padding-left: config.$gutter-half;
+    $inline-icon-size: 0.9rem;
+
     display: flex;
     flex-shrink: 0;
     align-items: center;
@@ -8,7 +11,7 @@
     height: config.$editor-gutter-height;
     background-color: config.$sidebar-bg-color;
     font-size: 80%;
-    padding-left: config.$gutter;
+    padding: 0 $gutter-padding-left;
     position: relative;
     z-index: config.$z-index-gutter;
 
@@ -19,21 +22,57 @@
         border-bottom: 2px solid config.$border-color;
     }
 
+    .app-links {
+        width: config.$canvas-sidebar-width;
+        border-right: 2px solid config.$border-color;
+        padding: 0;
+        justify-content: center;
+        margin-left: -($gutter-padding-left);
+        height: 100%;
+        background-color: config.$canvas-sidebar-bg;
+    }
+
+    .current-coordinates {
+        // so that it doesn't shift around when the number change; it will still shift when you get
+        // to three digit numbers, but that's not very common and the narrower width looks better
+        // in the common case.
+        min-width: 4em;
+        text-align: center;
+    }
+    .selection-size-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+
+        // same story as above, try to prevent it from shifting around until you get to three digits
+        min-width: 5em;
+
+        i {
+            font-size: $inline-icon-size;
+        }
+    }
+
     .gutter-list {
         display: flex;
         gap: config.$gutter;
         align-items: center;
-        padding: config.$editor-gutter-padding;
 
         &.gutter-list-sm {
-            gap: config.$gutter-quarter;
+            gap: $gutter-padding-left;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem
         }
     }
 
     .link-list {
-        font-size: 0.9rem;
         display: flex;
         gap: config.$gutter-half;
+        font-size: $inline-icon-size;
 
         a {
             opacity: 0.75;

@@ -803,7 +803,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         };
 
         const onHover = (e: MouseEvent): void => {
-            if (this.drawContext.state !== 'idle') {
+            if (this.drawContext.state !== 'idle' && this.drawContext.state !== 'selected') {
                 return;
             }
 

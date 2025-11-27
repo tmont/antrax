@@ -124,6 +124,7 @@ export class Editor {
     private readonly $canvasWidthInput: HTMLInputElement;
     private readonly $canvasHeightInput: HTMLInputElement;
     private readonly $canvasCoordinates: HTMLElement;
+    private readonly $selectionSize: HTMLElement;
     private readonly $activeGroupName: HTMLElement;
     private readonly $activeObjectName: HTMLElement;
     private readonly $canvasArea: HTMLElement;
@@ -155,13 +156,14 @@ export class Editor {
         this.$uncolorPixelInput = findInput(this.$gutterBottom, '#option-uncolored-pixel-behavior');
         this.$kangarooModeInput = findInput(this.$gutterBottom, '#option-kangaroo-mode');
         this.$zoomValue = findElement(this.$gutterBottom, '.zoom-level-value');
-        this.$pixelWidthInput = findInput(this.$gutterTop, '#option-pixel-width');
-        this.$pixelHeightInput = findInput(this.$gutterTop, '#option-pixel-height');
-        this.$canvasWidthInput = findInput(this.$gutterTop, '#option-canvas-width');
-        this.$canvasHeightInput = findInput(this.$gutterTop, '#option-canvas-height');
-        this.$canvasCoordinates = findElement(this.$gutterBottom, '.current-coordinates');
-        this.$activeGroupName = findElement(this.$gutterBottom, '.breadcrumb .active-group-name');
-        this.$activeObjectName = findElement(this.$gutterBottom, '.breadcrumb .active-object-name');
+        this.$pixelWidthInput = findInput(this.$gutterBottom, '#option-pixel-width');
+        this.$pixelHeightInput = findInput(this.$gutterBottom, '#option-pixel-height');
+        this.$canvasWidthInput = findInput(this.$gutterBottom, '#option-canvas-width');
+        this.$canvasHeightInput = findInput(this.$gutterBottom, '#option-canvas-height');
+        this.$canvasCoordinates = findElement(this.$gutterTop, '.current-coordinates');
+        this.$selectionSize = findElement(this.$gutterTop, '.selection-size');
+        this.$activeGroupName = findElement(this.$gutterTop, '.breadcrumb .active-group-name');
+        this.$activeObjectName = findElement(this.$gutterTop, '.breadcrumb .active-object-name');
         this.$projectControls = findElement(this.$el, '.project-controls');
         this.$canvasSidebar = findElement(this.$el, '.canvas-sidebar');
         this.$displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
@@ -271,8 +273,9 @@ export class Editor {
 
         this.project.on('pixel_draw', onCanvasPixelsChanged);
         this.project.on('pixel_draw_aggregate', onCanvasPixelsChanged);
-        this.project.on('pixel_hover', (coordinate) => {
-            this.$canvasCoordinates.innerText = `${coordinate.x},${coordinate.y}`;
+        this.project.on('pixel_hover', (coordinate, _, canvas) => {
+            this.$canvasCoordinates.innerText = `${coordinate.x}, ${coordinate.y}`;
+            this.syncSelectionSize();
         });
         this.project.on('canvas_reset', (canvas) => {
             this.syncDisplayModeControl(false);
@@ -317,7 +320,14 @@ export class Editor {
         });
         this.project.on('canvas_draw_state_change', (_, canvas) => {
             this.syncSelectionActions(canvas);
+            this.syncSelectionSize();
         });
+    }
+
+    private syncSelectionSize(): void {
+        const canvas = this.project?.getActiveCanvas();
+        const { width, height } = canvas?.getCurrentSelection() || { width: 0, height: 0 };
+        this.$selectionSize.innerText = `${width}${chars.times}${height}`;
     }
 
     public pushUndoItem(canvas: PixelCanvas): void {
