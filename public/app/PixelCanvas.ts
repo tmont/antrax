@@ -1262,7 +1262,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        this.logger.debug(`rendering selection on transient canvas`);
         const x = selection.x * this.displayPixelWidth;
         const y = selection.y * this.displayPixelHeight;
         const w = selection.width * this.displayPixelWidth;
