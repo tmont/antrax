@@ -1005,6 +1005,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         const totalCount = rect.width * rect.height;
         this.logger.debug(`erased ${eraseCount}/${totalCount} pixel${eraseCount === 1 ? '' : 's'} from selection`);
+
+        this.emit('pixel_draw_aggregate', { behavior: 'user' });
     }
 
     public flipSelection(rect: Rect, dir: 'horizontal' | 'vertical'): void {
