@@ -941,6 +941,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public setSelection(rect: Rect): void {
         this.drawContext.selection = rect;
+        this.setDrawState('selected');
         this.renderTransient();
     }
 

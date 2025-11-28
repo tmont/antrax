@@ -274,7 +274,7 @@ export class Editor {
 
         this.project.on('pixel_draw', onCanvasPixelsChanged);
         this.project.on('pixel_draw_aggregate', onCanvasPixelsChanged);
-        this.project.on('pixel_hover', (coordinate, _, canvas) => {
+        this.project.on('pixel_hover', (coordinate) => {
             this.$canvasCoordinates.innerText = `${coordinate.x}, ${coordinate.y}`;
             this.syncSelectionSize();
         });
@@ -893,6 +893,29 @@ export class Editor {
                 return;
             }
 
+            if (e.ctrlKey && e.key.toLowerCase() === 'a') {
+                if (!this.activeCanvas) {
+                    return;
+                }
+
+                e.preventDefault();
+
+                if (e.shiftKey) {
+                    this.logger.debug(`deselecting due to Ctrl+Shift+A`);
+                    this.activeCanvas.resetDrawContext();
+                    return;
+                }
+
+                this.logger.debug(`selecting entire active canvas`);
+                this.setDrawMode('select');
+                this.activeCanvas.setSelection({
+                    x: 0,
+                    y: 0,
+                    ...this.activeCanvas.getDimensions(),
+                });
+                return;
+            }
+
             if (e.shiftKey || e.key === 'Shift') {
                 canvasContainer.classList.add('panning-start');
             }
@@ -912,6 +935,7 @@ export class Editor {
             }
 
             if (e.key === 'Escape') {
+                this.logger.debug(`deselecting due to ESC`);
                 this.activeCanvas?.resetDrawContext();
                 return;
             }

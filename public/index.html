@@ -111,13 +111,13 @@
                     <div class="canvas-container">
                         <div class="canvas-gutter top">
                             <div class="gutter-list gutter-list-sm canvas-selection-controls">
-                                <button type="button" class="btn btn-sm btn-tertiary" data-action="copy" title="Copy selection" autocomplete="off" disabled>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="copy" title="Copy selection [Ctrl+C]" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-copy"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="crop" title="Crop to selection" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-crop-simple"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-action="delete" title="Delete selection" autocomplete="off" disabled>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="delete" title="Delete selection [Delete]" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-trash"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="rotate" title="Rotate selection" autocomplete="off" disabled>
@@ -129,7 +129,7 @@
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-h" title="Flip selection horizontally" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-arrows-left-right"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-action="paste" title="Paste selection" autocomplete="off" disabled>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="paste" title="Paste selection [Ctrl+V]" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-paste"></i>
                                 </button>
                             </div>
@@ -317,6 +317,17 @@
                 <section>
                     <header>Selection shortcuts</header>
                     <table>
+                        <tr>
+                            <td><kbd>Ctrl</kbd> + <kbd>A</kbd></td>
+                            <td>Select all</td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <p><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>A</kbd></p>
+                                <p><kbd>ESC</kbd></p>
+                            </td>
+                            <td>De-select all</td>
+                        </tr>
                         <tr>
                             <td><kbd>Ctrl</kbd> + <kbd>C</kbd></td>
                             <td>Copy selected pixels</td>
