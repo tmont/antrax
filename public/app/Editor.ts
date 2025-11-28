@@ -1433,7 +1433,8 @@ export class Editor {
         const disabled = !canvas || !isActiveCanvas || !isSelected;
 
         const { $copy, $crop, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
-        $copy.disabled = $crop.disabled = $delete.disabled = $rotate.disabled = $flipV.disabled = disabled;
+        $copy.disabled = $crop.disabled = $delete.disabled = $flipV.disabled = disabled;
+        $rotate.disabled = true; // rotate not supported yet
         $flipH.disabled = disabled || !canvas?.getDisplayMode().supportsHorizontalFlip;
         this.syncPasteSelectionAction();
     }
