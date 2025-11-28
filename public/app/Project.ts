@@ -177,7 +177,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public destroy(): void {
         this.activeItem = null;
-        this.groups.forEach(group => group.destroy());
+        while (this.groups.length) {
+            const group = this.groups.pop()!;
+            group.destroy();
+        }
         GlobalEvents.instance.off(`*.${this.eventNamespace}`);
     }
 
