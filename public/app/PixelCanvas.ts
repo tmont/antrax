@@ -484,6 +484,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const clampedDrawModes: Partial<Record<DrawMode, 1>> = {
             ellipse: 1,
             'ellipse-filled': 1,
+            line: 1,
             rect: 1,
             'rect-filled': 1,
             select: 1,
