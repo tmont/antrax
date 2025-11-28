@@ -1,3 +1,19 @@
+## v0.0.20 (2025-11-28)
+- Active color(s) are now shown as "active" in the palette set UI
+- Selection draw mode:
+    - Added horizontal flip (in most display modes), vertical flip,
+      crop, copy, paste and delete selection actions
+    - Keyboard shortcuts for _Select all_ (`Ctrl+A`) and _De-select all_
+      (`Ctrl+Shift+A`)
+    - Added selection size indicator in UI
+- Off-canvas drags are now detected in `ellipse`, `ellipse-filled`, `select`,
+  `rect`, `rect-filled` and `line` draw modes
+- Selection is now significantly less janky
+- Fixed undo not working in certain cases (e.g. Clone -> Clear)
+- Fixed some weirdness with groups not being properly deleted
+- Added top gutter to UI, shifted some other parts of the UI around
+- Removed some unnecessary whitespace in comments for exported ASM
+
 ## v0.0.19 (2025-11-24)
 - Rewrote almost everything
     - Saves should be theoretically backward-compatible
