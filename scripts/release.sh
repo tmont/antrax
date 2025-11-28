@@ -43,7 +43,7 @@ main() {
         changelogContent=$(pandoc -f markdown-auto_identifiers -t html "${rootDir}/CHANGELOG.md")
 
 
-        local nextVersion= currentVersion
+        local nextVersion="" currentVersion
         currentVersion=$(bun -e "import pkg from './package.json'; console.log(pkg.version);")
 
         while [[ -z "${nextVersion}" ]]; do
@@ -61,9 +61,13 @@ main() {
 
         echo "writing new version to package.json..."
         bun -e "import pkg from './package.json'; pkg.version = '${nextVersion}'; Bun.write('./package.json', JSON.stringify(pkg, null, '    ') + '\n');"
+
+        git commit -m "release v${nextVersion}" CHANGELOG.md package.json
+        git tag -a "v${nextVersion}" -m "v${nextVersion}"
     )
 
     local envFile="${rootDir}/.dev/.env"
+    # shellcheck source=../.dev/.env
     . "${envFile}"
 
     if [[ -z "${RELEASE_REMOTE_HOST}" || -z "${RELEASE_REMOTE_DIR}" ]]; then
