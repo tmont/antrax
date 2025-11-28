@@ -404,6 +404,8 @@ export class Editor {
         });
 
         this.logger.debug(`updated palette <select> with palettes from ColorPaletteSet{${set.id}}`);
+
+        this.syncActivePaletteAndColors();
     }
 
     private onDisplayModeChanged(canvas: PixelCanvas): void {
@@ -435,10 +437,6 @@ export class Editor {
         const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         $paletteSelect.disabled = displayMode.name === 'none';
 
-        this.settings.activeColorPaletteSet.setActivePalette(
-            displayMode.hasSinglePalette ? canvas.getColorPalette() : null,
-        );
-
         this.$kangarooModeInput.disabled = !canvas.supportsKangarooMode();
 
         // forcefully toggle out of Kangaroo mode if the display does not support it
@@ -448,12 +446,21 @@ export class Editor {
             this.onKangarooModeChanged();
         }
 
+        this.syncActivePaletteAndColors();
         this.syncCanvasSidebarColors();
         this.syncSelectionActions(canvas); // some actions are disabled based on the display mode (e.g. horizontal flip)
 
         // certain display modes have a different color0, which is used as the background, so
         // we need to update it (e.g. 320D in Kangaroo mode)
         canvas.renderBg();
+    }
+
+    private syncActivePaletteAndColors(): void {
+        const canvas = this.activeCanvas;
+        const displayMode = canvas?.getDisplayMode();
+        const paletteSet = canvas?.getGroup().getPaletteSet() || this.settings.activeColorPaletteSet;
+        paletteSet.setActivePalette(displayMode?.hasSinglePalette ? canvas?.getColorPalette() : null);
+        paletteSet.setActiveColor(canvas?.getColors()[canvas.getActiveColor()]);
     }
 
     private syncCanvasSidebarColors(): void {
@@ -551,6 +558,7 @@ export class Editor {
 
         // update color list
         this.syncCanvasSidebarColors();
+        this.syncActivePaletteAndColors();
 
         this.settings.activeColorPaletteSet.setActivePalette(canvas.getDisplayMode().hasSinglePalette ? palette : null);
     }
@@ -626,15 +634,14 @@ export class Editor {
         const colorCount = canvas.getColors().length;
         colorValue = ((colorValue % colorCount) + colorCount) % colorCount;
 
-        this.logger.info(`active color set to ${colorValue}`);
+        this.logger.info(`setting active color to ${colorValue}/${colorCount}`);
         this.project?.setActiveColor(colorValue);
+        this.syncActivePaletteAndColors();
 
         const $colorList = findElement(this.$canvasSidebar, '.color-list');
-        $colorList.querySelectorAll('[data-color-value]').forEach((el) => {
-            el.classList.remove('active');
-            if (el.getAttribute('data-color-value') === colorValue.toString()) {
-                el.classList.add('active');
-            }
+        $colorList.querySelectorAll('[data-color-value]').forEach(($swatch) => {
+            $swatch.classList.toggle('active',
+                $swatch.getAttribute('data-color-value') === colorValue.toString());
         });
     }
 
@@ -650,6 +657,7 @@ export class Editor {
         this.$kangarooModeInput.checked = this.settings.kangarooMode;
         this.$uncolorPixelInput.disabled = this.settings.kangarooMode;
         this.syncCanvasSidebarColors();
+        this.syncActivePaletteAndColors();
     }
 
     private onKangarooModeChanged(): void {

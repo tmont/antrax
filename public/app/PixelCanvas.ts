@@ -283,7 +283,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public setActiveColor(modeColorIndex: DisplayModeColorIndex): void {
         this.activeColor = modeColorIndex;
-        this.logger.debug(`active color set to`, modeColorIndex);
     }
 
     public clonePixelData(): PixelInfo[][] {

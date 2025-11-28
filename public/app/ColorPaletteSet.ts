@@ -8,10 +8,11 @@ import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type ColorIndex,
+    type DisplayModeColorValue,
     findElement,
     formatAssemblyNumber,
     generateId,
-    parseTemplate,
+    parseTemplate
 } from './utils.ts';
 
 export interface ColorPaletteSetOptions {
@@ -52,6 +53,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
     private readonly $container: HTMLElement;
     private readonly $el: HTMLElement;
+    private readonly $bgSwatch: HTMLElement;
     private readonly logger: Logger;
     private initialized = false;
     private name: string;
@@ -93,6 +95,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
         this.$container = options.mountEl;
         this.$el = parseTemplate(paletteSetTmpl);
+        this.$bgSwatch = findElement(this.$el, '.bg-color-container .color-swatch');
     }
 
     public getPalettes(): ColorPalette[] {
@@ -111,10 +114,39 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         return this.palettes.indexOf(palette) !== -1;
     }
 
-    public setActivePalette(palette: ColorPalette | null): void {
-        this.palettes.forEach((p) => {
-            p.setActiveState(p === palette);
+    public setActivePalette(palette?: ColorPalette | null): void {
+        // this.logger.debug(`setting active palette to ${palette?.id || 'null'}`);
+        this.palettes.forEach(p => p.setActiveState(p === palette));
+    }
+
+    /**
+     * This is separate from setActivePalette because not all display modes require
+     * a color palette, and some colors span multiple palettes
+     */
+    public setActiveColor(color?: DisplayModeColorValue | null): void {
+        const paletteColorMap: Record<ColorPalette['id'], ColorIndex[]> = {};
+        let activateBg = false;
+
+        color?.colors.forEach((color) => {
+            if (color.value === 'background') {
+                activateBg = true;
+                return;
+            }
+
+            if (color.value === 'transparent') {
+                return;
+            }
+
+            const map = paletteColorMap[color.value.palette.id] = paletteColorMap[color.value.palette.id] || [];
+            map.push(color.value.index);
         });
+
+        this.palettes.forEach((palette) => {
+            const colors = paletteColorMap[palette.id] || [];
+            palette.setActiveColors(colors);
+        });
+
+        this.$bgSwatch.classList.toggle('active', activateBg);
     }
 
     public init(): void {
@@ -134,20 +166,20 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
             });
         });
 
-        findElement(this.$el, '.bg-color-container .color-swatch').addEventListener('click', (e) => {
-                if (!(e.target instanceof HTMLElement)) {
-                    return;
-                }
+        this.$bgSwatch.addEventListener('click', (e) => {
+            if (!(e.target instanceof HTMLElement)) {
+                return;
+            }
 
-                const picker = ColorPicker.singleton({
-                    activeColor: this.backgroundColor,
-                    title: 'Change background color',
-                });
-                picker.on('color_select', (color) => {
-                    this.setBackgroundColor(color);
-                    this.emit('bg_select', this.backgroundColor);
-                });
-                picker.show(e.target);
+            const picker = ColorPicker.singleton({
+                activeColor: this.backgroundColor,
+                title: 'Change background color',
+            });
+            picker.on('color_select', (color) => {
+                this.setBackgroundColor(color);
+                this.emit('bg_select', this.backgroundColor);
+            });
+            picker.show(e.target);
         });
 
         this.$container.appendChild(this.$el);

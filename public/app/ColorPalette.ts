@@ -16,13 +16,16 @@ export interface ColorPaletteSerialized {
     colors: [ ColorSerialized, ColorSerialized, ColorSerialized ];
 }
 
+const colorIndices: Record<ColorIndex, 1> = {
+    0: 1,
+    1: 1,
+    2: 1,
+};
 const tmpl = `
 <div class="color-palette-container">
     <header class="color-palette-name"></header>
     <div class="color-swatch-list">
-        <div class="color-swatch selectable" data-index="0"></div>
-        <div class="color-swatch selectable" data-index="1"></div>
-        <div class="color-swatch selectable" data-index="2"></div>
+        ${Object.keys(colorIndices).map(index => `<div class="color-swatch selectable" data-index="${index}"></div>`).join('')}
     </div>
 </div>
 `;
@@ -37,7 +40,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
     public readonly name: string;
     private initialized = false;
     private readonly logger: Logger;
-    private $el: HTMLElement | null = null;
+    private readonly $el: HTMLElement;
     public readonly id: string;
 
     public constructor(options: ColorPaletteOptions) {
@@ -50,6 +53,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
             getColorObject(options?.colors?.[1], colors[0xe6]),
             getColorObject(options?.colors?.[2], colors[0x97]),
         ];
+        this.$el = parseTemplate(tmpl);
         this.logger = Logger.from(this);
     }
 
@@ -57,8 +61,6 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         if (this.initialized) {
             return;
         }
-
-        this.$el = parseTemplate(tmpl);
 
         findElement(this.$el, '.color-palette-name').innerText = this.name;
         this.updateColors();
@@ -114,14 +116,21 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         this.$el?.classList.toggle('active', isActive);
     }
 
-    public updateColors(): void {
-        const $el = this.$el;
-        if (!$el) {
-            throw new Error(`ColorPalette has not been initialized, cannot update colors`);
-        }
+    public setActiveColors(colors: ColorIndex[]): void {
+        const indexMap: Record<ColorIndex, 1> = colors.reduce((map, index) => {
+            map[index] = 1;
+            return map;
+        }, {} as Record<ColorIndex, 1>);
 
+        this.$el.querySelectorAll('[data-index]').forEach(($swatch) => {
+            const index = Number($swatch.getAttribute('data-index')) as ColorIndex;
+            $swatch.classList.toggle('active', !!indexMap[index]);
+        });
+    }
+
+    public updateColors(): void {
         this.colors.forEach((color, i) => {
-            findElement($el, `[data-index="${i}"]`).style.backgroundColor = color.hex;
+            findElement(this.$el, `[data-index="${i}"]`).style.backgroundColor = color.hex;
         });
     }
 
