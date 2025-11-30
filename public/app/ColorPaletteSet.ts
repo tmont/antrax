@@ -49,7 +49,7 @@ export type ColorPaletteSetEventMap = {
 
 export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
     private readonly palettes: ColorPalette[] = [];
-    private backgroundColor: Readonly<Atari7800Color>;
+    private backgroundColor: Atari7800Color;
 
     private readonly $container: HTMLElement;
     private readonly $el: HTMLElement;
@@ -102,7 +102,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         return this.palettes;
     }
 
-    public getBackgroundColor(): Readonly<Atari7800Color> {
+    public getBackgroundColor(): Atari7800Color {
         return this.backgroundColor;
     }
 

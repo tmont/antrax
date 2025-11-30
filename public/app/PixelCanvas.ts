@@ -346,7 +346,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.displayMode.getColors(this.group.getPaletteSet(), this.palette, this.editorSettings.kangarooMode);
     }
 
-    private get backgroundColor(): Readonly<Atari7800Color> {
+    private get backgroundColor(): Atari7800Color {
         return this.group.getBackgroundColor();
     }
 

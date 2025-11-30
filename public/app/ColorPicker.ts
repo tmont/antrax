@@ -103,7 +103,7 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
         this.popover.show($target);
     }
 
-    public setActiveColor(color: Readonly<Atari7800Color> | null): void {
+    public setActiveColor(color: Atari7800Color | null): void {
         this.$el.querySelectorAll('.color-swatch').forEach((el) => {
             const index = el.getAttribute('data-color-index');
             el.classList.toggle('active', index === color?.index.toString());

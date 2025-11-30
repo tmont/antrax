@@ -159,7 +159,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         return this.paletteSet;
     }
 
-    public getBackgroundColor(): Readonly<Atari7800Color> {
+    public getBackgroundColor(): Atari7800Color {
         return this.paletteSet.getBackgroundColor();
     }
 

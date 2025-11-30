@@ -1,11 +1,11 @@
 import colorsJson from './data/colors.json';
 
 export interface Atari7800Color {
-    index: number;
-    r: number;
-    g: number;
-    b: number;
-    hex: string;
+    readonly index: number;
+    readonly r: number;
+    readonly g: number;
+    readonly b: number;
+    readonly hex: string;
 }
 
 export type Atari7800ColorList = readonly [

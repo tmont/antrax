@@ -134,7 +134,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         });
     }
 
-    public getColorAt(index: ColorIndex): Readonly<Atari7800Color> {
+    public getColorAt(index: ColorIndex): Atari7800Color {
         return this.colors[index];
     }
 
