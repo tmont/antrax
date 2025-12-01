@@ -1793,22 +1793,23 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     ): PixelCanvas {
         const serialized = this.transformSerialized(json);
 
-        const colorPalettes = paletteSets
-            .map(set => set.getPalettes())
-            .reduce((flattened, palettes) => flattened.concat(palettes), []);
-
-        let colorPalette = colorPalettes.find(palette => palette.id === serialized.paletteId);
-        if (!colorPalette) {
-            colorPalette = colorPalettes[0];
-            if (!colorPalette) {
-                throw new Error(`Could not create color palette while deserializing PixelCanvas`);
+        let palette: ColorPalette | null = null;
+        let paletteSet: ColorPaletteSet | null = null;
+        for (let i = 0; i < paletteSets.length; i++) {
+            palette = paletteSets[i]?.getPalettes().find(palette => palette.id === serialized.paletteId) || null;
+            if (palette) {
+                paletteSet = paletteSets[i]!;
+                break;
             }
         }
 
-        // TODO we shouldn't need to do this, can combine both tasks into one loop here
-        const paletteSet = paletteSets.find(paletteSet => paletteSet.getPalettes().indexOf(colorPalette) !== -1);
-        if (!paletteSet) {
-            throw new Error(`Logic error: palette set not found for palette while deserializing`);
+        if (!palette) {
+            paletteSet = paletteSets[0] || null;
+            palette = paletteSet?.getPalettes()[0] || null;
+        }
+
+        if (!palette || !paletteSet) {
+            throw new Error(`Could not create color palette while deserializing PixelCanvas`);
         }
 
         return new PixelCanvas({
@@ -1822,8 +1823,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             mountEl,
             group,
             displayMode: serialized.displayModeName,
-            palette: colorPalette,
-            paletteSet: paletteSet,
+            palette,
+            paletteSet,
             activeColor: serialized.activeColor,
             pixelData: serialized.pixelData.map(row => row.map(item => ({ modeColorIndex: item.modeColorIndex }))),
         });
