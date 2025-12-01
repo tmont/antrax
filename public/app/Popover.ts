@@ -35,6 +35,8 @@ export class Popover extends EventEmitter<PopoverEventMap> {
     private readonly timeoutMs: number;
     private readonly arrowAlign: PopoverArrowAlignment;
 
+    private static readonly showingInstanceStack: Popover[] = [];
+
     public constructor(options: PopoverOptions) {
         super();
 
@@ -103,7 +105,7 @@ export class Popover extends EventEmitter<PopoverEventMap> {
         this.emit('hide');
     }
 
-    public show($target?: HTMLElement | null): void {
+    public show($target?: Element | null): void {
         const parent = this.isToast ? findElement(document, '.toast-container') : document.body;
         if (this.$el.parentNode !== parent) {
             parent.appendChild(this.$el);
@@ -140,39 +142,32 @@ export class Popover extends EventEmitter<PopoverEventMap> {
                             break;
                     }
                 }
-
-                const onKeyDown = (e: KeyboardEvent) => {
-                    if (e.key === 'Escape') {
-                        this.hide();
-                    }
-                };
-
-                const onMouseDown = (e: Event) => {
-                    if (!(e.target instanceof Node)) {
-                        return;
-                    }
-
-                    if (!this.$el.contains(e.target)) {
-                        this.hide();
-                    }
-                };
-
-                document.addEventListener('keydown', onKeyDown);
-
-                // needs to be in event loop or else initial click hides it immediately, which seems
-                // semi-impossible, but whatever.
-                window.requestAnimationFrame(() => {
-                    document.addEventListener('mousedown', onMouseDown);
-                });
-
-                this.on('hide', () => {
-                    document.removeEventListener('keydown', onKeyDown);
-                    document.removeEventListener('mousedown', onMouseDown);
-                });
             } else {
                 window.setTimeout(() => this.hide(), this.timeoutMs);
             }
         }
+
+        this.on('hide', () => {
+            const index = Popover.showingInstanceStack.indexOf(this);
+            if (index !== -1) {
+                Popover.showingInstanceStack.splice(index, 1);
+            }
+        });
+
+        if (!this.isToast) {
+            Popover.showingInstanceStack.push(this);
+        }
+    }
+
+    public static hideTopMost(): Popover | null {
+        const popover = Popover.showingInstanceStack.pop() || null;
+        popover?.hide();
+        return popover;
+    }
+
+    public static topMostContains(target: Node): boolean {
+        const topMost = Popover.showingInstanceStack[Popover.showingInstanceStack.length - 1];
+        return !!topMost?.$el.contains(target);
     }
 
     public static toast(options: Pick<PopoverOptions, 'title' | 'content' | 'type'>): Popover {

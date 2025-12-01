@@ -1,16 +1,71 @@
 @use "sass:math";
+@use "sass:color";
 @use "./config";
 
 .palette-set-container {
     display: flex;
     gap: config.$gutter-half;
-    padding: config.$gutter-quarter config.$gutter-half;
+    padding: config.$gutter-quarter 0;
     align-items: center;
 
-    .bg-color-container {
-        .color-swatch {
-            width: math.div(config.$header-height, 1.5);
-            height: math.div(config.$header-height, 1.5);
+    .palette-set-info {
+        width: config.$canvas-sidebar-width;
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter-eighth;
+        padding: config.$gutter-quarter;
+        font-size: 95%;
+        cursor: pointer;
+
+        .palette-set-info-top {
+            display: flex;
+            gap: config.$gutter-eighth;
+            justify-content: center;
+            align-items: center;
+        }
+    }
+}
+
+.palette-set-dropdown {
+    display: flex;
+    flex-direction: column;
+    gap: config.$gutter-half;
+
+    .editing-container {
+        display: flex;
+        gap: config.$gutter-half;
+        align-items: center;
+        max-width: 15em;
+        justify-content: space-between;
+    }
+
+    .active-indicator i {
+        display: none;
+    }
+
+    tr {
+        opacity: 0.8;
+        transition: opacity linear 100ms;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+
+    tr.active {
+        opacity: 1;
+        cursor: default;
+
+        .palette-set-name, .color-palette-name, .active-indicator {
+            color: config.$primary-color;
+        }
+
+        .active-indicator i {
+            display: block;
+        }
+
+        td {
+            background-image: linear-gradient(to bottom, config.$table-bg-hover, color.adjust(config.$table-bg-hover, $lightness: -5%));
         }
     }
 }

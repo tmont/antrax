@@ -1,6 +1,5 @@
 import type { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
-import type { Atari7800Color } from './colors.ts';
 import type { EditorSettings } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -13,7 +12,6 @@ import {
     findCanvas,
     findElement,
     findInput,
-    findSelect,
     findTemplateContent,
     generateId,
     get2dContext,
@@ -26,14 +24,12 @@ export interface ObjectGroupOptions {
     id?: ObjectGroup['id'];
     name?: string;
     items?: ObjectGroupItem[];
-    paletteSet: ColorPaletteSet;
     mountEl: HTMLElement;
 }
 
 export interface ObjectGroupSerialized {
     id: string | number;
     name: ObjectGroup['name'];
-    paletteSetId: string | number;
     items: ObjectGroupItemSerialized[];
 }
 
@@ -72,9 +68,6 @@ const editGroupTmpl = `
     <div class="form-row">
         <input class="group-name-input form-control" type="text" maxlength="50" minlength="1" required />
     </div>
-    <div class="form-row">
-        <select class="group-palette-set-select form-control" disabled></select>
-    </div>
     <div class="submit-container">
         <button type="submit" class="btn btn-primary">Save</button>
     </div>
@@ -96,7 +89,6 @@ export type ObjectGroupEventMap = {
 export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     public readonly id: string;
     private name: string;
-    private paletteSet: ColorPaletteSet;
     private readonly logger: Logger;
     private readonly $container: HTMLElement;
     public readonly $itemContainer: HTMLElement;
@@ -111,7 +103,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         ObjectGroup.instanceCount++;
         this.id = options.id || generateId();
         this.name = options.name || `Group ${ObjectGroup.instanceCount}`;
-        this.paletteSet = options.paletteSet;
         this.items = options.items || [];
         this.$container = options.mountEl;
         this.$el = parseTemplate(objectGroupTmpl);
@@ -153,14 +144,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
     private updateNameUI(): void {
         setTextAndTitle(findElement(this.$el, `.group-name`), this.name);
-    }
-
-    public getPaletteSet(): ColorPaletteSet {
-        return this.paletteSet;
-    }
-
-    public getBackgroundColor(): Atari7800Color {
-        return this.paletteSet.getBackgroundColor();
     }
 
     public createItem(options: Omit<ObjectGroupItemOptions, 'mountEl'>): ObjectGroupItem {
@@ -367,20 +350,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
         const $groupName = findElement($group, '.group-name');
         const $input = findInput($editForm, '.group-name-input');
-        const $paletteSetSelect = findSelect($editForm, '.group-palette-set-select');
-
-        while ($paletteSetSelect.options.length) {
-            $paletteSetSelect.options.remove(0);
-        }
-
-        const paletteSets = [ this.paletteSet ];
-        paletteSets.forEach((paletteSet) => {
-            const option = document.createElement('option');
-            option.value = paletteSet.id;
-            option.innerText = paletteSet.getName();
-            option.selected = paletteSet === this.paletteSet;
-            $paletteSetSelect.options.add(option);
-        });
 
         $editForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -601,7 +570,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         return {
             id: this.id,
             name: this.name,
-            paletteSetId: this.paletteSet.id,
             items: this.items.map(item => item.toJSON()),
         };
     }
@@ -615,15 +583,9 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     ): ObjectGroup {
         const serialized = this.transformSerialized(json);
 
-        const paletteSet = paletteSets.find(set => set.id === String(serialized.paletteSetId));
-        if (!paletteSet) {
-            throw new Error(`Cannot deserialize ObjectGroup, palette set with ID "${serialized.paletteSetId}" not found`);
-        }
-
         const group = new ObjectGroup({
             id: String(serialized.id),
             name: serialized.name,
-            paletteSet,
             mountEl,
         });
 
@@ -642,9 +604,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         }
         if (typeof json.name !== 'string') {
             throw new SerializationTypeError(context, 'name', 'string', json.name);
-        }
-        if (!json.paletteSetId || (typeof json.paletteSetId !== 'string' && typeof json.paletteSetId !== 'number')) {
-            throw new SerializationTypeError(context, 'paletteSetId', 'non-empty string or number number', json.paletteSetId);
         }
         if (!Array.isArray(json.items) || !json.items.every((item: unknown) => typeof item === 'object')) {
             throw new SerializationTypeError(context, 'items', 'array of objects', json.items);

@@ -1,7 +1,6 @@
 import { CodeGenerator } from './CodeGenerator.ts';
 import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
-import type { Atari7800Color } from './colors.ts';
 import type { EditorSettings, UndoCheckpoint } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -17,7 +16,6 @@ import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type CodeGenerationOptionsBase,
-    type ColorIndex,
     type Coordinate,
     type DisplayModeColorIndex,
     type DisplayModeName,
@@ -38,7 +36,6 @@ export interface ProjectSerialized {
 
 export interface ProjectOptions {
     mountEl: HTMLElement;
-    editorSettings: EditorSettings;
     name: string;
     groups?: ObjectGroup[];
     activeItem?: ObjectGroupItem | null;
@@ -58,6 +55,7 @@ export type ProjectEventMap = {
     canvas_dimensions_change: [ PixelCanvas ];
     display_mode_change: [ PixelCanvas ];
     canvas_palette_change: [ PixelCanvas ];
+    canvas_palette_set_change: [ PixelCanvas ];
     canvas_active_color_change: [ PixelCanvas ];
     canvas_group_change: [ PixelCanvas ];
     group_action_add: [ ObjectGroup ];
@@ -68,7 +66,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
     public name: string;
     private readonly $container: HTMLElement;
     private initialized = false;
-    private readonly editorSettings: Readonly<EditorSettings>;
     private readonly logger: Logger;
     private readonly groups: ObjectGroup[];
     private readonly $groupsContainer: HTMLElement;
@@ -78,7 +75,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.name = options.name;
         this.$container = options.mountEl;
         this.$groupsContainer = findElement(this.$container, '.project-objects');
-        this.editorSettings = options.editorSettings;
         this.groups = options.groups || [];
         this.activeItem = options.activeItem || null;
 
@@ -380,7 +376,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public addGroup(): ObjectGroup {
         const group = new ObjectGroup({
-            paletteSet: this.editorSettings.activeColorPaletteSet,
             mountEl: this.$groupsContainer,
         });
 
@@ -443,14 +438,15 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public createObject(options: Omit<CanvasOptions, 'palette'>): ObjectGroupItem {
         const group = options.group;
-        const defaultColorPalette = group.getPaletteSet().getPalettes()[0];
+        const paletteSet = options.paletteSet;
+        const defaultColorPalette = paletteSet.getPalettes()[0];
         if (!defaultColorPalette) {
-            throw new Error(`Could not find default color palette in ` +
-                `ColorPaletteSet{${group.getPaletteSet().id}}`);
+            throw new Error(`Could not find default color palette in ColorPaletteSet{${paletteSet.id}}`);
         }
 
         const canvas = new PixelCanvas({
             ...options,
+            paletteSet,
             palette: defaultColorPalette,
         });
 
@@ -492,6 +488,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
         canvas.on('palette_change', () => {
             this.emit('canvas_palette_change', canvas);
+        });
+        canvas.on('palette_set_change', () => {
+            this.emit('canvas_palette_set_change', canvas);
         });
         canvas.on('pixel_dimensions_change', () => {
             this.emit('pixel_dimensions_change', canvas);
@@ -578,14 +577,14 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateActiveObjectInfo();
     }
 
-    public setBackgroundColor(color: Atari7800Color): void {
+    public setBackgroundColor(paletteSet: ColorPaletteSet): void {
         this.canvases
-            .filter(canvas => canvas.getGroup().getPaletteSet() === this.editorSettings.activeColorPaletteSet)
+            .filter(canvas => canvas.getColorPaletteSet() === paletteSet)
             .forEach(canvas => canvas.render());
         this.updateAllThumbnails();
     }
 
-    public updatePaletteColor(palette: ColorPalette, colorIndex: ColorIndex): void {
+    public updatePaletteColor(paletteSet: ColorPaletteSet, palette: ColorPalette): void {
         // NOTE: detecting which canvases are using a palette is annoying due to the
         // complexities of the display mode, so instead we just filter by palette set.
         // I mean, it's not THAT annoying given we already can fetch the colors for
@@ -593,7 +592,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         // Another option is to actually cache the current display mode's colors on the
         // canvas, and then this would be free, but that might be some premature optimization.
         this.canvases
-            .filter(canvas => canvas.getGroup().getPaletteSet() === this.editorSettings.activeColorPaletteSet)
+            .filter(canvas => canvas.getColorPaletteSet() === paletteSet)
             .forEach(canvas => canvas.render());
 
         this.groups.forEach(group => group.syncPaletteColors(palette));
@@ -641,7 +640,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         return new Project({
             mountEl,
-            editorSettings,
             name: serialized.name,
             groups,
             activeItem: serialized.activeItemId ?
@@ -679,7 +677,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         id,
                         items: [],
                         name: String(groupObj.name || '[untitled]'),
-                        paletteSetId: groupObj.paletteSetId,
                     };
                 }
 

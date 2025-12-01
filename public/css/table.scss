@@ -1,10 +1,11 @@
+@use "sass:color";
 @use "./config";
 
 table {
     font-size: 85%;
     border-collapse: collapse;
     width: 100%;
-    background-color: config.$sidebar-bg-color;
+    background-color: config.$table-bg;
 
     td, th {
         padding: config.$gutter-half;
@@ -23,5 +24,23 @@ table {
         th {
             text-align: right;
         }
+    }
+
+    &.hoverable {
+        tr:hover {
+            td {
+                background-image: linear-gradient(to bottom, config.$table-bg-hover, color.adjust(config.$table-bg-hover, $lightness: -5%));
+            }
+        }
+    }
+
+    &.borderless {
+        &, td, th {
+            border: none;
+        }
+    }
+
+    &.selectable {
+        cursor: pointer;
     }
 }

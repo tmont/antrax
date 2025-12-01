@@ -33,18 +33,27 @@ export interface ColorPaletteSetSerialized {
 const paletteSetTmpl = `
 <div class="palette-set-container">
     <div class="palette-set-info">
-        <header class="palette-set-name"></header>
+        <div class="palette-set-info-top">
+            <span class="palette-set-name clamp-1"></span>
+            <i class="fa-solid fa-caret-down"></i>
+        </div>
+        <div class="palette-set-info-bottom"></div>
     </div>
-    <div class="bg-color-container">
-        <div class="color-swatch selectable"></div>
+    <div class="palette-list">
+        <div class="color-palette-container bg-color-container">
+            <header class="color-palette-name">BG</header>
+            <div class="color-swatch-list">
+                <div class="color-swatch selectable" data-index="0"></div>
+            </div>
+        </div>
     </div>
-    <div class="palette-list"></div>
 </div>
 `;
 
 export type ColorPaletteSetEventMap = {
     bg_select: [ Atari7800Color ];
     color_change: [ ColorPalette, Atari7800Color, ColorIndex ];
+    overflow_click: [ HTMLElement ];
 };
 
 export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
@@ -54,6 +63,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
     private readonly $container: HTMLElement;
     private readonly $el: HTMLElement;
     private readonly $bgSwatch: HTMLElement;
+    private readonly $dropdownLauncher: HTMLElement;
     private readonly logger: Logger;
     private initialized = false;
     private name: string;
@@ -96,6 +106,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         this.$container = options.mountEl;
         this.$el = parseTemplate(paletteSetTmpl);
         this.$bgSwatch = findElement(this.$el, '.bg-color-container .color-swatch');
+        this.$dropdownLauncher = findElement(this.$el, '.palette-set-info');
     }
 
     public getPalettes(): ColorPalette[] {
@@ -108,6 +119,31 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
     public getName(): string {
         return this.name;
+    }
+
+    public getShortName(): string {
+        return this.name
+            .split(' ')
+            .map(word => word[0]?.toUpperCase() || '')
+            .filter(Boolean)
+            .slice(0, 3)
+            .join('');
+    }
+
+    public getGradientCSS(): string {
+        const numColors = this.palettes.reduce((count, palette) => count + palette.colors.length, 0);
+        const bgSize = 10;
+        const paletteColorSize = (100 - bgSize) / numColors;
+
+        let count = 0;
+        const paletteColors = this.palettes
+            .map((palette) => palette.colors.map(color => [ color.hex, `${color.hex} ${bgSize + ((++count) * paletteColorSize)}%` ]))
+            .reduce((stops, arr) => stops.concat(arr), [])
+            .reduce((stops, arr) => stops.concat(arr), []);
+
+        const colorStops = [ this.backgroundColor.hex, `${this.backgroundColor.hex} ${bgSize}%` ].concat(paletteColors);
+
+        return `linear-gradient(to right, ${colorStops.join(', ')})`;
     }
 
     public containsPalette(palette: ColorPalette): boolean {
@@ -156,7 +192,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
         const $paletteList = findElement(this.$el, '.palette-list');
 
-        this.updateName(this.name);
+        this.setName(this.name);
         this.setBackgroundColor(this.backgroundColor);
 
         this.palettes.forEach((palette) => {
@@ -182,6 +218,11 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
             picker.show(e.target);
         });
 
+
+        this.$dropdownLauncher.addEventListener('click', () => {
+            this.emit('overflow_click', this.$dropdownLauncher);
+        });
+
         this.$container.appendChild(this.$el);
 
         this.initialized = true;
@@ -192,9 +233,9 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         this.palettes.forEach((palette) => palette.off());
     }
 
-    public updateName(newName: string): void {
+    public setName(newName: string): void {
         const $name = findElement(this.$el, '.palette-set-name');
-        this.name = newName || `Palette Set ${this.id}`;
+        this.name = newName.trim() || `Palette Set ${this.id}`;
         $name.innerText = this.name;
     }
 

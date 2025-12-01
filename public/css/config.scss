@@ -28,6 +28,7 @@ $bg-color: #363636;
 $color: #B8B8B8;
 $muted-color: #808080;
 
+$success-color: #a3d0a3;
 $success-bg: #366b36;
 $success-border: #438843;
 $danger-bg: #803838;
@@ -59,4 +60,7 @@ $canvas-sidebar-bg: color.adjust($sidebar-bg-color, $lightness: -2%);
 $code-color: #a4844c;
 $canvas-container-bg: $bg-color;
 $sidebar-border-width: 2px;
+
+$table-bg: $sidebar-bg-color;
+$table-bg-hover: color.adjust($table-bg, $lightness: 7%);
 

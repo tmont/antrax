@@ -1,5 +1,13 @@
 @use "./config";
 
+.text-success {
+    color: config.$success-color !important;
+}
+
+.text-primary {
+    color: config.$primary-color !important;
+}
+
 .text-danger {
     color: config.$danger-color !important;
 }

@@ -83,6 +83,11 @@
         padding: config.$gutter-eighth config.$gutter-quarter;
         font-size: 80%;
     }
+
+    &.btn-xs {
+        padding: config.$gutter-eighth config.$gutter-eighth;
+        font-size: 75%;
+    }
 }
 
 .btn-danger {

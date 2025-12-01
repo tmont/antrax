@@ -38,9 +38,15 @@ const objectItemTmpl = `
                 <div class="display-mode-name"></div>
                 <span class="text-muted">&middot;</span>
                 <div class="canvas-palette-details">
-                    <div class="palette-name"></div>
+                    <div>
+                        <span class="palette-set-name"></span>/<span class="palette-name"></span>
+                    </div>
                     <div class="palette-color-list"></div>
                 </div>
+            </div>
+            <div class="no-display-mode-details">
+                <div class="palette-set-name"></div>
+                <div class="palette-set-preview"></div>
             </div>
         </div>
     </div>
@@ -294,6 +300,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
     }
 
     public syncObjectDetailsUI(): void {
+        this.logger.info(`updating details UI`);
         const canvas = this.canvas;
         const $el = this.$el;
         const { width, height } = canvas.getDimensions();
@@ -306,10 +313,23 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         const $paletteName = findElement($el, '.palette-name');
         const $colorList = findElement($el, '.palette-color-list');
         const $displayModeDetails = findElement($el, '.display-mode-details');
+        const $noDisplayModeDetails = findElement($el, '.no-display-mode-details');
+
+        $displayModeDetails.style.display = displayMode.hasSinglePalette ? '' : 'none';
+        $noDisplayModeDetails.style.display = displayMode.hasSinglePalette ? 'none' : '';
+        const paletteSet = canvas.getColorPaletteSet();
+        $el.querySelectorAll('.palette-set-name').forEach(($setName) => {
+            ($setName as HTMLElement).innerText = paletteSet.getShortName();
+            $setName.setAttribute('title', `Palette set: ${paletteSet.getName()}`);
+        });
+
+        const $preview = findElement($noDisplayModeDetails, '.palette-set-preview');
+        $preview.style.backgroundImage = paletteSet.getGradientCSS();
+        $preview.setAttribute('title', `Palette set: ${paletteSet.getName()}`);
+
         $colorList.innerHTML = '';
 
         if (displayMode.hasSinglePalette) {
-            $displayModeDetails.style.display = '';
             $paletteName.innerText = canvas.getColorPalette().name;
 
             canvas.getColorPalette().colors.forEach((color) => {
@@ -320,7 +340,6 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
             });
         } else {
             $paletteName.innerHTML = '';
-            $displayModeDetails.style.display = 'none';
         }
     }
 

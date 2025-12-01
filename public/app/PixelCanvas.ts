@@ -23,6 +23,7 @@ import {
     isLeftMouseButton,
     isPaletteIndex,
     nope,
+    type PaletteIndex,
     type PixelCanvasDrawState,
     type PixelCanvasDrawStateContext,
     type PixelInfo,
@@ -47,6 +48,7 @@ export interface CanvasOptions extends Dimensions {
     editorSettings: EditorSettings;
     displayMode: DisplayMode | DisplayModeName;
     palette: ColorPalette;
+    paletteSet: ColorPaletteSet;
     activeColor?: DisplayModeColorIndex;
 }
 
@@ -91,6 +93,7 @@ type PixelCanvasEventMap = {
     canvas_dimensions_change: [];
     display_mode_change: [];
     palette_change: [];
+    palette_set_change: [];
     active_color_change: [ DisplayModeColorIndex ];
     group_change: [];
     name_change: [];
@@ -133,6 +136,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private destroyed = false;
     private displayMode: DisplayMode;
     private palette: ColorPalette;
+    private paletteSet: ColorPaletteSet;
     private activeColor: DisplayModeColorIndex;
 
     private static instanceCount = 0;
@@ -162,6 +166,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             options.displayMode :
             DisplayMode.create(options.displayMode);
         this.palette = options.palette;
+        this.paletteSet = options.paletteSet;
+
+        if (this.paletteSet.getPalettes().indexOf(this.palette) === -1) {
+            throw new Error(`ColorPalette{${this.palette.id}} does not belong to ColorPaletteSet{${this.paletteSet.id}}`);
+        }
+
         this.activeColor = options.activeColor || 0;
         this.drawContext = {
             state: 'idle',
@@ -343,11 +353,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public getColors(): DisplayModeColorValue[] {
-        return this.displayMode.getColors(this.group.getPaletteSet(), this.palette, this.editorSettings.kangarooMode);
+        return this.displayMode.getColors(this.paletteSet, this.palette, this.editorSettings.kangarooMode);
     }
 
     private get backgroundColor(): Atari7800Color {
-        return this.group.getBackgroundColor();
+        return this.paletteSet.getBackgroundColor();
     }
 
     public setDisplayMode(newMode: DisplayMode | DisplayModeName): void {
@@ -364,14 +374,61 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public setColorPalette(newPalette: ColorPalette): void {
+        this.setColorPaletteWithoutEvents(newPalette);
+        this.emit('palette_change');
+    }
+
+    private setColorPaletteWithoutEvents(newPalette: ColorPalette): void {
         if (this.palette === newPalette) {
             return;
         }
 
-        this.logger.debug(`setting color palette to ${this.palette.name} {${this.palette.id}}`);
+        if (this.paletteSet.getPalettes().indexOf(newPalette) === -1) {
+            // if the palette set+palette changes, the palette set MUST be updated first, see setColorPaletteSet()
+            throw new Error(`Cannot set color palette to ${newPalette.id} because it is not a part of palette set ${this.paletteSet.getName()}`);
+        }
 
         this.palette = newPalette;
+        this.logger.debug(`setting color palette to ${this.palette.name} {${this.palette.id}}`);
         this.render();
+    }
+
+    public getColorPaletteSet(): ColorPaletteSet {
+        return this.paletteSet;
+    }
+
+    public setColorPaletteSet(newPaletteSet: ColorPaletteSet, paletteIndex?: PaletteIndex): void {
+        if (this.paletteSet === newPaletteSet) {
+            return;
+        }
+
+        let oldPaletteIndex = typeof paletteIndex === 'number' ?
+            paletteIndex :
+            this.paletteSet.getPalettes().indexOf(this.palette);
+
+        if (!isPaletteIndex(oldPaletteIndex)) {
+            oldPaletteIndex = 0;
+        }
+
+        this.logger.debug(`setting color palette set to ${this.paletteSet.getName()} {${this.paletteSet.id}}`);
+        this.paletteSet = newPaletteSet;
+
+        const newPalettes = this.paletteSet.getPalettes();
+        if (newPalettes.indexOf(this.palette) === -1) {
+            // if the current palette is not part of the new palette set, update the palette. try to match the
+            // old palette index if possible (e.g. P5 in old set -> P5 in new set)
+
+            if (newPalettes[oldPaletteIndex]) {
+                this.setColorPaletteWithoutEvents(newPalettes[oldPaletteIndex]!);
+            } else if (!newPalettes[0]) {
+                throw new Error(`ColorPaletteSet{${this.paletteSet.id}} has no palettes`);
+            } else {
+                this.setColorPaletteWithoutEvents(newPalettes[0]);
+            }
+        }
+
+        // NOTE: these can't be emitted until both paletteSet and palette have been updated
+        this.emit('palette_set_change');
         this.emit('palette_change');
     }
 
@@ -1278,7 +1335,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (index === null) {
             return null;
         }
-        const paletteSet = this.editorSettings.activeColorPaletteSet;
+        const paletteSet = this.paletteSet;
         const kangarooMode = this.editorSettings.kangarooMode;
         return this.displayMode.getColorAt(paletteSet, this.palette, index, kangarooMode);
     }
@@ -1630,7 +1687,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public generateHeaderCode(options: CodeGenerationOptions): string {
         const indent = options.indentChar;
 
-        const paletteSet = this.group.getPaletteSet();
+        const paletteSet = this.paletteSet;
         const paletteIndex = paletteSet.getPalettes().indexOf(this.palette);
         if (!isPaletteIndex(paletteIndex)) {
             throw new Error(`Could not find ColorPalette{${this.palette.id}} in ColorPaletteSet{${paletteSet.id}}`);
@@ -1686,7 +1743,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public generatePalettesCode(options: CodeGenerationOptions): string {
-        return this.group.getPaletteSet().generateCode(options);
+        return this.paletteSet.generateCode(options);
     }
 
     public clone(): PixelCanvas {
@@ -1699,6 +1756,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             pixelData: this.clonePixelData(),
             displayMode: this.displayMode,
             palette: this.palette,
+            paletteSet: this.paletteSet,
             editorSettings: this.editorSettings,
             group: this.group,
             activeColor: this.activeColor,
@@ -1747,6 +1805,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             }
         }
 
+        // TODO we shouldn't need to do this, can combine both tasks into one loop here
+        const paletteSet = paletteSets.find(paletteSet => paletteSet.getPalettes().indexOf(colorPalette) !== -1);
+        if (!paletteSet) {
+            throw new Error(`Logic error: palette set not found for palette while deserializing`);
+        }
+
         return new PixelCanvas({
             id: String(serialized.id),
             name: serialized.name,
@@ -1759,6 +1823,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             group,
             displayMode: serialized.displayModeName,
             palette: colorPalette,
+            paletteSet: paletteSet,
             activeColor: serialized.activeColor,
             pixelData: serialized.pixelData.map(row => row.map(item => ({ modeColorIndex: item.modeColorIndex }))),
         });

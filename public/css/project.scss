@@ -137,9 +137,24 @@
                 font-size: 80%;
             }
 
-            .display-mode-details {
+            .display-mode-details, .no-display-mode-details {
                 display: flex;
                 gap: config.$gutter-quarter;
+                align-items: center;
+            }
+
+            .palette-set-preview {
+                height: 1em;
+                width: 9.5em; // seems to be gradient artifacts in firefox at certain widths
+                border: 1px solid config.$border-color;
+                border-radius: 2px;
+                box-shadow: 1px 1px 1px black;
+                opacity: 0.75;
+                transition: opacity linear 100ms;
+
+                &:hover {
+                    opacity: 1;
+                }
             }
 
             .canvas-palette-details {

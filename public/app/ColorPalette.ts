@@ -21,7 +21,7 @@ const colorIndices: Record<ColorIndex, 1> = {
     1: 1,
     2: 1,
 };
-const tmpl = `
+export const colorPaletteTmpl = `
 <div class="color-palette-container">
     <header class="color-palette-name"></header>
     <div class="color-swatch-list">
@@ -53,7 +53,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
             getColorObject(options?.colors?.[1], colors[0xe6]),
             getColorObject(options?.colors?.[2], colors[0x97]),
         ];
-        this.$el = parseTemplate(tmpl);
+        this.$el = parseTemplate(colorPaletteTmpl);
         this.logger = Logger.from(this);
     }
 
