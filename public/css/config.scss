@@ -2,7 +2,7 @@
 @use "sass:math";
 
 $font-sans: "Noto Sans", sans-serif;
-$font-mono: Consolas, monospace;
+$font-mono: "Source Code Pro", monospace;
 
 $gutter: 1rem;
 $gutter-half: math.div($gutter, 2);
