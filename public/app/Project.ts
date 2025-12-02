@@ -601,11 +601,18 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateActiveObjectInfo();
     }
 
+    private updateItemAndRenderCanvasByPredicate(predicate: (canvas: PixelCanvas) => boolean): void {
+        this.groups
+            .filter(group => group.getCanvases().some(predicate))
+            .reduce((items, group) => items.concat(group.getItems()), [] as ObjectGroupItem[])
+            .forEach((item) => {
+                item.canvas.render();
+                item.updateObjectInfo();
+            });
+    }
+
     public setBackgroundColor(paletteSet: ColorPaletteSet): void {
-        this.canvases
-            .filter(canvas => canvas.getColorPaletteSet() === paletteSet)
-            .forEach(canvas => canvas.render());
-        this.updateAllThumbnails();
+        this.updateItemAndRenderCanvasByPredicate(canvas => canvas.getColorPaletteSet() === paletteSet);
     }
 
     public updatePaletteColor(paletteSet: ColorPaletteSet, palette: ColorPalette): void {
@@ -615,18 +622,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         // a display mode+palette, but it seems wasteful to run that logic every time.
         // Another option is to actually cache the current display mode's colors on the
         // canvas, and then this would be free, but that might be some premature optimization.
-        this.canvases
-            .filter(canvas => canvas.getColorPaletteSet() === paletteSet)
-            .forEach(canvas => canvas.render());
-
-        this.groups.forEach(group => group.syncPaletteColors(palette));
-
-        this.updateAllThumbnails();
+        this.updateItemAndRenderCanvasByPredicate(canvas => canvas.getColorPaletteSet() === paletteSet);
     }
 
     public updateKangarooMode(): void {
-        this.canvases.filter(canvas => canvas.supportsKangarooMode).forEach(canvas => canvas.render());
-        this.updateAllThumbnails();
+        this.updateItemAndRenderCanvasByPredicate(canvas => canvas.supportsKangarooMode());
     }
 
     public applyCheckpoint(undoCanvas: PixelCanvas, checkpoint: UndoCheckpoint): void {

@@ -651,7 +651,6 @@ export class Editor {
         this.paletteSets.on('bg_select', (paletteSet) => {
             this.project?.setBackgroundColor(paletteSet);
             this.syncCanvasSidebarColors();
-            this.project?.updateActiveObjectInfo();
         });
         this.paletteSets.on('palette_set_select', (paletteSet) => {
             if (!this.activeCanvas) {
