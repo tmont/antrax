@@ -128,6 +128,10 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         return this.name;
     }
 
+    public get stats(): Readonly<ColorPaletteSetStats> {
+        return this.currentStats;
+    }
+
     public getShortName(): string {
         return this.name
             .split(' ')

@@ -48,6 +48,11 @@
         display: none;
     }
 
+    .add-palette-set-item {
+        text-align: center;
+        padding: config.$gutter-half config.$gutter-quarter;
+    }
+
     tr {
         opacity: 0.8;
         transition: opacity linear 100ms;

@@ -6,7 +6,7 @@ import { findElement } from './app/utils.ts';
 const contentHeader = findElement(document, '.content-header');
 
 const colorPaletteSets: ColorPaletteSet[] = [];
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < 2; i++) {
     colorPaletteSets.push(new ColorPaletteSet({
         mountEl: contentHeader,
     }));
