@@ -463,7 +463,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                         const firstCanvas = canvases[0];
 
-                        const maxSize = 480;
+                        const maxSize = 320;
                         const { width, height } = firstCanvas.getDisplayDimensions();
                         const maxDimension = Math.max(width, height);
 
@@ -474,7 +474,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                         const $objectList = findElement($el, '.animate-form-object-list');
                         $objectList.innerHTML = '';
-                        $objectList.style.maxWidth = `${$preview.width}px`;
+                        $objectList.style.maxWidth = `${maxSize}px`;
                         canvases.forEach((canvas, i) => {
                             const $canvas = document.createElement('canvas');
                             $canvas.setAttribute('title', `[${i}] ${canvas.getName()}`);
