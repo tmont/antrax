@@ -24,6 +24,8 @@ import {
     findOrDie,
     findSelect,
     findTemplateContent,
+    formatAssemblyNumber,
+    hasAddressLabel,
     parseTemplate,
     type PixelCanvasDrawStateContext,
     type PixelInfo
@@ -33,6 +35,7 @@ export interface ProjectSerialized {
     name: Project['name'];
     groups: ObjectGroupSerialized[];
     activeItemId?: string | null;
+    codeGenOptions?: CodeGenerationOptions;
 }
 
 export interface ProjectOptions {
@@ -40,6 +43,7 @@ export interface ProjectOptions {
     name: string;
     groups?: ObjectGroup[];
     activeItem?: ObjectGroupItem | null;
+    codeGenOptions?: CodeGenerationOptions | null;
 }
 
 export type ProjectEventMap = {
@@ -74,6 +78,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private readonly logger: Logger;
     private readonly groups: ObjectGroup[];
     private readonly $groupsContainer: HTMLElement;
+    private codeGenOptions: CodeGenerationOptions;
 
     public constructor(options: ProjectOptions) {
         super();
@@ -82,6 +87,17 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.$groupsContainer = findElement(this.$container, '.project-objects');
         this.groups = options.groups || [];
         this.activeItem = options.activeItem || null;
+        this.codeGenOptions = options.codeGenOptions || {
+            addressOffset: 0xc00,
+            addressOffsetRadix: 16,
+            byteRadix: 2,
+            commentLevel: CodeGenerationDetailLevel.Lots,
+            header: true,
+            indentChar: '    ',
+            labelColon: false,
+            object: true,
+            paletteSet: true,
+        };
 
         this.logger = Logger.from(this);
     }
@@ -256,6 +272,23 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const $detailSomeInput = findInput($el, '#export-detail-level-some');
         const $detailNoneInput = findInput($el, '#export-detail-level-none');
 
+        // sync form inputs with previous options
+        $indentTabInput.checked = this.codeGenOptions.indentChar === '\t';
+        $indent4SpacesInput.checked = this.codeGenOptions.indentChar === '    ';
+        $indent2SpacesInput.checked = this.codeGenOptions.indentChar === '  ';
+        $addressInput.value = hasAddressLabel(this.codeGenOptions) ?
+            this.codeGenOptions.addressLabel :
+            formatAssemblyNumber(this.codeGenOptions.addressOffset, 16);
+        $addressLabelInput.checked = hasAddressLabel(this.codeGenOptions);
+        $byteRadixInput.value = this.codeGenOptions.byteRadix.toString();
+        $labelColonInput.checked = this.codeGenOptions.labelColon;
+        $exportObjectInput.checked = this.codeGenOptions.object;
+        $exportHeaderInput.checked = this.codeGenOptions.header;
+        $exportPalettesInput.checked = this.codeGenOptions.paletteSet;
+        $detailLotsInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.Lots;
+        $detailSomeInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.Some;
+        $detailNoneInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.None;
+
         const generateCode = (): boolean => {
             const baseOptions: CodeGenerationOptionsBase = {
                 addressOffsetRadix: 16,
@@ -269,6 +302,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 commentLevel: $detailLotsInput.checked ?
                     CodeGenerationDetailLevel.Lots :
                     ($detailSomeInput.checked ? CodeGenerationDetailLevel.Some : CodeGenerationDetailLevel.None),
+                paletteSet: $exportPalettesInput.checked,
             };
 
             let byteOffsetRaw = $addressInput.value;
@@ -295,6 +329,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 };
             }
 
+            this.codeGenOptions = options;
+
             const genThunks: Array<() => string> = [];
 
             if ($exportHeaderInput.checked) {
@@ -302,7 +338,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
             }
             if ($exportObjectInput.checked) {
                 genThunks.push(() => CodeGenerator.generate(canvases, options));
-                // canvases.forEach(canvas => genThunks.push(() => canvas.generateCode(options)));
             }
             if ($exportPalettesInput.checked) {
                 // only need to export one palette set, as all canvases share the same one
@@ -646,6 +681,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             name: this.name,
             activeItemId: this.activeItem?.id || null,
             groups: this.groups.map(group => group.toJSON()),
+            codeGenOptions: { ...this.codeGenOptions },
         };
     }
 
@@ -666,6 +702,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             mountEl,
             name: serialized.name,
             groups,
+            codeGenOptions: serialized.codeGenOptions,
             activeItem: serialized.activeItemId ?
                 groups
                     .find(group => group.getItems().find(item => item.id === String(serialized.activeItemId)))
@@ -714,6 +751,32 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         if (!Array.isArray(json.groups) || !json.groups.every((obj: unknown) => typeof obj === 'object')) {
             throw new SerializationTypeError(context, 'groups', 'array of objects', json.groups);
+        }
+
+        // if any of the code generation options are invalid just set to null, don't need to explode
+        // just for that.
+        if (typeof json.codeGenOptions === 'object' && json.codeGenOptions) {
+            const logger = new Logger({ name: 'ProjectSerializer' });
+            const mappings: [ keyof CodeGenerationOptions, string ][] = [
+                [ 'object', 'boolean' ],
+                [ 'labelColon', 'boolean' ],
+                [ 'indentChar', 'string' ],
+                [ 'header', 'boolean' ],
+                [ 'commentLevel', 'number' ],
+                [ 'byteRadix', 'number' ],
+                [ 'addressOffsetRadix', 'number' ],
+            ];
+
+            for (const [ key, expectedType ] of mappings) {
+                if (typeof json.codeGenOptions[key] !== expectedType) {
+                    logger.warn(`codeGenOptions.${key} was expected to be a ${expectedType}, ` +
+                        `got ${typeof json.codeGenOptions[key]}`);
+                    json.codeGenOptions = null;
+                    break;
+                }
+            }
+        } else {
+            json.codeGenOptions = null;
         }
 
         return json;

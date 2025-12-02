@@ -95,6 +95,7 @@ export const findTemplateContent = (ancestor: ParentNode, selector: string): Doc
 
 export type AssemblyNumberFormatRadix = 2 | 10 | 16;
 export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatRadix): string => {
+    value = isNaN(value) ? 0 : value;
     switch (radix) {
         case 16:
             return '$' + zeroPad((value.toString(16)).toUpperCase(), 2);
@@ -151,6 +152,7 @@ export interface CodeGenerationOptionsBase {
     object: boolean;
     header: boolean;
     commentLevel: ValueOf<typeof CodeGenerationDetailLevel>;
+    paletteSet: boolean;
     padToHeight?: number;
 }
 
