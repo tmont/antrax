@@ -4,6 +4,7 @@
 - Added `0.1` granularity to zoom level, and manual text input by clicking
   on the magnifying glass in the bottom gutter
 
+## v0.20.0 (2025-11-28)
 - Active color(s) are now shown as "active" in the palette set UI
 - Selection draw mode:
     - Added horizontal flip (in most display modes), vertical flip,
