@@ -2,6 +2,7 @@ import { EventEmitter } from './EventEmitter.ts';
 import { findElement, nope, parseTemplate } from './utils.ts';
 
 export type PopoverEventMap = {
+    show: [];
     hide: [];
 };
 
@@ -157,6 +158,8 @@ export class Popover extends EventEmitter<PopoverEventMap> {
         if (!this.isToast) {
             Popover.showingInstanceStack.push(this);
         }
+
+        this.emit('show');
     }
 
     public static hideTopMost(): Popover | null {

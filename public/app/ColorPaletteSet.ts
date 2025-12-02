@@ -34,10 +34,10 @@ export interface ColorPaletteSetSerialized {
 
 const paletteSetTmpl = `
 <div class="palette-set-container">
-    <div class="palette-set-info">
+    <div class="palette-set-info" title="Manage palette sets">
         <div class="palette-set-info-top">
             <span class="palette-set-name clamp-1"></span>
-            <i class="fa-solid fa-caret-down"></i>
+            <i class="fa-solid fa-caret-down caret"></i>
         </div>
         <div class="palette-set-info-bottom">
             <div class="object-count text-muted"></div>
@@ -162,12 +162,11 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         this.updateInfoUI();
     }
 
-    public containsPalette(palette: ColorPalette): boolean {
-        return this.palettes.indexOf(palette) !== -1;
+    public setOpenState(isOpen: boolean): void {
+        this.$dropdownLauncher.classList.toggle('open', isOpen);
     }
 
     public setActivePalette(palette?: ColorPalette | null): void {
-        // this.logger.debug(`setting active palette to ${palette?.id || 'null'}`);
         this.palettes.forEach(p => p.setActiveState(p === palette));
     }
 

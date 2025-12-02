@@ -17,6 +17,21 @@
         font-size: 95%;
         cursor: pointer;
 
+        &:hover {
+            text-shadow: 1px 1px 1px black;
+        }
+
+        .caret {
+            transition: transform 150ms linear;
+        }
+
+        &.open {
+            text-shadow: 1px 1px 1px black;
+            .caret {
+                transform: rotate(180deg);
+            }
+        }
+
         .palette-set-info-top {
             display: flex;
             gap: config.$gutter-eighth;

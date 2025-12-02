@@ -186,6 +186,13 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
                 dropdown: true,
             });
 
+            popover.on('show', () => {
+                paletteSet.setOpenState(true);
+            });
+            popover.on('hide', () => {
+                paletteSet.setOpenState(false);
+            });
+
             $container.addEventListener('click', (e) => {
                 const target = e.target;
                 if (!(target instanceof HTMLElement)) {
