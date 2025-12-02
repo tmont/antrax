@@ -1632,7 +1632,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public get asmLabel(): string {
-        return this.name.replace(/[^a-z0-9]/ig, '');
+        return this.name
+            .split(' ')
+            .map(word => (word[0]?.toUpperCase() + word.slice(1)).replace(/\W/ig, '') || '')
+            .filter(Boolean)
+            .join('');
     }
 
     public generateByteLineChunks(options: CodeGenerationOptions): string[][] {
