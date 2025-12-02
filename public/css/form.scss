@@ -38,6 +38,19 @@ input, select, textarea {
     }
 }
 
+// this would probably be better served using flexbox...
+input[type="checkbox"], input[type="radio"] {
+    & + label {
+        margin-left: config.$gutter-quarter;
+    }
+}
+
+label {
+    & + input[type="checkbox"], & + input[type="radio"] {
+        margin-left: config.$gutter-quarter;
+    }
+}
+
 textarea.code {
     color: config.$code-color;
     white-space: pre;

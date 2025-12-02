@@ -10,6 +10,8 @@
 
 @use "./css/config.scss";
 
+@use "./css/reset.scss";
+
 @use "./css/button.scss";
 @use "./css/canvas-gutter.scss";
 @use "./css/changelog.scss";
@@ -28,16 +30,11 @@
 @use "./css/table.scss";
 @use "./css/text.scss";
 
-* {
-    box-sizing: border-box;
-}
-
 html, body {
     height: 100%;
 }
 
 body {
-    margin: 0;
     background-color: config.$bg-color;
     font-family: config.$font-sans;
     color: config.$color;
@@ -53,12 +50,9 @@ kbd, tt, code {
     font-family: config.$font-mono;
 }
 
-p {
-    margin: 0;
-}
-
 hr {
     border-color: config.$border-color;
+    margin: config.$gutter-half 0;
 }
 
 .app {
