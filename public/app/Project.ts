@@ -24,7 +24,8 @@ import {
     findOrDie,
     findSelect,
     findTemplateContent,
-    parseTemplate, type PixelCanvasDrawStateContext,
+    parseTemplate,
+    type PixelCanvasDrawStateContext,
     type PixelInfo
 } from './utils.ts';
 
@@ -59,6 +60,10 @@ export type ProjectEventMap = {
     canvas_active_color_change: [ PixelCanvas ];
     canvas_group_change: [ PixelCanvas ];
     group_action_add: [ ObjectGroup ];
+    group_add: [ ObjectGroup ];
+    group_remove: [ ObjectGroup ];
+    item_add: [ ObjectGroup, ObjectGroupItem ];
+    item_remove: [ ObjectGroup, ObjectGroupItem ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -182,6 +187,14 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public getActiveCanvas(): PixelCanvas | null {
         return this.activeItem?.canvas || null;
+    }
+
+    public getObjectCountForPaletteSet(paletteSet: ColorPaletteSet): number {
+        return this.groups
+            .reduce((count, group) => count + group.getItems().reduce(
+                (count, item) => count + (item.canvas.getColorPaletteSet() === paletteSet ? 1 : 0),
+                0
+            ), 0);
     }
 
     public activateItem(newActiveItem: ObjectGroupItem | null): void {
@@ -381,6 +394,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         this.wireUpGroup(group);
         this.groups.push(group);
+        this.emit('group_add', group);
 
         return group;
     }
@@ -392,6 +406,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
             if (this.activeItem === item) {
                 this.activateItem(null);
             }
+        });
+
+        group.on('item_remove', (item) => {
+            this.emit('item_remove', group, item);
         });
 
         group.on('action_add', () => {
@@ -411,6 +429,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.activateItem(e.cloned);
         });
 
+        group.on('item_add', (item) => {
+            this.emit('item_add', group, item);
+        });
+
         group.on('name_change', () => {
             if (group === this.activeGroup) {
                 this.emit('active_group_name_change', group);
@@ -424,6 +446,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 this.groups.splice(index, 1);
                 this.logger.info(`deleted group ${group.getName()} at index ${index}`);
             }
+
+            this.emit('group_remove', group);
         });
     }
 

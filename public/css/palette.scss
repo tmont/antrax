@@ -23,6 +23,11 @@
             justify-content: center;
             align-items: center;
         }
+
+        .palette-set-info-bottom {
+            text-align: center;
+            font-size: 75%;
+        }
     }
 }
 
@@ -58,6 +63,10 @@
 
         .palette-set-name, .color-palette-name, .active-indicator {
             color: config.$primary-color;
+        }
+
+        .palette-set-name {
+            font-weight: bold;
         }
 
         .active-indicator i {

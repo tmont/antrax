@@ -241,10 +241,13 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     private removeItemFromArray(item: ObjectGroupItem): boolean {
         const index = this.items.indexOf(item);
         if (index === -1) {
+            this.logger.info(`attempted to remove ${item.name} from items but it's not present`);
             return false;
         }
+
         this.items.splice(index, 1);
         this.logger.info(`removed ${item.name} at index ${index}`);
+        this.emit('item_remove', item);
         return true;
     }
 
@@ -277,7 +280,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     public deleteItem(item: ObjectGroupItem): boolean {
         this.logger.info(`deleting ${item.name}`);
         item.delete();
-        this.emit('item_delete', item);
         return true;
     }
 
@@ -289,7 +291,10 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
     public delete(): void {
         this.logger.info(`deleting`);
-        const objects = this.items;
+
+        // deleteItem eventually splices the array, so the length of this.items can change
+        // during the loop. making a copy of the array gets around that.
+        const objects = this.items.concat([]);
         while (objects.length) {
             this.deleteItem(objects.pop()!);
         }

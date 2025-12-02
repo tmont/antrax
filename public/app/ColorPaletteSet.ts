@@ -8,11 +8,13 @@ import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type ColorIndex,
+    type ColorPaletteSetStats,
     type DisplayModeColorValue,
     findElement,
     formatAssemblyNumber,
     generateId,
-    parseTemplate
+    parseTemplate,
+    type StatsReceiver
 } from './utils.ts';
 
 export interface ColorPaletteSetOptions {
@@ -37,7 +39,9 @@ const paletteSetTmpl = `
             <span class="palette-set-name clamp-1"></span>
             <i class="fa-solid fa-caret-down"></i>
         </div>
-        <div class="palette-set-info-bottom"></div>
+        <div class="palette-set-info-bottom">
+            <div class="object-count text-muted"></div>
+        </div>
     </div>
     <div class="palette-list">
         <div class="color-palette-container bg-color-container">
@@ -56,7 +60,7 @@ export type ColorPaletteSetEventMap = {
     overflow_click: [ HTMLElement ];
 };
 
-export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
+export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> implements StatsReceiver<ColorPaletteSetStats> {
     private readonly palettes: ColorPalette[] = [];
     private backgroundColor: Atari7800Color;
 
@@ -68,6 +72,9 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
     private initialized = false;
     private name: string;
     public readonly id: string;
+    private currentStats: ColorPaletteSetStats = {
+        objectCount: 0,
+    };
 
     private static instanceCount = 0;
 
@@ -146,6 +153,11 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         return `linear-gradient(to right, ${colorStops.join(', ')})`;
     }
 
+    public updateStats(stats: ColorPaletteSetStats) {
+        this.currentStats = stats;
+        this.updateInfoUI();
+    }
+
     public containsPalette(palette: ColorPalette): boolean {
         return this.palettes.indexOf(palette) !== -1;
     }
@@ -194,6 +206,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
 
         this.setName(this.name);
         this.setBackgroundColor(this.backgroundColor);
+        this.updateInfoUI();
 
         this.palettes.forEach((palette) => {
             palette.init($paletteList);
@@ -237,6 +250,11 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> {
         const $name = findElement(this.$el, '.palette-set-name');
         this.name = newName.trim() || `Palette Set ${this.id}`;
         $name.innerText = this.name;
+    }
+
+    private updateInfoUI(): void {
+        findElement(this.$el, '.object-count').innerText = this.currentStats.objectCount +
+            ' object' + (this.currentStats.objectCount === 1 ? '' : 's');
     }
 
     public activate(): void {

@@ -4,7 +4,14 @@ import type { Atari7800Color } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Popover } from './Popover.ts';
-import { type ColorIndex, findElement, findInput, parseTemplate } from './utils.ts';
+import {
+    type ColorIndex,
+    type ColorPaletteSetCollectionStats,
+    findElement,
+    findInput,
+    parseTemplate,
+    type StatsReceiver
+} from './utils.ts';
 
 export interface ColorPaletteSetCollectionOptions {
     paletteSets: ColorPaletteSet[];
@@ -68,7 +75,7 @@ const editPaletteSetTmpl = `
 </form>
 `;
 
-export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetCollectionEventMap> {
+export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetCollectionEventMap> implements StatsReceiver<ColorPaletteSetCollectionStats> {
     private readonly paletteSets: ColorPaletteSet[] = [];
     private initialized = false;
     private readonly logger: Logger;
@@ -171,67 +178,67 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
                     e.preventDefault();
 
                     const $overflowBtn = target.closest('.palette-set-overflow-btn');
-                    if ($overflowBtn) {
-                        const $cloned = $overflowContent.cloneNode(true) as typeof $overflowContent;
-                        const overflowPopover = new Popover({
-                            dropdown: true,
-                            content: $cloned,
-                        });
-
-                        $cloned.querySelectorAll('.dropdown-item a').forEach((anchor) => {
-                            const $editContent = parseTemplate(editPaletteSetTmpl) as HTMLFormElement;
-                            const $nameInput = findInput($editContent, '.name-input');
-
-                            const editPopover = new Popover({
-                                content: $editContent,
-                                arrowAlign: 'center',
-                                title: 'Edit palette set',
-                            });
-
-                            $editContent.addEventListener('submit', (e) => {
-                                e.preventDefault();
-
-                                selectedPaletteSet.setName($nameInput.value);
-                                const $rowName = findElement($row, `.palette-set-name`);
-                                $rowName.innerText = selectedPaletteSet.getName();
-                                editPopover.hide();
-                            });
-
-                            const action = anchor.getAttribute('data-action');
-                            if (action === 'delete') {
-                                // TODO only disable if there are objects using this palette set
-                                anchor.classList.toggle('disabled', true);
-                            }
-
-                            anchor.addEventListener('click', (e) => {
-                                e.preventDefault();
-
-                                overflowPopover.hide();
-
-                                switch (action) {
-                                    case 'edit': {
-                                        editPopover.setTitle(`Edit ${selectedPaletteSet.getName()}`);
-                                        $nameInput.value = selectedPaletteSet.getName();
-                                        editPopover.show($overflowBtn);
-                                        $nameInput.focus();
-                                        break;
-                                    }
-                                    case 'delete':
-                                        overflowPopover.hide();
-                                        this.deletePaletteSet(selectedPaletteSet);
-                                        $row.remove();
-                                        break;
-                                }
-                            });
-                        });
-
-                        overflowPopover.show(target);
+                    if (!$overflowBtn) {
+                        // overflow button was not clicked, select the new palette set
+                        popover.hide();
+                        this.emit('palette_set_select', selectedPaletteSet);
                         return;
                     }
 
-                    popover.hide();
+                    // show overflow content
+                    const $cloned = $overflowContent.cloneNode(true) as typeof $overflowContent;
+                    const overflowPopover = new Popover({
+                        dropdown: true,
+                        content: $cloned,
+                    });
 
-                    this.emit('palette_set_select', selectedPaletteSet);
+                    $cloned.querySelectorAll('.dropdown-item a').forEach((anchor) => {
+                        const $editContent = parseTemplate(editPaletteSetTmpl) as HTMLFormElement;
+                        const $nameInput = findInput($editContent, '.name-input');
+
+                        const editPopover = new Popover({
+                            content: $editContent,
+                            arrowAlign: 'center',
+                            title: 'Edit palette set',
+                        });
+
+                        $editContent.addEventListener('submit', (e) => {
+                            e.preventDefault();
+
+                            selectedPaletteSet.setName($nameInput.value);
+                            const $rowName = findElement($row, `.palette-set-name`);
+                            $rowName.innerText = selectedPaletteSet.getName();
+                            editPopover.hide();
+                        });
+
+                        const action = anchor.getAttribute('data-action');
+                        if (action === 'delete') {
+                            // TODO only disable if there are objects using this palette set
+                            anchor.classList.toggle('disabled', true);
+                        }
+
+                        anchor.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            overflowPopover.hide();
+
+                            switch (action) {
+                                case 'edit': {
+                                    editPopover.setTitle(`Edit ${selectedPaletteSet.getName()}`);
+                                    $nameInput.value = selectedPaletteSet.getName();
+                                    editPopover.show($overflowBtn);
+                                    $nameInput.focus();
+                                    break;
+                                }
+                                case 'delete':
+                                    overflowPopover.hide();
+                                    this.deletePaletteSet(selectedPaletteSet);
+                                    $row.remove();
+                                    break;
+                            }
+                        });
+                    });
+
+                    overflowPopover.show(target);
                 });
 
                 popover.show($el);
@@ -239,6 +246,10 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
         });
 
         this.initialized = true;
+    }
+
+    public updateStats(stats: ColorPaletteSetCollectionStats) {
+        stats.paletteSetStats.forEach((stat, paletteSet) => paletteSet.updateStats(stat));
     }
 
     public deletePaletteSet(paletteSet: ColorPaletteSet): boolean {

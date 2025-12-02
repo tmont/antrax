@@ -1,4 +1,5 @@
 import type { ColorPalette } from './ColorPalette.ts';
+import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 
 export const nope = (_x: never) => {};
 
@@ -192,3 +193,15 @@ export const setTextAndTitle = ($el: HTMLElement, text: string): void => {
     $el.innerText = text;
     $el.setAttribute('title', text);
 };
+
+export interface ColorPaletteSetCollectionStats {
+    paletteSetStats: Map<ColorPaletteSet, ColorPaletteSetStats>;
+}
+
+export interface ColorPaletteSetStats {
+    objectCount: number;
+}
+
+export interface StatsReceiver<T> {
+    updateStats(stats: T): void;
+}

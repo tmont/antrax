@@ -10,6 +10,7 @@ import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
     chars,
+    type ColorPaletteSetStats,
     type Dimensions,
     type DisplayModeColorIndex,
     type DisplayModeColorValue,
@@ -192,7 +193,6 @@ export class Editor {
         });
 
         this.setPaletteSets(this.paletteSets);
-        this.onPaletteSetChanged();
     }
 
     private get activeCanvas(): PixelCanvas | null {
@@ -215,7 +215,7 @@ export class Editor {
         this.project = project;
         this.project.off();
         this.project.on('canvas_activate', (activeCanvas) => {
-            this.logger.debug(`canvas "${activeCanvas?.getName()}" activated`);
+            this.logger.debug(`canvas ${activeCanvas?.getName() || '[none]'} activated`);
             this.setGroupName(activeCanvas?.getGroup());
             this.setObjectName(activeCanvas);
 
@@ -319,6 +319,27 @@ export class Editor {
             this.syncSelectionActions(canvas);
             this.syncSelectionSize();
         });
+        this.project.on('item_add', () => {
+            this.updateObjectStats();
+        });
+        this.project.on('item_remove', () => {
+            this.updateObjectStats();
+        });
+
+        this.updateObjectStats();
+    }
+
+    private updateObjectStats(): void {
+        const map = new Map<ColorPaletteSet, ColorPaletteSetStats>();
+        this.paletteSets.getPaletteSets().forEach((paletteSet) => {
+            map.set(paletteSet, {
+                objectCount: this.project?.getObjectCountForPaletteSet(paletteSet) || 0,
+            });
+        });
+
+        this.paletteSets.updateStats({
+            paletteSetStats: map,
+        });
     }
 
     private syncSelectionSize(): void {
@@ -386,7 +407,7 @@ export class Editor {
     }
 
     private onPaletteSetChanged(): void {
-        const set = this.activeCanvas?.getColorPaletteSet();
+        const set = this.activeCanvas?.getColorPaletteSet() || null;
         const $select = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         while ($select.options.length) {
             $select.remove(0);
@@ -402,6 +423,8 @@ export class Editor {
         this.logger.debug(`updated palette <select> with palettes from ColorPaletteSet{${set?.id || '[none]'}}`);
 
         this.syncActivePaletteAndColors();
+
+        this.paletteSets.activatePaletteSet(set);
     }
 
     private onDisplayModeChanged(canvas: PixelCanvas): void {
@@ -565,7 +588,6 @@ export class Editor {
         this.syncActivePaletteAndColors();
 
         const activePaletteSet = canvas.getColorPaletteSet();
-        this.paletteSets.activatePaletteSet(activePaletteSet);
         activePaletteSet.setActivePalette(canvas.getDisplayMode().hasSinglePalette ? palette : null);
     }
 
@@ -638,6 +660,7 @@ export class Editor {
 
             this.logger.info(`setting active palette set to ${paletteSet.getName()} (${paletteSet.id})`);
             this.activeCanvas.setColorPaletteSet(paletteSet);
+            this.updateObjectStats();
         });
     }
 
