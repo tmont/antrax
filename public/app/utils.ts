@@ -173,9 +173,6 @@ export const generateId = (): string => Array.from(crypto.getRandomValues(idArr)
     .map(i32 => i32.toString(36))
     .join('_');
 
-// https://stackoverflow.com/a/13139830
-export const emptyGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-
 export type SiblingInsertOrder = 'before' | 'after';
 
 export type PixelCanvasDrawState = 'idle' | 'drawing' | 'selecting' | 'selected';
