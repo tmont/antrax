@@ -1,4 +1,9 @@
-## v0.0.20 (2025-11-28)
+## v0.1.0 (2025-12-02)
+- Added palette set management (add/delete/switch)
+- App now loads custom fonts (Noto Sans and Source Code Pro)
+- Added `0.1` granularity to zoom level, and manual text input by clicking
+  on the magnifying glass in the bottom gutter
+
 - Active color(s) are now shown as "active" in the palette set UI
 - Selection draw mode:
     - Added horizontal flip (in most display modes), vertical flip,
