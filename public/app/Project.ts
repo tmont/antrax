@@ -53,7 +53,8 @@ const tmpl = `
 const projectOverflowTmpl = `
 <ul class="project-item-overflow list-unstyled dropdown-menu">
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit&hellip;</a></li>
-    <li class="dropdown-item"><a href="#" data-action="add"><i class="fa-solid fa-fw fa-add icon"></i>New object</a></li>
+    <li class="dropdown-item"><a href="#" data-action="add-object"><i class="fa-solid fa-fw fa-plus icon"></i>New object</a></li>
+    <li class="dropdown-item"><a href="#" data-action="add-group"><i class="fa-solid fa-fw fa-square-plus icon"></i>New group</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="save"><i class="fa-solid fa-fw fa-save icon"></i>Save&hellip;</a></li>
     <li class="dropdown-item">
@@ -267,13 +268,19 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         editPopover.show($projectName);
                         $input.focus();
                         break;
-                    case 'add':
+                    case 'add-object':
                         this.emit('action_add_object');
+                        break;
+                    case 'add-group':
+                        this.addGroup();
                         break;
                     case 'save':
                         this.emit('action_save', $projectName);
                         break;
                     // "load" is handled by the input[type="file"] event listener
+                    default:
+                        this.logger.error(`unknown project overflow action: "${action}"`);
+                        break;
                 }
             });
         });
