@@ -1,16 +1,27 @@
 @use "./config";
 
-.project-structure {
+.project-container, .project-structure {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+.project-container {
+    margin-right: -(config.$sidebar-border-width); // used to handle the active item
+}
+
+.project-structure {
     gap: config.$gutter;
     padding: config.$sidebar-padding-y 0 config.$sidebar-padding-y config.$sidebar-padding-x;
-    overflow: hidden;
-    margin-right: -(config.$sidebar-border-width); // used to handle the active item
 
-    .project-name {
-        font-weight: bold;
-        flex-shrink: 0;
+    .project-structure-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: config.$gutter-quarter;
+        .project-name {
+            font-weight: bold;
+        }
     }
 
     .group-name-container {
@@ -27,12 +38,6 @@
         .group-name {
             font-weight: bold;
         }
-    }
-
-    .project-controls {
-        display: flex;
-        justify-content: center;
-        gap: config.$gutter-quarter;
     }
 
     .section-item {

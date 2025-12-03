@@ -140,7 +140,6 @@ export class Editor {
     private readonly $activeGroupName: HTMLElement;
     private readonly $activeObjectName: HTMLElement;
     private readonly $canvasArea: HTMLElement;
-    private readonly $projectControls: HTMLElement;
     private readonly $canvasSidebar: HTMLElement;
     private readonly $displayModeSelect: HTMLSelectElement;
     private readonly $kangarooModeInput: HTMLInputElement;
@@ -176,7 +175,6 @@ export class Editor {
         this.$selectionSize = findElement(this.$gutterTop, '.selection-size');
         this.$activeGroupName = findElement(this.$gutterTop, '.breadcrumb .active-group-name');
         this.$activeObjectName = findElement(this.$gutterTop, '.breadcrumb .active-object-name');
-        this.$projectControls = findElement(this.$el, '.project-controls');
         this.$canvasSidebar = findElement(this.$el, '.canvas-sidebar');
         this.$displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
 
@@ -214,7 +212,7 @@ export class Editor {
     public createProject(name: Project['name']): Project {
         return new Project({
             name,
-            mountEl: findElement(this.$el, '.project-structure'),
+            mountEl: findElement(this.$el, '.project-container'),
         });
     }
 
@@ -336,6 +334,55 @@ export class Editor {
         });
         this.project.on('item_remove', () => {
             this.updateObjectStats();
+        });
+        this.project.on('action_add_group', () => {
+            this.project?.createObjectInNewGroup(this.getDefaultCanvasOptions());
+        });
+        this.project.on('action_save', ($target) => {
+            const $form = parseTemplate(saveAsFormTmpl);
+            if (!($form instanceof HTMLFormElement)) {
+                throw new Error(`saveAsFormTmpl is misconfigured, no <form> element`);
+            }
+
+            const popover = new Popover({
+                content: $form,
+            });
+
+            popover.show($target);
+
+            const $filenameInput = findInput($form, 'input.filename-input');
+
+            // const entropy = new Date().toISOString()
+            //     .replace(/T/, '_')
+            //     .replace(/\..*$/, '')
+            //     .replace(/\W/g, '')
+
+            const name = (this.project?.getName().trim() || 'antrax')
+                .toLowerCase()
+                .replace(/ /g, '_')
+                .replace(/\W/g, '');
+            const prefix = name || 'antrax';
+            $filenameInput.value = `${prefix}.json.gz`;
+
+            $filenameInput.focus();
+            $filenameInput.setSelectionRange(0, prefix.length);
+            $form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.save($filenameInput.value.trim());
+                popover.hide();
+            });
+        });
+        this.project.on('action_load', async (file) => {
+            // normally it should be application/gzip, but sometimes it's application/x-gzip, so now
+            // we just look for "gzip" anywhere and assume it's gzipped
+
+            const filename = file.name;
+            if (!/gzip/.test(file.type)) {
+                // assume it's JSON
+                this.load(await file.text(), filename);
+            } else {
+                this.load(await file.arrayBuffer(), filename);
+            }
         });
 
         this.updateObjectStats();
@@ -769,69 +816,12 @@ export class Editor {
         this.paletteSets.init();
         this.project.init();
 
-        this.$el.querySelectorAll('.new-object-btn').forEach((newObjBtn) => {
-            newObjBtn.addEventListener('click', () => {
-                if (!this.project) {
-                    return;
-                }
-
-                this.project.createObjectInNewGroup(this.getDefaultCanvasOptions());
-            });
-        });
-
-        const $saveBtn = findElement(this.$projectControls, '.save-btn');
-        $saveBtn.addEventListener('click', () => {
-            const $form = parseTemplate(saveAsFormTmpl);
-            if (!($form instanceof HTMLFormElement)) {
-                throw new Error(`saveAsFormTmpl is misconfigured, no <form> element`);
-            }
-
-            const popover = new Popover({
-                content: $form,
-            });
-
-            popover.show($saveBtn);
-
-            const $filenameInput = findInput($form, 'input.filename-input');
-
-            // TODO set this to project name once that's actually a thing that can be renamed
-            const entropy = new Date().toISOString()
-                .replace(/T/, '_')
-                .replace(/\..*$/, '')
-                .replace(/\W/g, '')
-
-            const prefix = `antrax_${entropy}`;
-            $filenameInput.value = `${prefix}.json.gz`;
-
-            $filenameInput.focus();
-            $filenameInput.setSelectionRange(0, prefix.length);
-            $form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.save($filenameInput.value.trim());
-                popover.hide();
-            });
-        });
-
-        const $loadFileInput = findInput(this.$projectControls, '.load-btn input[type="file"]');
-        $loadFileInput.addEventListener('change', async () => {
-            const { files } = $loadFileInput;
-            const file = files?.[0];
-            if (!file) {
+        findElement(this.$canvasSidebar, '.new-object-btn').addEventListener('click', () => {
+            if (!this.project) {
                 return;
             }
 
-            const filename = file.name;
-            const sizeKb = (file.size / 1024).toFixed(1);
-            this.logger.info(`selected file ${filename} (${file.type}), ${sizeKb}KB`);
-
-            // normally it should be application/gzip, but sometimes it's application/x-gzip, so now
-            // we just look for "gzip" anywhere and assume it's gzipped
-            if (!/gzip/.test(file.type)) {
-                // assume it's JSON
-                this.load(await file.text(), filename);
-            } else {
-                this.load(await file.arrayBuffer(), filename);
-            }
+            this.project.createObjectInNewGroup(this.getDefaultCanvasOptions());
         });
 
         const canvasContainer = findElement(this.$el, '.canvas-container');
@@ -1758,7 +1748,7 @@ export class Editor {
         if (projectJson) {
             const project = Project.fromJSON(
                 projectJson,
-                this.$el,
+                findElement(this.$el, '.project-container'),
                 this.$canvasArea,
                 this.settings,
                 this.paletteSets.getPaletteSets(),

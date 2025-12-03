@@ -19,7 +19,7 @@
             border-bottom: 2px solid config.$border-color;
         }
 
-        a {
+        a, .dropdown-link {
             display: flex;
             gap: config.$gutter-half;
             align-items: center;

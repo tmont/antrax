@@ -24,7 +24,6 @@ export interface ObjectGroupOptions {
     id?: ObjectGroup['id'];
     name?: string;
     items?: ObjectGroupItem[];
-    mountEl: HTMLElement;
 }
 
 export interface ObjectGroupSerialized {
@@ -53,7 +52,7 @@ const objectGroupTmpl = `
 const groupOverflowTmpl = `
 <ul class="project-item-overflow list-unstyled dropdown-menu">
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit&hellip;</a></li>
-    <li class="dropdown-item"><a href="#" data-action="add"><i class="fa-solid fa-fw fa-add icon"></i>Object</a></li>
+    <li class="dropdown-item"><a href="#" data-action="add"><i class="fa-solid fa-fw fa-add icon"></i>New object</a></li>
     <li class="dropdown-item"><a href="#" data-action="animate"><i class="fa-solid fa-fw fa-film icon"></i>Animate&hellip;</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
@@ -90,21 +89,19 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     public readonly id: string;
     private name: string;
     private readonly logger: Logger;
-    private readonly $container: HTMLElement;
     public readonly $itemContainer: HTMLElement;
     private readonly $el: HTMLElement;
     private readonly items: ObjectGroupItem[];
 
     private static instanceCount = 0;
 
-    public constructor(options: ObjectGroupOptions) {
+    public constructor(options?: ObjectGroupOptions) {
         super();
 
         ObjectGroup.instanceCount++;
-        this.id = options.id || generateId();
-        this.name = options.name || `Group ${ObjectGroup.instanceCount}`;
-        this.items = options.items || [];
-        this.$container = options.mountEl;
+        this.id = options?.id || generateId();
+        this.name = options?.name || `Group ${ObjectGroup.instanceCount}`;
+        this.items = options?.items || [];
         this.$el = parseTemplate(objectGroupTmpl);
         this.$itemContainer = findElement(this.$el, '.group-items');
 
@@ -325,9 +322,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         this.delete();
     }
 
-    public init(): void {
-        const $parent = this.$container;
-
+    public init($parent: HTMLElement): void {
         if (this.$el.parentNode === $parent) {
             return;
         }
@@ -581,7 +576,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
     public static fromJSON(
         json: object,
-        mountEl: HTMLElement,
         canvasMountEl: HTMLElement,
         settings: EditorSettings,
         paletteSets: Readonly<ColorPaletteSet[]>,
@@ -591,7 +585,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         const group = new ObjectGroup({
             id: String(serialized.id),
             name: serialized.name,
-            mountEl,
         });
 
         const items = serialized.items.map(item =>

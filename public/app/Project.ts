@@ -31,6 +31,57 @@ import {
     type PixelInfo
 } from './utils.ts';
 
+const tmpl = `
+<div class="project-structure">
+    <div class="project-structure-header section-item">
+        <header class="project-name clamp-1"></header>
+        <div class="project-controls">
+            <button type="button"
+                    class="btn btn-sm btn-success new-object-btn"
+                    title="Create new group and object">
+                <i class="fa-solid fa-add"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
+                <i class="fa-solid fa-ellipsis-h"></i>
+            </button>
+        </div>
+    </div>
+    <div class="project-objects"></div>
+</div>
+`;
+
+const projectOverflowTmpl = `
+<ul class="project-item-overflow list-unstyled dropdown-menu">
+    <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit&hellip;</a></li>
+    <li class="dropdown-item"><a href="#" data-action="add"><i class="fa-solid fa-fw fa-add icon"></i>New object</a></li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item"><a href="#" data-action="save"><i class="fa-solid fa-fw fa-save icon"></i>Save&hellip;</a></li>
+    <li class="dropdown-item">
+        <div data-action="load" class="file-input-container dropdown-link">
+            <i class="fa-solid fa-fw fa-folder-open icon"></i>
+            Load&hellip;
+            <input type="file" class="hidden-file-input" accept="application/json, application/gzip" />
+        </div>
+    </li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item"><a href="#" data-action="export-asm" class="disabled"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-images" class="disabled"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item"><a href="#" data-action="new" class="disabled"><i class="fa-solid fa-fw fa-folder-plus icon"></i>New project&hellip;</a></li>
+</ul>
+`;
+
+const editProjectTmpl = `
+<form class="form-vertical">
+    <div class="form-row">
+        <input class="project-name-input form-control" type="text" maxlength="50" minlength="1" required />
+    </div>
+    <div class="submit-container">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
+`;
+
 export interface ProjectSerialized {
     name: Project['name'];
     groups: ObjectGroupSerialized[];
@@ -68,12 +119,17 @@ export type ProjectEventMap = {
     group_remove: [ ObjectGroup ];
     item_add: [ ObjectGroup, ObjectGroupItem ];
     item_remove: [ ObjectGroup, ObjectGroupItem ];
+    action_add_group: [];
+    action_add_object: [];
+    action_load: [ File ];
+    action_save: [ HTMLElement ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
     private activeItem: ObjectGroupItem | null;
-    public name: string;
-    private readonly $container: HTMLElement;
+    private name: string;
+    private readonly $mountEl: HTMLElement;
+    private readonly $el: HTMLElement;
     private initialized = false;
     private readonly logger: Logger;
     private readonly groups: ObjectGroup[];
@@ -83,8 +139,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
     public constructor(options: ProjectOptions) {
         super();
         this.name = options.name;
-        this.$container = options.mountEl;
-        this.$groupsContainer = findElement(this.$container, '.project-objects');
+        this.$mountEl = options.mountEl;
+        this.$el = parseTemplate(tmpl);
+        this.$groupsContainer = findElement(this.$el, '.project-objects');
         this.groups = options.groups || [];
         this.activeItem = options.activeItem || null;
         this.codeGenOptions = options.codeGenOptions || {
@@ -120,6 +177,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
         return this.activeItem?.canvas || null;
     }
 
+    public getName(): string {
+        return this.name;
+    }
+
+    public setName(newName: string) {
+        newName = newName.trim() || 'My Project';
+        if (this.name === newName) {
+            return;
+        }
+
+        this.name = newName;
+        this.updateNameUI();
+    }
+
     public init(): void {
         if (this.initialized) {
             return;
@@ -137,6 +208,97 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         this.updateNameUI();
         this.updateAllThumbnails();
+
+        const $header = findElement(this.$el, '.project-structure-header');
+
+        findElement($header, '.new-object-btn').addEventListener('click', () => {
+            this.emit('action_add_group');
+        });
+
+        const $overflowContent = parseTemplate(projectOverflowTmpl);
+        const overflowPopover = new Popover({
+            content: $overflowContent,
+            dropdown: true,
+        });
+        const $overflowBtn = findElement($header, '.project-controls .overflow-btn');
+
+        const $editForm = parseTemplate(editProjectTmpl);
+        const editPopover = new Popover({
+            content: $editForm,
+            title: 'Edit project',
+            arrowAlign: 'left',
+        });
+
+        const $projectName = findElement($header, '.project-name');
+        const $input = findInput($editForm, '.project-name-input');
+
+        $editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.setName($input.value);
+            this.updateNameUI();
+            editPopover.hide();
+        });
+
+        const $loadFileInput = findInput($overflowContent, 'input[type="file"]');
+        $loadFileInput.addEventListener('change', async () => {
+            const { files } = $loadFileInput;
+            const file = files?.[0];
+            if (!file) {
+                return;
+            }
+
+            overflowPopover.hide();
+
+            const filename = file.name;
+            const sizeKb = (file.size / 1024).toFixed(1);
+            this.logger.info(`selected file ${filename} (${file.type}), ${sizeKb}KB`);
+            this.emit('action_load', file);
+        });
+
+        $overflowContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
+            anchor.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                overflowPopover.hide();
+
+                const action = anchor.getAttribute('data-action');
+                switch (action) {
+                    case 'edit':
+                        $input.value = this.name;
+                        editPopover.show($projectName);
+                        $input.focus();
+                        break;
+                    case 'add':
+                        this.emit('action_add_object');
+                        break;
+                    case 'save':
+                        this.emit('action_save', $projectName);
+                        break;
+                    // "load" is handled by the input[type="file"] event listener
+                }
+            });
+        });
+
+        $overflowBtn.addEventListener('click', () => {
+            // TODO uncomment this stuff once exporting stuff at the project level is supported
+
+            // const canvases = this.groups
+            //     .map(group => group.getCanvases())
+            //     .reduce((arr, canvases) => arr.concat(canvases), []);
+
+            // NOTE: this is duplicated in ObjectGroup
+            // disable "Export ASM" option if it's not supported by anything in the project
+            // const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
+            // $exportAsm.classList.toggle('disabled', !canvases.some(canvas => canvas.canExportToASM()));
+            //
+            // // disable "Export spritesheet" and "Animate" options if there are less than two objects
+            // const $exportSpritesheet = findElement($overflowContent, '[data-action="export-images"]');
+            // [ $exportSpritesheet ].forEach(($el) => {
+            //     $el.classList.toggle('disabled', canvases.length < 2);
+            // });
+
+            overflowPopover.show($overflowBtn);
+        });
 
         GlobalEvents.instance.on(`draggable_reorder.${this.eventNamespace}`, (e) => {
             const { $item: $element, type } = e;
@@ -189,6 +351,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             currentGroup.moveItem(item, newGroup, sibling, e.order);
         });
 
+        this.$mountEl.appendChild(this.$el);
+
         this.initialized = true;
     }
 
@@ -199,6 +363,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             group.destroy();
         }
         GlobalEvents.instance.off(`*.${this.eventNamespace}`);
+        this.$el.remove();
     }
 
     public getActiveCanvas(): PixelCanvas | null {
@@ -423,9 +588,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public addGroup(): ObjectGroup {
-        const group = new ObjectGroup({
-            mountEl: this.$groupsContainer,
-        });
+        const group = new ObjectGroup();
 
         this.wireUpGroup(group);
         this.groups.push(group);
@@ -435,7 +598,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     private wireUpGroup(group: ObjectGroup): void {
-        group.init();
+        group.init(this.$groupsContainer);
 
         group.on('item_delete', (item) => {
             if (this.activeItem === item) {
@@ -578,7 +741,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public updateNameUI(): void {
-        findElement(this.$container, '.project-name').innerText = this.name;
+        findElement(this.$el, '.project-name').innerText = this.name;
     }
 
     public updateActiveObjectInfo(): void {
@@ -694,9 +857,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
     ): Project {
         const serialized = this.transformSerialized(json);
 
-        const groupMountEl = findElement(mountEl, '.project-objects')
         const groups = serialized.groups.map(group =>
-            ObjectGroup.fromJSON(group, groupMountEl, canvasMountEl, editorSettings, paletteSets)) || [];
+            ObjectGroup.fromJSON(group, canvasMountEl, editorSettings, paletteSets)) || [];
 
         return new Project({
             mountEl,
@@ -706,8 +868,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             activeItem: serialized.activeItemId ?
                 groups
                     .find(group => group.getItems().find(item => item.id === String(serialized.activeItemId)))
-                    ?.getItems().find(item => item.id === String(serialized.activeItemId)) || null
-                    :
+                    ?.getItems()
+                    .find(item => item.id === String(serialized.activeItemId)) || null :
                 null,
         });
     }
