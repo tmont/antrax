@@ -78,7 +78,7 @@ export type ObjectGroupEventMap = {
     action_export_asm: [ Readonly<ObjectGroupItem[]> ];
     name_change: [];
     item_activate: [ ObjectGroupItem ];
-    item_clone: [{ original: ObjectGroupItem; cloned: ObjectGroupItem }];
+    item_clone: [{ original: ObjectGroupItem; newGroup: boolean }];
     item_remove: [ ObjectGroupItem ];
     item_add: [ ObjectGroupItem ];
     item_delete: [ ObjectGroupItem ];
@@ -173,7 +173,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                 this.items.splice(newIndex, 0, item);
             }
 
-            this.wireUpItem(item, sibling);
+            this.wireUpItem(item, newIndex !== -1 ? sibling : null);
             this.emit('item_add', item);
         } else {
             if (newIndex === -1) {
@@ -193,7 +193,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     }
 
     private wireUpItem(item: ObjectGroupItem, insertBefore: ObjectGroupItem | null = null): void {
-        this.logger.debug(`wiring up item events for ${item.name}}`, insertBefore);
+        this.logger.debug(`wiring up item events for ${item.name}} (inserting before: ${insertBefore?.name || '[none]'})`);
 
         item.init(insertBefore);
 
@@ -211,11 +211,11 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
             }
         });
 
-        item.on('action_clone', () => {
-            this.logger.info(`cloning ${item.name}`);
+        item.on('action_clone', ({ newGroup }) => {
+            this.logger.info(`cloning ${item.name} into ${newGroup ? 'new group' : item.canvas.getGroup().getName()}`);
             this.emit('item_clone', {
-                cloned: this.cloneItem(item),
                 original: item,
+                newGroup,
             });
         });
         item.on('action_export_asm', () => {
@@ -251,8 +251,8 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     public moveItem(
         item: ObjectGroupItem,
         newGroup: ObjectGroup,
-        sibling: ObjectGroupItem | null,
-        order: SiblingInsertOrder | null,
+        sibling?: ObjectGroupItem | null,
+        order?: SiblingInsertOrder | null,
     ): void {
         if (newGroup !== this && !this.removeItemFromArray(item)) {
             this.logger.warn(`trying to move item ${item.name} to new group, but it is not in group ${this.name}`);
@@ -281,7 +281,8 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     }
 
     public cloneItem(otherItem: ObjectGroupItem): ObjectGroupItem {
-        const newItem = otherItem.clone();
+        const newItem = otherItem.clone(this);
+        newItem.setGroup(this);
         this.addItem(newItem, otherItem, 'after');
         return newItem;
     }

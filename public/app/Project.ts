@@ -589,6 +589,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public addGroup(): ObjectGroup {
         const group = new ObjectGroup();
+        this.logger.info(`adding new group ${group.getName()}`);
 
         this.wireUpGroup(group);
         this.groups.push(group);
@@ -623,8 +624,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         group.on('item_clone', (e) => {
-            this.wireUpCanvas(e.cloned.canvas);
-            this.activateItem(e.cloned);
+            const cloneGroup = e.newGroup ? this.addGroup() : e.original.canvas.getGroup();
+
+            this.logger.info(`cloning ${e.original.name} into ${cloneGroup.getName()}`);
+            const cloned = cloneGroup.cloneItem(e.original);
+            this.wireUpCanvas(cloned.canvas);
+            this.activateItem(cloned);
         });
 
         group.on('item_add', (item) => {
@@ -666,6 +671,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             throw new Error(`Could not find default color palette in ColorPaletteSet{${paletteSet.id}}`);
         }
 
+        this.logger.info(`creating new canvas and item`);
         const canvas = new PixelCanvas({
             ...options,
             paletteSet,

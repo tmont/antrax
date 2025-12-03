@@ -23,7 +23,7 @@ const objectItemTmpl = `
         <div class="item-name clamp-1"></div>
         <div class="item-controls">
             <button type="button" class="btn btn-sm btn-success clone-object-btn" title="Clone object in same group">
-                <i class="fa-solid fa-clone"></i>
+                <i class="fa-regular fa-clone"></i>
             </button>
             <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
                 <i class="fa-solid fa-ellipsis-h"></i>
@@ -56,7 +56,8 @@ const objectItemTmpl = `
 const objectOverflowTmpl = `
 <ul class="project-item-overflow list-unstyled dropdown-menu">
     <li class="dropdown-item"><a href="#" data-action="edit"><i class="fa-solid fa-fw fa-pencil icon"></i>Edit&hellip;</a></li>
-    <li class="dropdown-item"><a href="#" data-action="clone"><i class="fa-solid fa-fw fa-clone icon"></i>Clone</a></li>
+    <li class="dropdown-item"><a href="#" data-action="clone"><i class="fa-regular fa-fw fa-clone icon"></i>Clone</a></li>
+    <li class="dropdown-item"><a href="#" data-action="clone-group"><i class="fa-solid fa-fw fa-clone icon"></i>Clone into new group</a></li>
     <li class="dropdown-item"><a href="#" data-action="clear"><i class="fa-solid fa-fw fa-eraser icon"></i>Clear</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
@@ -86,7 +87,7 @@ export interface ObjectGroupItemOptions {
 
 export type ObjectGroupItemEventMap = {
     delete: [];
-    action_clone: [];
+    action_clone: [ { newGroup: boolean } ];
     action_export_asm: [];
     activate: [];
     deactivate: [];
@@ -154,13 +155,17 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
 
         this.logger.debug('initializing');
 
-        if (!insertBefore) {
+        const sibling = insertBefore ? this.$container.querySelector(`[data-item-id="${insertBefore.id}"]`) : null;
+
+        if (!sibling || !insertBefore) {
+            if (insertBefore) {
+                this.logger.warn(`sibling element not found: ${insertBefore.name}`);
+            }
             this.logger.debug(`appending to end`);
             this.$container.appendChild(this.$el);
         } else {
             this.logger.debug(`inserting before ${insertBefore.name}`);
-            findElement(this.$container, `[data-item-id="${insertBefore.id}"]`)
-                .insertAdjacentElement('beforebegin', this.$el);
+            sibling.insertAdjacentElement('beforebegin', this.$el);
         }
 
         const canvas = this.canvas;
@@ -173,6 +178,11 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         canvas.on('canvas_dimensions_change', () => this.syncObjectDetailsUI());
         canvas.on('group_change', () => {
             this.$container = canvas.getGroup().$itemContainer;
+
+            if (this.$el.parentNode !== this.$container) {
+                this.logger.error('group changed, but element does not have correct parent!', this);
+            }
+
             this.emit('canvas_group_change', this);
         });
 
@@ -190,7 +200,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         $el.setAttribute('data-item-id', this.id);
 
         findElement($el, '.clone-object-btn').addEventListener('click', () => {
-            this.emit('action_clone');
+            this.emit('action_clone', { newGroup: false });
         });
 
         const $overflowContent = parseTemplate(objectOverflowTmpl);
@@ -231,7 +241,10 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
                         canvas.reset();
                         break;
                     case 'clone':
-                        this.emit('action_clone');
+                        this.emit('action_clone', { newGroup: false });
+                        break;
+                    case 'clone-group':
+                        this.emit('action_clone', { newGroup: true });
                         break;
                     case 'export-image':
                         this.exportCanvasToImage();
@@ -372,10 +385,10 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         this.emit('deactivate');
     }
 
-    public clone(): ObjectGroupItem {
+    public clone(otherGroup?: ObjectGroup): ObjectGroupItem {
         return new ObjectGroupItem({
             canvas: this.canvas.clone(),
-            mountEl: this.$container,
+            mountEl: otherGroup?.$itemContainer || this.$container,
         });
     }
 
