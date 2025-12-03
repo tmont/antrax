@@ -741,7 +741,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public updateNameUI(): void {
-        findElement(this.$el, '.project-name').innerText = this.name;
+        const $name = findElement(this.$el, '.project-name');
+        $name.innerText = this.name;
+        $name.setAttribute('title', this.name);
     }
 
     public updateActiveObjectInfo(): void {
