@@ -414,8 +414,29 @@ export class Editor {
 
     private syncDisplayModeControl(hasData?: boolean): void {
         const canvas = this.activeCanvas;
-        hasData = typeof hasData === 'undefined' ? canvas?.hasData() || false : hasData;
-        this.$displayModeSelect.disabled = hasData;
+        const canvasHasData = typeof hasData === 'undefined' ? canvas?.hasData() || false : hasData;
+
+        Array.from(this.$displayModeSelect.options).forEach((option) => {
+            if (!DisplayMode.isValidName(option.value)) {
+                option.disabled = true;
+                return;
+            }
+
+            if (!canvasHasData) {
+                option.disabled = false;
+                return;
+            }
+
+            const displayMode = DisplayMode.create(option.value);
+            const canvasDisplayMode = canvas?.getDisplayMode();
+            if (displayMode === canvasDisplayMode) {
+                option.disabled = false;
+            } else if (canvasDisplayMode && displayMode.numColors === canvasDisplayMode.numColors) {
+                option.disabled = false;
+            } else {
+                option.disabled = true;
+            }
+        });
     }
 
     private onPaletteSetChanged(): void {
@@ -481,9 +502,10 @@ export class Editor {
         this.syncCanvasSidebarColors();
         this.syncSelectionActions(canvas); // some actions are disabled based on the display mode (e.g. horizontal flip)
 
-        // certain display modes have a different color0, which is used as the background, so
-        // we need to update it (e.g. 320D in Kangaroo mode)
-        canvas.renderBg();
+        // background must be re-rendered because certain display modes have a different color0 (e.g. 320D
+        // in Kangaroo mode). and the whole canvas needs to be re-rendered because you can switch between certain
+        // display modes even if they have data.
+        canvas.render();
     }
 
     private syncActivePaletteAndColors(): void {
