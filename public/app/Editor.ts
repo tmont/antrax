@@ -335,7 +335,7 @@ export class Editor {
         this.project.on('item_remove', () => {
             this.updateObjectStats();
         });
-        this.project.on('action_add_group', () => {
+        this.project.on('action_add_object', () => {
             this.project?.createObjectInNewGroup(this.getDefaultCanvasOptions());
         });
         this.project.on('action_save', ($target) => {

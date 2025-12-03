@@ -119,7 +119,6 @@ export type ProjectEventMap = {
     group_remove: [ ObjectGroup ];
     item_add: [ ObjectGroup, ObjectGroupItem ];
     item_remove: [ ObjectGroup, ObjectGroupItem ];
-    action_add_group: [];
     action_add_object: [];
     action_load: [ File ];
     action_save: [ HTMLElement ];
@@ -212,7 +211,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const $header = findElement(this.$el, '.project-structure-header');
 
         findElement($header, '.new-object-btn').addEventListener('click', () => {
-            this.emit('action_add_group');
+            this.emit('action_add_object');
         });
 
         const $overflowContent = parseTemplate(projectOverflowTmpl);
