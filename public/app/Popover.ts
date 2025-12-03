@@ -114,15 +114,20 @@ export class Popover extends EventEmitter<PopoverEventMap> {
             if (!this.isToast) {
                 const position = $target?.getBoundingClientRect() || { left: 0, top: 0, height: 0, width: 0 };
 
+                // we do some confusing transforms to translateX the whole thing by some amount,
+                // so that's why this isn't just "0"
+                const leftThreshold = 30;
+
                 const hangingOffBottomEdge =
                     position.top + position.height + this.$el.offsetHeight >= window.innerHeight - 50;
                 const hangingOffRightEdge = position.left + this.$el.offsetWidth >= window.innerWidth - 50;
+                const hangingOffLeftEdge = position.left <= leftThreshold;
                 this.$el.classList.toggle('up', hangingOffBottomEdge);
                 this.$el.classList.toggle('right', hangingOffRightEdge);
 
                 this.$el.style.left = hangingOffRightEdge ?
                     (position.left + position.width - this.$el.offsetWidth) + 'px' :
-                    position.left + 'px';
+                    (hangingOffLeftEdge ? leftThreshold : position.left) + 'px';
                 this.$el.style.top = hangingOffBottomEdge ?
                     (position.top - this.$el.offsetHeight) + 'px' :
                     (position.top + position.height) + 'px';
