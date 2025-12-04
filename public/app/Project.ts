@@ -25,7 +25,10 @@ import {
     findSelect,
     findTemplateContent,
     formatAssemblyNumber,
+    formatNumber,
+    formatRelativeTime,
     hasAddressLabel,
+    type LoadedFile,
     parseTemplate,
     type PixelCanvasDrawStateContext,
     type PixelInfo
@@ -46,7 +49,36 @@ const tmpl = `
             </button>
         </div>
     </div>
+    <div class="project-stats section-item">
+        <div class="object-counts"></div>
+        <div class="loaded-file-link-container">
+            <a href="#" class="loaded-file-link clamp-1"></a>
+        </div>
+    </div>
     <div class="project-objects"></div>
+</div>
+`;
+
+const loadedFileInfoTmpl = `
+<div class="loaded-file-info">
+    <table class="form">
+        <tr>
+            <th>Filename:</th>
+            <td class="filename"></td>
+        </tr>
+        <tr>
+            <th>Size:</th>
+            <td class="filesize has-info"></td>
+        </tr>
+        <tr>
+            <th>Size (inflated):</th>
+            <td class="filesize-inflated"></td>
+        </tr>
+        <tr>
+            <th>Loaded:</th>
+            <td><time class="has-info"></time></td>
+        </tr>
+    </table>
 </div>
 `;
 
@@ -130,11 +162,13 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private name: string;
     private readonly $mountEl: HTMLElement;
     private readonly $el: HTMLElement;
+    private readonly $stats: HTMLElement;
+    private readonly $groupsContainer: HTMLElement;
     private initialized = false;
     private readonly logger: Logger;
     private readonly groups: ObjectGroup[];
-    private readonly $groupsContainer: HTMLElement;
     private codeGenOptions: CodeGenerationOptions;
+    private loadedFile: LoadedFile | null = null;
 
     public constructor(options: ProjectOptions) {
         super();
@@ -142,6 +176,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.$mountEl = options.mountEl;
         this.$el = parseTemplate(tmpl);
         this.$groupsContainer = findElement(this.$el, '.project-objects');
+        this.$stats = findElement(this.$el, '.project-stats');
         this.groups = options.groups || [];
         this.activeItem = options.activeItem || null;
         this.codeGenOptions = options.codeGenOptions || {
@@ -191,6 +226,16 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateNameUI();
     }
 
+    public updateObjectCountsUI(): void {
+        const objectCount = this.canvases.length;
+        findElement(this.$stats, '.object-counts').innerText = `${this.groups.length}gr / ${objectCount}obj`;
+    }
+
+    public setLoadedFile(file: LoadedFile): void {
+        this.loadedFile = file;
+        findElement(this.$stats, '.loaded-file-link').innerText = file.name;
+    }
+
     public init(): void {
         if (this.initialized) {
             return;
@@ -208,6 +253,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         this.updateNameUI();
         this.updateAllThumbnails();
+        this.updateObjectCountsUI();
 
         const $header = findElement(this.$el, '.project-structure-header');
 
@@ -304,6 +350,46 @@ export class Project extends EventEmitter<ProjectEventMap> {
             // });
 
             overflowPopover.show($overflowBtn);
+        });
+
+        const $loadedFileInfo = parseTemplate(loadedFileInfoTmpl);
+        const popover = new Popover({
+            title: 'Loaded file info',
+            content: $loadedFileInfo,
+        });
+        const $link = findElement(this.$el, '.loaded-file-link');
+        $link.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            if (!this.loadedFile) {
+                return;
+            }
+
+            findElement($loadedFileInfo, '.filename').innerText = this.loadedFile.name;
+
+            const kb = (this.loadedFile.size / 1024).toFixed(1);
+            const $size = findElement($loadedFileInfo, '.filesize');
+            $size.setAttribute('title', formatNumber(this.loadedFile.size) + ' bytes');
+            $size.innerText = kb + 'KB';
+
+            const $sizeInflated = findElement($loadedFileInfo, '.filesize-inflated');
+            if (this.loadedFile.sizeInflated) {
+                const kb = (this.loadedFile.sizeInflated / 1024).toFixed(1);
+                $sizeInflated.setAttribute('title', formatNumber(this.loadedFile.sizeInflated) + ' bytes');
+                $sizeInflated.innerText = kb + 'KB';
+            } else {
+                $sizeInflated.innerText = 'n/a';
+                $sizeInflated.removeAttribute('title');
+            }
+            $sizeInflated.classList.toggle('has-info', !!this.loadedFile.sizeInflated);
+
+            const $time = findElement($loadedFileInfo, 'time');
+
+            $time.setAttribute('datetime', this.loadedFile.loadTime.toISOString());
+            $time.setAttribute('title', this.loadedFile.loadTime.toISOString());
+            $time.innerText = formatRelativeTime(this.loadedFile.loadTime);
+
+            popover.show($link);
         });
 
         GlobalEvents.instance.on(`draggable_reorder.${this.eventNamespace}`, (e) => {
@@ -599,6 +685,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         this.wireUpGroup(group);
         this.groups.push(group);
+        this.updateObjectCountsUI();
         this.emit('group_add', group);
 
         return group;
@@ -608,6 +695,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         group.init(this.$groupsContainer);
 
         group.on('item_delete', (item) => {
+            this.updateObjectCountsUI();
             if (this.activeItem === item) {
                 this.activateItem(null);
             }
@@ -634,11 +722,13 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             this.logger.info(`cloning ${e.original.name} into ${cloneGroup.getName()}`);
             const cloned = cloneGroup.cloneItem(e.original);
+
             this.wireUpCanvas(cloned.canvas);
             this.activateItem(cloned);
         });
 
         group.on('item_add', (item) => {
+            this.updateObjectCountsUI();
             this.emit('item_add', group, item);
         });
 
@@ -656,6 +746,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 this.logger.info(`deleted group ${group.getName()} at index ${index}`);
             }
 
+            this.updateObjectCountsUI();
             this.emit('group_remove', group);
         });
     }

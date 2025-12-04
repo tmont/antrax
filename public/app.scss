@@ -289,3 +289,9 @@ kbd {
     overflow-wrap: anywhere;
     word-break: break-all;
 }
+
+.has-info {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    cursor: help;
+}

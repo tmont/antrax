@@ -11,7 +11,7 @@
 }
 
 .project-structure {
-    gap: config.$gutter;
+    gap: config.$gutter-quarter;
     padding: config.$sidebar-padding-y 0 config.$sidebar-padding-y config.$sidebar-padding-x;
 
     .project-structure-header {
@@ -23,6 +23,31 @@
         .project-name {
             font-weight: bold;
             flex: 1;
+        }
+    }
+
+    .project-stats {
+        display: flex;
+        gap: config.$gutter-quarter;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 75%;
+        color: rgba(config.$color, 0.5);
+        transition: color linear 100ms;
+
+        &:hover {
+            color: config.$color;
+        }
+
+        .loaded-file-link-container {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .loaded-file-link {
+            color: inherit;
+            text-decoration: underline;
         }
     }
 

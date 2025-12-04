@@ -26,6 +26,7 @@ import {
     hasMessage,
     isDrawMode,
     isLeftMouseButton,
+    type LoadedFile,
     nope,
     parseTemplate,
     type PixelInfo,
@@ -376,12 +377,17 @@ export class Editor {
             // normally it should be application/gzip, but sometimes it's application/x-gzip, so now
             // we just look for "gzip" anywhere and assume it's gzipped
 
-            const filename = file.name;
+            const loadedFile: LoadedFile = {
+                name: file.name,
+                size: file.size,
+                sizeInflated: null,
+                loadTime: new Date(),
+            };
             if (!/gzip/.test(file.type)) {
                 // assume it's JSON
-                this.load(await file.text(), filename);
+                this.load(await file.text(), loadedFile);
             } else {
-                this.load(await file.arrayBuffer(), filename);
+                this.load(await file.arrayBuffer(), loadedFile);
             }
         });
 
@@ -1599,7 +1605,9 @@ export class Editor {
             });
     }
 
-    public load(data: string | ArrayBuffer | Blob, filename: string): void {
+    public load(data: string | ArrayBuffer | Blob, file: LoadedFile): void {
+        const filename = file.name;
+
         const handleError = (err: unknown, message: string): void => {
             this.logger.error(err);
 
@@ -1640,11 +1648,13 @@ export class Editor {
             new Response(decompressedStream)
                 .blob()
                 .then((blob) => {
+                    file.sizeInflated = blob.size;
                     this.logger.debug(`file inflated to ${(blob.size / 1024).toFixed(1)}KB`);
                     return blob.text();
                 })
                 .then(stringified => this.loadJson(JSON.parse(stringified)))
                 .then(() => {
+                    this.project?.setLoadedFile(file);
                     Popover.toast({
                         type: 'success',
                         content: `Successfully loaded data from ${filename}`,
