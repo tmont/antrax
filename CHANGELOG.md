@@ -1,3 +1,21 @@
+## v0.1.2 (2025-12-03)
+- ASM object labels are now PascalCase instead of a simple concatenation
+  (e.g. "foo bar" -> "FooBar" instead of "foobar")
+- ASM export options are remembered (including across save/load cycles)
+- Fixed scrolling issue with frame list in animation modal
+- You can now switch between certain display modes even if the canvas is not empty
+    - `160B` <-> `320C`
+    - `160A` <-> `320A` <-> `320D`
+- Added overflow menu for the project
+- Project name is now editable
+- Added menu action to create an empty group
+- Added menu action to clone an item into a new group
+- Added the currently loaded file and project stats to the sidebar
+- Pressing `Esc` when focused in an input will now hide popovers (but not de-select)
+
+## v0.1.1 (2025-12-02)
+- fixed changelog formatting
+
 ## v0.1.0 (2025-12-02)
 - Added palette set management (add/delete/switch)
 - App now loads custom fonts (Noto Sans and Source Code Pro)
