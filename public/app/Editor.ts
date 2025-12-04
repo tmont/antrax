@@ -951,6 +951,11 @@ export class Editor {
                 return;
             }
 
+            // we want ESC to hide popovers even if an input is focused
+            if (e.key === 'Escape' && Popover.hideTopMost()) {
+                return;
+            }
+
             if (
                 (e.target instanceof HTMLInputElement && ignoredInputs[e.target.type]) ||
                 e.target instanceof HTMLTextAreaElement
@@ -1016,7 +1021,6 @@ export class Editor {
             if (e.key === 'Escape') {
                 this.logger.debug(`deselecting due to ESC`);
                 this.activeCanvas?.resetDrawContext();
-                Popover.hideTopMost();
                 return;
             }
 
