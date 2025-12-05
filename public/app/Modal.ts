@@ -41,7 +41,7 @@ export type ModalOptions = ModalOptionsText | ModalOptionsHtml;
 
 const tmpl = `
 <div class="modal">
-    <div class="modal-title"></div>
+    <div class="modal-title"><div class="title-text"></div></div>
     <div class="modal-body"></div>
     <div class="modal-footer">
         <div class="actions-start actions-container"></div>
@@ -110,7 +110,7 @@ export class Modal extends EventEmitter<ModalEventMap> {
         super();
         this.$el = parseTemplate(tmpl);
 
-        const $title = findElement(this.$el, '.modal-title');
+        const $title = findElement(this.$el, '.modal-title .title-text');
         const $body = findElement(this.$el, '.modal-body');
         const $footer = findElement(this.$el, '.modal-footer');
 
