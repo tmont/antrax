@@ -40,7 +40,7 @@ const objectGroupTmpl = `
             <header class="group-name clamp-1"></header>
         </div>
         <div class="item-controls">
-            <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
+            <button type="button" class="btn btn-sm btn-tertiary overflow-btn" title="More actions&hellip;">
                 <i class="fa-solid fa-ellipsis-h"></i>
             </button>
         </div>

@@ -22,10 +22,7 @@ const objectItemTmpl = `
         <canvas class="object-thumbnail" width="32" height="32"></canvas>
         <div class="item-name clamp-1"></div>
         <div class="item-controls">
-            <button type="button" class="btn btn-sm btn-success clone-object-btn" title="Clone object in same group">
-                <i class="fa-regular fa-clone"></i>
-            </button>
-            <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
+            <button type="button" class="btn btn-sm btn-tertiary overflow-btn" title="More actions&hellip;">
                 <i class="fa-solid fa-ellipsis-h"></i>
             </button>
         </div>
@@ -199,10 +196,6 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         });
 
         $el.setAttribute('data-item-id', this.id);
-
-        findElement($el, '.clone-object-btn').addEventListener('click', () => {
-            this.emit('action_clone', { newGroup: false });
-        });
 
         const $overflowContent = parseTemplate(objectOverflowTmpl);
         const overflowPopover = new Popover({

@@ -49,7 +49,7 @@ const tmpl = `
                     title="Create new group and object">
                 <i class="fa-solid fa-add"></i>
             </button>
-            <button type="button" class="btn btn-sm btn-secondary overflow-btn" title="More actions&hellip;">
+            <button type="button" class="btn btn-sm btn-tertiary overflow-btn" title="More actions&hellip;">
                 <i class="fa-solid fa-ellipsis-h"></i>
             </button>
         </div>
