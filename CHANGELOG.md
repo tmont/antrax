@@ -1,3 +1,11 @@
+## v0.1.3 (2025-12-04)
+- Added options for image export
+    - Background color, uncolored pixel behavior, orientation, padding and pixel size
+- Export spritesheet for whole project
+- Export ASM for whole project
+    - Will also now export multiple palettes
+- Minor sidebar UI tweaks, removed external "clone" button
+
 ## v0.1.2 (2025-12-03)
 - ASM object labels are now PascalCase instead of a simple concatenation
   (e.g. "foo bar" -> "FooBar" instead of "foobar")
