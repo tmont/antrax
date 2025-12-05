@@ -482,15 +482,8 @@ export class Editor {
                 return;
             }
 
-            const displayMode = DisplayMode.create(option.value);
-            const canvasDisplayMode = canvas?.getDisplayMode();
-            if (displayMode === canvasDisplayMode) {
-                option.disabled = false;
-            } else if (canvasDisplayMode && displayMode.numColors === canvasDisplayMode.numColors) {
-                option.disabled = false;
-            } else {
-                option.disabled = true;
-            }
+            option.disabled = !canvas ||
+                DisplayMode.create(option.value).numColors !== canvas.getDisplayMode().numColors;
         });
     }
 
