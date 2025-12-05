@@ -738,13 +738,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const $pixelHeight = findInput($modalContent, '#export-images-pixel-height');
 
         // sync form inputs with previous options
-        // const { pixelSize, orientation, uncoloredStyle, gap, padding } = this.exportImagesOptions;
         $bgColor.value = this.exportImagesOptions.backgroundColor;
         $bgAlpha.value = this.exportImagesOptions.backgroundAlpha.toString();
         $uncolored.value = this.exportImagesOptions.uncoloredStyle === 'default' ? 'default' : 'transparent';
         $orientation.value = this.exportImagesOptions.orientation === 'vertical' ? 'vertical' : 'horizontal';
         $gap.value = this.exportImagesOptions.gap.toString();
-        $padding.value = this.exportImagesOptions.padding.toString();
+        $padding.value = canvases.length === 1 ? '0' : this.exportImagesOptions.padding.toString();
         $pixelWidth.value = this.exportImagesOptions.pixelSize === 'default' ? '' : this.exportImagesOptions.pixelSize.width.toString();
         $pixelHeight.value = this.exportImagesOptions.pixelSize === 'default' ? '' : this.exportImagesOptions.pixelSize.height.toString();
 
@@ -765,6 +764,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         const generateImages = (): void => {
+            const originalPadding = this.exportImagesOptions.padding;
+
             const options = this.exportImagesOptions = {
                 backgroundColor: $bgColor.value,
                 backgroundAlpha: clamp(0, 1, Number($bgAlpha.value)),
@@ -776,7 +777,13 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 padding: clamp(0, 128, Number($padding.value)),
                 gap: clamp(0, 128, Number($gap.value)),
             };
+            const { orientation, gap, padding } = options;
 
+            if (canvases.length === 1 && this.exportImagesOptions.padding === 0) {
+                // if we're only exporting a single canvas, we manually set the padding to
+                // 0, so we don't want to persist the overwritten value.
+                this.exportImagesOptions.padding = originalPadding;
+            }
 
             const byGroup: Record<ObjectGroup['id'], PixelCanvas[]> = {};
 
@@ -797,7 +804,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 return size[dimension];
             };
 
-            const { orientation, gap, padding } = options;
             const totalMax = groupedCanvases.reduce(
                 (max, canvases) => Math.max(
                     max,
