@@ -51,6 +51,10 @@ $modal-z-index: config.$z-index-modal-overlay;
         font-size: 1.25rem;
         border-bottom: 2px solid config.$border-color;
         text-shadow: 1px 1px 1px black;
+        max-width: 20em;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
     }
 
     .modal-footer {

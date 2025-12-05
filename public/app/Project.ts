@@ -103,7 +103,7 @@ const projectOverflowTmpl = `
     </li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm" class="disabled"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
-    <li class="dropdown-item"><a href="#" data-action="export-images"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-images"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet&hellip;</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="new" class="disabled"><i class="fa-solid fa-fw fa-folder-plus icon"></i>New project&hellip;</a></li>
 </ul>
@@ -894,7 +894,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const downloadId = 'download';
         const imageModal = Modal.create({
             type: 'default',
-            title: `Export spritesheet`,
+            title: `Export ${canvases.length === 1 && canvases[0] ? `"${canvases[0].getName()}"` : 'spritesheet'}`,
             actions: [
                 'cancel',
                 {
