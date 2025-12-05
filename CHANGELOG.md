@@ -1,4 +1,7 @@
-## v0.1.3 (2025-12-04)
+## v0.1.4 (2025-12-05)
+- Fixed style issues with modal title
+
+## v0.1.3 (2025-12-05)
 - Added options for image export
     - Background color, uncolored pixel behavior, orientation, padding and pixel size
 - Export spritesheet for whole project
