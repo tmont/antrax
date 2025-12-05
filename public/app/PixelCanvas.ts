@@ -8,6 +8,7 @@ import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger';
 import { ObjectGroup } from './ObjectGroup.ts';
 import {
+    clamp,
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type Coordinate,
@@ -268,6 +269,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return {
             width: this.displayWidth,
             height: this.displayHeight,
+        };
+    }
+
+    public getDisplayDimensionsForPixelSize(pixelSize: Dimensions): Dimensions {
+        return {
+            width: pixelSize.width * this.width * this.editorSettings.zoomLevel,
+            height: pixelSize.height * this.height * this.editorSettings.zoomLevel,
         };
     }
 
@@ -570,8 +578,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 // in modes where you're dragging, we allow dragging off canvas, and we'll just
                 // activate the closest pixel. this way the user won't have to have such precision
                 // while dragging to keep the cursor on the canvas.
-                trueX = Math.max(0, Math.min(trueX, this.displayWidth - 1));
-                trueY = Math.max(0, Math.min(trueY, this.displayHeight - 1));
+                trueX = clamp(0, this.displayWidth - 1, trueX);
+                trueY = clamp(0, this.displayHeight - 1, trueY);
             }
 
             const pixelData = this.getPixelAt({ x: trueX, y: trueY });

@@ -3,17 +3,6 @@
 .animate-form {
     flex: 1;
 
-    .animate-form-preview {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: config.$gutter;
-
-        canvas {
-            box-shadow: 2px 2px 5px rgba(black, 0.5);
-        }
-    }
-
     .animate-form-object-list {
         display: flex;
         align-items: center;

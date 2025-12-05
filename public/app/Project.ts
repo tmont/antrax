@@ -1,7 +1,7 @@
 import { CodeGenerator } from './CodeGenerator.ts';
 import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
-import type { EditorSettings, UndoCheckpoint } from './Editor.ts';
+import { type EditorSettings, type UndoCheckpoint } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { GlobalEvents } from './GlobalEvents.ts';
@@ -13,12 +13,15 @@ import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './Pixel
 import { Popover } from './Popover.ts';
 import {
     type AssemblyNumberFormatRadix,
+    clamp,
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type CodeGenerationOptionsBase,
     type Coordinate,
+    type Dimensions,
     type DisplayModeColorIndex,
     type DisplayModeName,
+    type ExportImageOptions,
     findElement,
     findInput,
     findOrDie,
@@ -27,11 +30,13 @@ import {
     formatAssemblyNumber,
     formatNumber,
     formatRelativeTime,
+    get2dContext,
     hasAddressLabel,
     type LoadedFile,
     parseTemplate,
     type PixelCanvasDrawStateContext,
-    type PixelInfo
+    type PixelInfo,
+    zeroPad
 } from './utils.ts';
 
 const tmpl = `
@@ -98,7 +103,7 @@ const projectOverflowTmpl = `
     </li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm" class="disabled"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
-    <li class="dropdown-item"><a href="#" data-action="export-images" class="disabled"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-images"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="new" class="disabled"><i class="fa-solid fa-fw fa-folder-plus icon"></i>New project&hellip;</a></li>
 </ul>
@@ -120,14 +125,17 @@ export interface ProjectSerialized {
     groups: ObjectGroupSerialized[];
     activeItemId?: string | null;
     codeGenOptions?: CodeGenerationOptions;
+    exportImagesOptions?: ExportImageOptions;
 }
 
 export interface ProjectOptions {
     mountEl: HTMLElement;
     name: string;
+    editorSettings: EditorSettings;
     groups?: ObjectGroup[];
     activeItem?: ObjectGroupItem | null;
     codeGenOptions?: CodeGenerationOptions | null;
+    exportImagesOptions?: ExportImageOptions | null;
 }
 
 export type ProjectEventMap = {
@@ -168,7 +176,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private readonly logger: Logger;
     private readonly groups: ObjectGroup[];
     private codeGenOptions: CodeGenerationOptions;
+    private exportImagesOptions: ExportImageOptions;
     private loadedFile: LoadedFile | null = null;
+    private readonly editorSettings: EditorSettings;
 
     public constructor(options: ProjectOptions) {
         super();
@@ -190,6 +200,16 @@ export class Project extends EventEmitter<ProjectEventMap> {
             object: true,
             paletteSet: true,
         };
+        this.exportImagesOptions = options.exportImagesOptions || {
+            backgroundColor: '#17181C',
+            backgroundAlpha: 1,
+            uncoloredStyle: 'transparent',
+            orientation: 'horizontal',
+            pixelSize: 'default',
+            gap: 10,
+            padding: 10,
+        };
+        this.editorSettings = options.editorSettings;
 
         this.logger = Logger.from(this);
     }
@@ -198,7 +218,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         return 'project';
     }
 
-    private get canvases(): Readonly<PixelCanvas[]> {
+    private get canvases(): PixelCanvas[] {
         return this.groups.reduce((canvases, group) => canvases.concat(group.getCanvases()), [] as PixelCanvas[]);
     }
 
@@ -320,6 +340,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     case 'add-group':
                         this.addGroup();
                         break;
+                    case 'export-images':
+                        this.showExportImagesModal(this.canvases);
+                        break;
                     case 'save':
                         this.emit('action_save', $projectName);
                         break;
@@ -332,22 +355,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         $overflowBtn.addEventListener('click', () => {
-            // TODO uncomment this stuff once exporting stuff at the project level is supported
-
-            // const canvases = this.groups
-            //     .map(group => group.getCanvases())
-            //     .reduce((arr, canvases) => arr.concat(canvases), []);
+            const canvases = this.groups
+                .map(group => group.getCanvases())
+                .reduce((arr, canvases) => arr.concat(canvases), []);
 
             // NOTE: this is duplicated in ObjectGroup
             // disable "Export ASM" option if it's not supported by anything in the project
             // const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
             // $exportAsm.classList.toggle('disabled', !canvases.some(canvas => canvas.canExportToASM()));
-            //
-            // // disable "Export spritesheet" and "Animate" options if there are less than two objects
-            // const $exportSpritesheet = findElement($overflowContent, '[data-action="export-images"]');
-            // [ $exportSpritesheet ].forEach(($el) => {
-            //     $el.classList.toggle('disabled', canvases.length < 2);
-            // });
+
+            // disable "Export spritesheet" and "Animate" options if there are less than two objects
+            const $exportSpritesheet = findElement($overflowContent, '[data-action="export-images"]');
+            [ $exportSpritesheet ].forEach(($el) => {
+                $el.classList.toggle('disabled', canvases.length < 2);
+            });
 
             overflowPopover.show($overflowBtn);
         });
@@ -679,6 +700,218 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
     }
 
+    /**
+     * @param canvases If omitted, defaults to the active canvas
+     */
+    public showExportImagesModal(canvases?: PixelCanvas[]): void {
+        if (!canvases) {
+            const activeCanvas = this.getActiveCanvas();
+            if (!activeCanvas) {
+                return;
+            }
+
+            canvases = [ activeCanvas ];
+        }
+
+        if (!canvases.length) {
+            return;
+        }
+
+        const $contentFragment = findTemplateContent(document, '#modal-content-export-images');
+        const $modalContent = $contentFragment.cloneNode(true) as ParentNode;
+
+        // this is necessary if you export after (e.g.) zooming: only the active canvas is updated
+        // so if you export after a zoom, other canvases will be blank.
+        // theoretically we could keep track of which canvases are out of sync with their render state, and then
+        // only render those at this time. an optimization for another time, though.
+        canvases.forEach(canvas => canvas.render());
+
+        const $canvas = findOrDie($modalContent, 'canvas', node => node instanceof HTMLCanvasElement);
+
+        const $bgColor = findInput($modalContent, '#export-images-bg');
+        const $bgAlpha = findInput($modalContent, '#export-images-bg-alpha');
+        const $uncolored = findSelect($modalContent, '#export-images-uncolored');
+        const $orientation = findSelect($modalContent, '#export-images-orientation');
+        const $gap = findInput($modalContent, '#export-images-gap');
+        const $padding = findInput($modalContent, '#export-images-padding');
+        const $pixelWidth = findInput($modalContent, '#export-images-pixel-width');
+        const $pixelHeight = findInput($modalContent, '#export-images-pixel-height');
+
+        // sync form inputs with previous options
+        // const { pixelSize, orientation, uncoloredStyle, gap, padding } = this.exportImagesOptions;
+        $bgColor.value = this.exportImagesOptions.backgroundColor;
+        $bgAlpha.value = this.exportImagesOptions.backgroundAlpha.toString();
+        $uncolored.value = this.exportImagesOptions.uncoloredStyle === 'default' ? 'default' : 'transparent';
+        $orientation.value = this.exportImagesOptions.orientation === 'vertical' ? 'vertical' : 'horizontal';
+        $gap.value = this.exportImagesOptions.gap.toString();
+        $padding.value = this.exportImagesOptions.padding.toString();
+        $pixelWidth.value = this.exportImagesOptions.pixelSize === 'default' ? '' : this.exportImagesOptions.pixelSize.width.toString();
+        $pixelHeight.value = this.exportImagesOptions.pixelSize === 'default' ? '' : this.exportImagesOptions.pixelSize.height.toString();
+
+        $gap.disabled = canvases.length === 1;
+        $orientation.disabled = canvases.length === 1;
+
+        [
+            $bgColor,
+            $bgAlpha,
+            $uncolored,
+            $orientation,
+            $gap,
+            $padding,
+            $pixelWidth,
+            $pixelHeight,
+        ].forEach(($input) => {
+            $input.addEventListener('change', () => generateImages());
+        });
+
+        const generateImages = (): void => {
+            const options = this.exportImagesOptions = {
+                backgroundColor: $bgColor.value,
+                backgroundAlpha: clamp(0, 1, Number($bgAlpha.value)),
+                orientation: $orientation.value === 'vertical' ? 'vertical' : 'horizontal',
+                pixelSize: $pixelWidth.value && $pixelHeight.value ?
+                    { width: Number($pixelWidth.value), height: Number($pixelHeight.value) } :
+                    'default',
+                uncoloredStyle: $uncolored.value === 'default' ? 'default' : 'transparent',
+                padding: clamp(0, 128, Number($padding.value)),
+                gap: clamp(0, 128, Number($gap.value)),
+            };
+
+
+            const byGroup: Record<ObjectGroup['id'], PixelCanvas[]> = {};
+
+            canvases.forEach((canvas) => {
+                const key = canvas.getGroup().id;
+                byGroup[key] = byGroup[key] || [];
+                byGroup[key].push(canvas);
+            });
+
+            const groupedCanvases = Object.values(byGroup);
+
+            const getScaled = (dimension: keyof Dimensions, canvas: PixelCanvas): number => {
+                if (options.pixelSize === 'default') {
+                    return canvas.getDisplayDimensions()[dimension];
+                }
+
+                const size = canvas.getDisplayDimensionsForPixelSize(options.pixelSize);
+                return size[dimension];
+            };
+
+            const { orientation, gap, padding } = options;
+            const totalMax = groupedCanvases.reduce(
+                (max, canvases) => Math.max(
+                    max,
+                    canvases.reduce((total, canvas) =>
+                        total + getScaled(orientation === 'horizontal' ? 'width' : 'height', canvas),
+                    0) + (gap * (canvases.length - 1))
+                ),
+                0,
+            );
+
+            const sumMax = groupedCanvases.reduce(
+                (sum, canvases) => sum + canvases.reduce(
+                    (max, canvas) => Math.max(max, getScaled(orientation === 'horizontal' ? 'height' : 'width', canvas)),
+                    0,
+                ), 0) + (gap * (groupedCanvases.length - 1));
+
+            $canvas.width = (orientation === 'horizontal' ? totalMax : sumMax) + (padding * 2);
+            $canvas.height = (orientation === 'horizontal' ? sumMax : totalMax) + (padding * 2);
+
+            const ctx = get2dContext($canvas);
+            ctx.fillStyle = options.backgroundColor + zeroPad(Math.round(options.backgroundAlpha * 255).toString(16), 2);
+            ctx.fillRect(0, 0, $canvas.width, $canvas.height);
+
+            let xOffset = padding;
+            let yOffset = padding;
+
+            groupedCanvases.forEach((canvases) => {
+                canvases.forEach((canvas) => {
+                    const actualWidth = getScaled('width', canvas);
+                    const actualHeight = getScaled('height', canvas);
+
+                    const isKangaroo = this.editorSettings.kangarooMode && canvas.supportsKangarooMode();
+                    const shouldRenderBg = isKangaroo || options.uncoloredStyle !== 'transparent';
+
+                    if (shouldRenderBg) {
+                        ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), xOffset, yOffset, actualWidth, actualHeight);
+                    }
+                    ctx.drawImage(canvas.getUnderlyingEditorCanvas(), xOffset, yOffset, actualWidth, actualHeight);
+
+                    if (orientation === 'horizontal') {
+                        xOffset += actualWidth + gap;
+                    } else {
+                        yOffset += actualHeight + gap;
+                    }
+                });
+
+                const maxDimension = canvases.reduce((max, canvas) => Math.max(
+                    max,
+                    orientation === 'horizontal' ? getScaled('height', canvas) : getScaled('width', canvas)
+                ), 0);
+
+                if (options.orientation === 'horizontal') {
+                    xOffset = padding;
+                    yOffset += maxDimension + gap;
+                } else {
+                    xOffset += maxDimension + gap;
+                    yOffset = padding;
+                }
+            });
+
+            const maxSize = 320;
+            const maxDimension = Math.max($canvas.width, $canvas.height);
+
+            const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
+
+            $canvas.style.width = ($canvas.width * scale) + 'px';
+            $canvas.style.height = ($canvas.height * scale) + 'px';
+        };
+
+        $canvas.addEventListener('click', () => downloadImage());
+
+        const downloadImage = () => {
+            generateImages();
+            $canvas.toBlob((blob) => {
+                if (!blob) {
+                    Popover.toast({
+                        type: 'danger',
+                        content: `Failed to generate image data`,
+                    });
+                    return;
+                }
+
+                window.open(URL.createObjectURL(blob));
+            }, 'image/png');
+        };
+
+        const downloadId = 'download';
+        const imageModal = Modal.create({
+            type: 'default',
+            title: `Export spritesheet`,
+            actions: [
+                'cancel',
+                {
+                    id: downloadId,
+                    align: 'end',
+                    labelHtml: '<i class="fa-solid fa-download"></i> Download',
+                    type: 'primary',
+                },
+            ],
+            contentHtml: $modalContent,
+        });
+
+        imageModal.on('action', (e) => {
+            if (e.id !== downloadId) {
+                return;
+            }
+
+            downloadImage();
+        });
+
+        generateImages();
+        imageModal.show();
+    }
+
     public addGroup(): ObjectGroup {
         const group = new ObjectGroup();
         this.logger.info(`adding new group ${group.getName()}`);
@@ -711,6 +944,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         group.on('action_export_asm', (items) => {
             this.showExportASMModal(items.map(item => item.canvas));
+        });
+
+        group.on('action_export_images', (items) => {
+            this.showExportImagesModal(items.map(item => item.canvas));
         });
 
         group.on('item_activate', (activeItem) => {
@@ -839,10 +1076,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
     }
 
-    public exportActiveCanvasToImage(): void {
-        this.activeItem?.exportCanvasToImage();
-    }
-
     public updateNameUI(): void {
         const $name = findElement(this.$el, '.project-name');
         $name.innerText = this.name;
@@ -950,6 +1183,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             activeItemId: this.activeItem?.id || null,
             groups: this.groups.map(group => group.toJSON()),
             codeGenOptions: { ...this.codeGenOptions },
+            exportImagesOptions: { ...this.exportImagesOptions },
         };
     }
 
@@ -970,6 +1204,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             name: serialized.name,
             groups,
             codeGenOptions: serialized.codeGenOptions,
+            exportImagesOptions: serialized.exportImagesOptions,
+            editorSettings,
             activeItem: serialized.activeItemId ?
                 groups
                     .find(group => group.getItems().find(item => item.id === String(serialized.activeItemId)))
@@ -1020,10 +1256,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
             throw new SerializationTypeError(context, 'groups', 'array of objects', json.groups);
         }
 
+        const logger = new Logger({ name: 'ProjectSerializer' });
         // if any of the code generation options are invalid just set to null, don't need to explode
         // just for that.
         if (typeof json.codeGenOptions === 'object' && json.codeGenOptions) {
-            const logger = new Logger({ name: 'ProjectSerializer' });
             const mappings: [ keyof CodeGenerationOptions, string ][] = [
                 [ 'object', 'boolean' ],
                 [ 'labelColon', 'boolean' ],
@@ -1044,6 +1280,33 @@ export class Project extends EventEmitter<ProjectEventMap> {
             }
         } else {
             json.codeGenOptions = null;
+        }
+
+        if (typeof json.exportImagesOptions === 'object' && json.exportImagesOptions) {
+            const mappings: [ keyof ExportImageOptions, string ][] = [
+                [ 'orientation', 'string' ],
+                [ 'uncoloredStyle', 'string' ],
+                [ 'backgroundAlpha', 'number' ],
+                [ 'backgroundColor', 'string' ],
+                [ 'gap', 'number' ],
+                [ 'padding', 'number' ],
+            ];
+
+            for (const [ key, expectedType ] of mappings) {
+                if (typeof json.exportImagesOptions[key] !== expectedType) {
+                    logger.warn(`exportImagesOptions.${key} was expected to be a ${expectedType}, ` +
+                        `got ${typeof json.exportImagesOptions[key]}`);
+                    json.exportImagesOptions = null;
+                    break;
+                }
+            }
+
+            if (typeof json.exportImagesOptions.pixelSize !== 'object' && json.exportImagesOptions.pixelSize !== 'default') {
+                logger.warn(`exportImagesOptions.pixelSize was not a valid value`);
+                json.exportImagesOptions = null;
+            }
+        } else {
+            json.exportImagesOptions = null;
         }
 
         return json;

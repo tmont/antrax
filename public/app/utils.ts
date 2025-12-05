@@ -170,6 +170,16 @@ export const hasAddressLabel = (options: CodeGenerationOptions): options is Code
     return !!((options as CodeGenerationOptionsLabel).addressLabel || '').trim();
 };
 
+export interface ExportImageOptions {
+    backgroundColor: string;
+    backgroundAlpha: number;
+    pixelSize: Dimensions | 'default';
+    orientation: 'horizontal' | 'vertical';
+    uncoloredStyle: 'default' | 'transparent';
+    padding: number;
+    gap: number;
+}
+
 const idArr = new Uint32Array(2);
 export const generateId = (): string => Array.from(crypto.getRandomValues(idArr))
     .map(i32 => i32.toString(36))
@@ -253,3 +263,5 @@ const numberFormatter = new Intl.NumberFormat([], {});
 export const formatNumber = (value: number): string => {
     return numberFormatter.format(value);
 };
+
+export const clamp = (min: number, max: number, value: number): number => Math.max(min, Math.min(max, value));

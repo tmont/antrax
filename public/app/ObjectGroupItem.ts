@@ -89,6 +89,7 @@ export type ObjectGroupItemEventMap = {
     delete: [];
     action_clone: [ { newGroup: boolean } ];
     action_export_asm: [];
+    action_export_image: [];
     activate: [];
     deactivate: [];
     canvas_group_change: [ ObjectGroupItem ];
@@ -247,7 +248,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
                         this.emit('action_clone', { newGroup: true });
                         break;
                     case 'export-image':
-                        this.exportCanvasToImage();
+                        this.emit('action_export_image');
                         break;
                     case 'export-asm':
                         this.emit('action_export_asm');
@@ -286,21 +287,6 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         canvas.render();
 
         this.initialized = true;
-    }
-
-    public exportCanvasToImage(): void {
-        const canvas = this.canvas;
-        canvas.generateDataURL((url) => {
-            if (!url) {
-                Popover.toast({
-                    content: 'Failed to generate image :(',
-                    type: 'danger',
-                });
-                return;
-            }
-
-            window.open(url);
-        }, 'full');
     }
 
     public updateThumbnail(): void {

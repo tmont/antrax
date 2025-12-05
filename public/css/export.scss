@@ -1,0 +1,9 @@
+@use "./config";
+
+.export-images-form {
+    flex: 1;
+
+    canvas {
+        cursor: pointer;
+    }
+}

@@ -76,6 +76,7 @@ const editGroupTmpl = `
 export type ObjectGroupEventMap = {
     action_add: [];
     action_export_asm: [ Readonly<ObjectGroupItem[]> ];
+    action_export_images: [ Readonly<ObjectGroupItem[]> ];
     name_change: [];
     item_activate: [ ObjectGroupItem ];
     item_clone: [{ original: ObjectGroupItem; newGroup: boolean }];
@@ -220,6 +221,9 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         });
         item.on('action_export_asm', () => {
             this.emit('action_export_asm', [ item ]);
+        });
+        item.on('action_export_image', () => {
+            this.emit('action_export_images', [ item ]);
         });
         item.on('activate', () => {
             this.emit('item_activate', item);
@@ -392,55 +396,9 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                     case 'export-asm':
                         this.emit('action_export_asm', this.items);
                         break;
-                    case 'export-images': {
-                        const items = this.items;
-
-                        // this is necessary if you export after (e.g.) zooming: only the active canvas is updated
-                        // so if you export after a zoom, other canvases will be blank.
-                        // i could keep track of which canvases are out of sync with their render state, and then
-                        // only render those at this time. an optimization for another time, though.
-                        // TODO
-                        items.forEach(item => item.canvas.render());
-
-                        // render each canvas onto a new canvas in a row
-                        const $canvas = document.createElement('canvas');
-                        const gap = 10;
-                        const padding = 10;
-                        const totalWidth = items.reduce((total, item) =>
-                            total + item.canvas.getDisplayDimensions().width, 0) +
-                                (gap * (items.length - 1));
-                        const maxHeight = items.reduce((max, item) =>
-                            Math.max(max, item.canvas.getDisplayDimensions().height), 0);
-
-                        $canvas.width = totalWidth + (padding * 2);
-                        $canvas.height = maxHeight + (padding * 2);
-
-                        const ctx = get2dContext($canvas);
-                        ctx.fillStyle = '#363636';
-                        ctx.fillRect(0, 0, $canvas.width, $canvas.height);
-
-                        let xOffset = padding;
-                        items.forEach((item) => {
-                            const canvas = item.canvas;
-                            ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), xOffset, padding);
-                            ctx.drawImage(canvas.getUnderlyingEditorCanvas(), xOffset, padding);
-                            xOffset += canvas.getDisplayDimensions().width + gap;
-                        });
-
-                        $canvas.toBlob((blob) => {
-                            if (!blob) {
-                                Popover.toast({
-                                    type: 'danger',
-                                    content: `Failed to generate image data`,
-                                });
-                                return;
-                            }
-
-                            window.open(URL.createObjectURL(blob));
-                        }, 'image/png');
-
+                    case 'export-images':
+                        this.emit('action_export_images', this.items);
                         break;
-                    }
                     case 'animate': {
                         const canvases = this.items.map(item => item.canvas);
                         if (!canvases[0]) {

@@ -10,6 +10,7 @@ import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
     chars,
+    clamp,
     type ColorPaletteSetStats,
     type Dimensions,
     type DisplayModeColorIndex,
@@ -213,6 +214,7 @@ export class Editor {
     public createProject(name: Project['name']): Project {
         return new Project({
             name,
+            editorSettings: this.settings,
             mountEl: findElement(this.$el, '.project-container'),
         });
     }
@@ -916,7 +918,7 @@ export class Editor {
                 const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || { width: 0, height: 0 };
 
 
-                let newZoomLevel = Math.max(0.5, Math.min(10, this.settings.zoomLevel + dir));
+                let newZoomLevel = clamp(0.5, 10, this.settings.zoomLevel + dir);
                 if (newZoomLevel > 1) {
                     newZoomLevel = Math.floor(newZoomLevel);
                 }
@@ -1112,7 +1114,7 @@ export class Editor {
 
             if (e.key.toLowerCase() === 'x') {
                 if (e.shiftKey) {
-                    this.project?.exportActiveCanvasToImage();
+                    this.project?.showExportImagesModal();
                 } else {
                     this.project?.showExportASMModal();
                 }
@@ -1363,7 +1365,7 @@ export class Editor {
     }
 
     private setAndClampZoomLevel(newZoomLevel: number | string): void {
-        this.settings.zoomLevel = Math.max(0.1, Math.min(10, Number(newZoomLevel) || 1));
+        this.settings.zoomLevel = clamp(0.1, 10, Number(newZoomLevel) || 1);
         this.updateZoomLevelUI();
         this.project?.zoomTo();
     }
@@ -1380,7 +1382,7 @@ export class Editor {
         }
 
         undoContext.current += (redo ? 1 : -1);
-        undoContext.current = Math.max(0, Math.min(undoContext.stack.length - 1, undoContext.current));
+        undoContext.current = clamp(0, undoContext.stack.length - 1, undoContext.current);
 
         const checkpoint = undoContext.stack[undoContext.current];
         if (!checkpoint) {

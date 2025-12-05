@@ -420,11 +420,106 @@
                            autocomplete="off"/>
                 </div>
 
-                <div class="animate-form-preview">
+                <div class="canvas-preview">
                     <canvas></canvas>
                 </div>
                 <hr />
                 <div class="animate-form-object-list"></div>
+            </div>
+        </template>
+
+        <template id="modal-content-export-images">
+            <div class="export-images-form">
+                <table class="form">
+                    <tr>
+                        <th><label for="export-images-bg">Background:</label></th>
+                        <td>
+                            <input id="export-images-bg"
+                                   class="form-control"
+                                   type="color"
+                                   value="#17181c"
+                            />
+                        </td>
+                        <th><label for="export-images-bg-alpha">Alpha:</label></th>
+                        <td>
+                            <input id="export-images-bg-alpha"
+                                   class="form-control"
+                                   type="number"
+                                   max="1"
+                                   min="0"
+                                   value="1"
+                                   step="0.05" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="export-images-uncolored">Uncolored:</label></th>
+                        <td>
+                            <select id="export-images-uncolored">
+                                <option value="default">Default</option>
+                                <option value="transparent">Transparent</option>
+                            </select>
+                        </td>
+                        <th><label for="export-images-orientation">Orientation:</label></th>
+                        <td>
+                            <select id="export-images-orientation">
+                                <option value="horizontal">Horizontal</option>
+                                <option value="vertical">Vertical</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="export-images-gap">Gap:</label></th>
+                        <td>
+                            <input id="export-images-gap"
+                                   class="form-control"
+                                   type="number"
+                                   min="0"
+                                   max="128"
+                                   step="1"
+                                   value="10"
+                            />
+                        </td>
+                        <th><label for="export-images-padding">Padding:</label></th>
+                        <td>
+                            <input id="export-images-padding"
+                                   class="form-control"
+                                   type="number"
+                                   min="0"
+                                   max="128"
+                                   step="1"
+                                   value="10"
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><label for="export-images-pixel-width">Pixel size:</label></th>
+                        <td colspan="3">
+                            <div style="display: flex; gap: 5px; width: 12em">
+                                <input id="export-images-pixel-width"
+                                       class="form-control"
+                                       type="number"
+                                       min="0"
+                                       max="128"
+                                       step="1"
+                                />
+                                <span>&times;</span>
+                                <input id="export-images-pixel-height"
+                                       class="form-control"
+                                       type="number"
+                                       min="0"
+                                       max="128"
+                                       step="1"
+                                />
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <hr />
+
+                <div class="canvas-preview">
+                    <canvas></canvas>
+                </div>
             </div>
         </template>
 
