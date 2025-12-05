@@ -340,6 +340,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     case 'add-group':
                         this.addGroup();
                         break;
+                    case 'export-asm':
+                        this.showExportASMModal(this.canvases);
+                        break;
                     case 'export-images':
                         this.showExportImagesModal(this.canvases);
                         break;
@@ -361,14 +364,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             // NOTE: this is duplicated in ObjectGroup
             // disable "Export ASM" option if it's not supported by anything in the project
-            // const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
-            // $exportAsm.classList.toggle('disabled', !canvases.some(canvas => canvas.canExportToASM()));
+            const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
+            $exportAsm.classList.toggle('disabled', !canvases.some(canvas => canvas.canExportToASM()));
 
-            // disable "Export spritesheet" and "Animate" options if there are less than two objects
+            // disable "Export spritesheet" action if there are less than two objects
             const $exportSpritesheet = findElement($overflowContent, '[data-action="export-images"]');
-            [ $exportSpritesheet ].forEach(($el) => {
-                $el.classList.toggle('disabled', canvases.length < 2);
-            });
+            $exportSpritesheet.classList.toggle('disabled', canvases.length < 2);
 
             overflowPopover.show($overflowBtn);
         });
@@ -523,14 +524,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
             return;
         }
 
-        const firstCanvas = canvases[0];
-        const firstGroup = firstCanvas.getGroup();
-
-        // can only export multiple canvases if they are all the same group (since each
-        // group can have a different palette set). this should not be possible to achieve
-        // using the UI.
-        canvases = canvases.filter(canvas => canvas.getGroup() === firstGroup);
-
         const exportId = 'export';
         const content = findTemplateContent(document, '#modal-content-export-form');
 
@@ -618,8 +611,14 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 genThunks.push(() => CodeGenerator.generate(canvases, options));
             }
             if ($exportPalettesInput.checked) {
-                // only need to export one palette set, as all canvases share the same one
-                genThunks.push(() => firstCanvas.generatePalettesCode(options));
+                const paletteSetMap = canvases.reduce((map, canvas) => {
+                    const paletteSet = canvas.getColorPaletteSet();
+                    map[paletteSet.id] = paletteSet;
+                    return map;
+                }, {} as Record<string, ColorPaletteSet>);
+
+                Object.values(paletteSetMap)
+                    .forEach(paletteSet => genThunks.push(() => paletteSet.generateCode(options)));
             }
 
             try {
@@ -658,7 +657,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 input.addEventListener('change', generateCode);
             });
 
-        const titleName = canvases.length === 1 ? firstCanvas.getName() : `all in ${firstCanvas.getGroup().getName()}`;
+        const titleName = canvases.length === 1 ?
+            `"${canvases[0].getName()}"` :
+            `multiple objects`;
 
         const exportModal = Modal.create({
             type: 'default',

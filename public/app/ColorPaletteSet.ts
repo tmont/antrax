@@ -281,7 +281,8 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
 
         const code = [
             '/*',
-            `Palette${options.labelColon ? ':' : ''}`,
+            `Palette${options.labelColon ? ':' : ''}` +
+                (options.commentLevel >= CodeGenerationDetailLevel.Some ? ` ; "${this.name}"` : ''),
         ];
 
         const generateCodeLine = (color: Atari7800Color, label: string): string => {

@@ -1754,10 +1754,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return code.join('\n');
     }
 
-    public generatePalettesCode(options: CodeGenerationOptions): string {
-        return this.paletteSet.generateCode(options);
-    }
-
     public clone(): PixelCanvas {
         return new PixelCanvas({
             mountEl: this.$container,
