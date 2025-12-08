@@ -54,9 +54,20 @@
     .editing-container {
         display: flex;
         gap: config.$gutter-half;
-        align-items: center;
+        align-items: flex-start;
         max-width: 15em;
         justify-content: space-between;
+
+        .palette-set-name-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+
+            .palette-set-object-count {
+                color: config.$muted-color;
+                font-size: 85%;
+            }
+        }
     }
 
     .active-indicator i {

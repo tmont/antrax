@@ -255,9 +255,13 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         $name.innerText = this.name;
     }
 
+    public get objectCount(): number {
+        return this.currentStats.objectCount;
+    }
+
     private updateInfoUI(): void {
-        findElement(this.$el, '.object-count').innerText = this.currentStats.objectCount +
-            ' object' + (this.currentStats.objectCount === 1 ? '' : 's');
+        findElement(this.$el, '.object-count').innerText = this.objectCount +
+            ' object' + (this.objectCount === 1 ? '' : 's');
     }
 
     public activate(): void {

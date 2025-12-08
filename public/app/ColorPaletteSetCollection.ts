@@ -45,7 +45,10 @@ const dropdownRowCells = `
 <td class="active-indicator"><i class="fa-solid fa-check"></i></td>
 <td>
     <div class="editing-container">
-        <span class="palette-set-name"></span>
+        <div class="palette-set-name-info">
+            <span class="palette-set-name"></span>
+            <span class="palette-set-object-count"></span>
+        </div>
         <button type="button" class="btn btn-xs btn-tertiary palette-set-overflow-btn">
             <i class="fa-solid fa-ellipsis-h"></i>
         </button>
@@ -142,6 +145,9 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
                 $contentRow.innerHTML = dropdownRowCells;
                 $contentRow.setAttribute('data-palette-set-id', set.id);
                 findElement($contentRow, '.palette-set-name').innerText = set.getName();
+
+                findElement($contentRow, '.palette-set-object-count').innerText = set.objectCount +
+                    ' object' + (set.objectCount === 1 ? '' : 's');
 
                 $contentRow.classList.toggle('active', this.activePaletteSet === set);
 
