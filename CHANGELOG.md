@@ -4,7 +4,9 @@
 - Zoom level text input is now a range slider
 - Added canvas location to top gutter; click to bring canvas into view
     - Helpful if the canvas disappears after a good zooming session
-
+- Removed `0-9` keyboard shortcuts to set zoom level
+- `-`/`_` and `=`/`+` now increment/decrement the zoom level
+    
 ## v0.1.4 (2025-12-05)
 - Fixed style issues with modal title
 
