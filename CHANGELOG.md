@@ -1,3 +1,10 @@
+## v0.2.0 (2025-12-08)
+- New zooming algorithm that removes anti-aliasing at small zoom sizes
+- Zoom levels are now fixed instead of simple increments/decrements
+- Zoom level text input is now a range slider
+- Added canvas location to top gutter; click to bring canvas into view
+    - Helpful if the canvas disappears after a good zooming session
+
 ## v0.1.4 (2025-12-05)
 - Fixed style issues with modal title
 
