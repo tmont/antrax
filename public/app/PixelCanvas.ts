@@ -62,8 +62,6 @@ interface DrawPixelOptions {
     forceErase?: boolean; // erase even if it's not a user-initiated action
 }
 
-export type GeneratedImageSize = 'thumbnail' | 'full';
-
 export type PixelDrawingBehavior =
     // the user initiated the draw action
     'user' |
@@ -139,6 +137,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     private palette: ColorPalette;
     private paletteSet: ColorPaletteSet;
     private activeColor: DisplayModeColorIndex;
+    private magnificationScale = 4;
 
     private static instanceCount = 0;
     private static transparentPatternMap: Record<string, CanvasPattern> = {};
@@ -228,8 +227,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         if (!pattern) {
             const $canvas = document.createElement('canvas');
-            $canvas.width = Math.max(2, this.displayPixelWidth);
-            $canvas.height = Math.max(2, this.displayPixelHeight); // use height instead?
+            $canvas.width = Math.max(2, this.internalPixelWidth);
+            $canvas.height = Math.max(2, this.internalPixelHeight);
 
             const ctx = get2dContext($canvas);
 
@@ -322,12 +321,22 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
+        // TODO use same magnification for zoomLevel > 1, speeds up drawing quite a bit at
+        // high resolutions on large canvases. problem is the selection/hover style is terrible
+        // due to the dotted line stroke width.
+        this.magnificationScale = this.editorSettings.zoomLevel < 1 ?
+            1 / this.editorSettings.zoomLevel :
+            1;
+
         this.displayWidth = this.width * this.displayPixelWidth;
         this.displayHeight = this.height * this.displayPixelHeight;
 
+        this.$frameContainer.style.width = this.displayWidth + 'px';
+        this.$frameContainer.style.height = this.displayHeight + 'px';
+
         this.execOnCanvasElements((canvasEl) => {
-            canvasEl.width = this.displayWidth;
-            canvasEl.height = this.displayHeight;
+            canvasEl.width = this.internalWidth;
+            canvasEl.height = this.internalHeight;
         });
 
         this.fillPixelDataArray();
@@ -899,44 +908,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.eventMap.push([ target, name, listener ]);
     }
 
-    public generateDataURL(callback: (url: string | null) => void, size: GeneratedImageSize = 'thumbnail'): void {
-        const $canvas = document.createElement('canvas');
-
-        $canvas.width = this.$el.width;
-        $canvas.height = this.$el.height;
-
-        let scaleFactor = 1;
-        if (size === 'thumbnail') {
-            const maxSize = 128;
-            const maxLength = Math.max(this.$el.width, this.$el.height);
-            scaleFactor = Math.min(1, maxSize / maxLength);
-        }
-
-        $canvas.width = Math.round(scaleFactor * this.$el.width);
-        $canvas.height = Math.round(scaleFactor * this.$el.height);
-
-        const ctx = $canvas.getContext('2d');
-        if (!ctx) {
-            callback(null);
-            return;
-        }
-
-        this.logger.debug('generating image of canvas');
-        const start = Date.now();
-        ctx.drawImage(this.$bgEl, 0, 0, $canvas.width, $canvas.height);
-        ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
-
-        $canvas.toBlob((blob) => {
-            if (!blob) {
-                callback(null);
-                return;
-            }
-
-            this.logger.debug(`image generated in ${Date.now() - start}ms`);
-            callback(URL.createObjectURL(blob));
-        }, 'image/png');
-    }
-
     public copyImageToCanvas($canvas: HTMLCanvasElement, maxSize: number = Infinity): void {
         const width = this.displayWidth;
         const height = this.displayHeight;
@@ -1063,10 +1034,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
 
         this.clearRect(
-            rect.x * this.displayPixelWidth,
-            rect.y * this.displayPixelHeight,
-            rect.width * this.displayPixelWidth,
-            rect.height * this.displayPixelHeight,
+            rect.x * this.internalPixelWidth,
+            rect.y * this.internalPixelHeight,
+            rect.width * this.internalPixelWidth,
+            rect.height * this.internalPixelHeight,
         );
 
         const totalCount = rect.width * rect.height;
@@ -1163,7 +1134,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public clear(): void {
         this.logger.debug(`clearing canvas`);
-        this.clearRect(0, 0, this.displayWidth, this.displayHeight);
+        this.clearRect(0, 0, this.internalWidth, this.internalHeight);
     }
 
     public reset(): void {
@@ -1256,8 +1227,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             } else {
                 const colors = color0.colors;
                 const canvas = document.createElement('canvas');
-                canvas.width = this.displayPixelWidth;
-                canvas.height = this.displayPixelHeight;
+                canvas.width = this.internalPixelWidth;
+                canvas.height = this.internalPixelHeight;
 
                 const ctx = get2dContext(canvas);
 
@@ -1301,8 +1272,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.logger.debug('rendering grid');
 
-        const width = this.displayWidth;
-        const height = this.displayHeight;
+        const width = this.$gridEl.width;
+        const height = this.$gridEl.height;
         ctx.clearRect(0, 0, width, height);
         if (!this.editorSettings.showGrid) {
             return;
@@ -1311,12 +1282,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        for (let i = 0; i <= width; i += this.displayPixelWidth) {
+        for (let i = 0; i <= width; i += this.internalPixelWidth) {
             ctx.moveTo(i, 0);
             ctx.lineTo(i, height);
         }
 
-        for (let i = 0; i <= height; i += this.displayPixelHeight) {
+        for (let i = 0; i <= height; i += this.internalPixelHeight) {
             ctx.moveTo(0, i);
             ctx.lineTo(width, i);
         }
@@ -1330,10 +1301,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        const x = selection.x * this.displayPixelWidth;
-        const y = selection.y * this.displayPixelHeight;
-        const w = selection.width * this.displayPixelWidth;
-        const h = selection.height * this.displayPixelHeight;
+        const x = selection.x * this.internalPixelWidth;
+        const y = selection.y * this.internalPixelHeight;
+        const w = selection.width * this.internalPixelWidth;
+        const h = selection.height * this.internalPixelHeight;
 
         this.clearTransientRect();
         this.drawHoverStyleRect(this.transientCtx, x, y, w, h, 12);
@@ -1365,7 +1336,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             (options.erasing ? null : this.activeColor) :
             pixel.modeColorIndex;
 
-
         // NOTE: all the "if (isUserAction)" stuff is for performance reasons, apparently
         // calling a function that does the same conditional is significantly slower than just
         // doing it inline. and since this is called in a loop during render() it gets called
@@ -1375,15 +1345,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         // drawing so subsequent clearRect() calls aren't needed.
 
         const { x: col, y: row } = pixelRowAndCol;
-        const absoluteCoordinate = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
+        const canvasCoordinate = this.convertPixelToCanvasCoordinate(pixelRowAndCol);
 
         if (newColor === null) {
             if (shouldErase) {
                 this.clearRect(
-                    absoluteCoordinate.x,
-                    absoluteCoordinate.y,
-                    this.displayPixelWidth,
-                    this.displayPixelHeight,
+                    canvasCoordinate.x,
+                    canvasCoordinate.y,
+                    this.internalPixelWidth,
+                    this.internalPixelHeight,
                     ctx,
                 );
             }
@@ -1393,10 +1363,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 this.logger.error(`color[${newColor}] not found in display mode ${this.displayMode.name}`);
                 if (shouldErase) {
                     this.clearRect(
-                        absoluteCoordinate.x,
-                        absoluteCoordinate.y,
-                        this.displayPixelWidth,
-                        this.displayPixelHeight,
+                        canvasCoordinate.x,
+                        canvasCoordinate.y,
+                        this.internalPixelWidth,
+                        this.internalPixelHeight,
                         ctx,
                     );
                 }
@@ -1411,19 +1381,19 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                         break;
                     }
 
-                    const width = this.displayPixelWidth / partsPerPixel;
+                    const width = this.internalPixelWidth / partsPerPixel;
                     const fudge = i * width;
-                    const x = absoluteCoordinate.x + fudge;
+                    const x = canvasCoordinate.x + fudge;
                     if (color.value === 'background') {
                         ctx.fillStyle = this.backgroundColor.hex;
-                        ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        ctx.fillRect(x, canvasCoordinate.y, width, this.internalPixelHeight);
                     } else if (color.value === 'transparent') {
                         if (shouldErase) {
-                            this.clearRect(x, absoluteCoordinate.y, width, this.displayPixelHeight, ctx);
+                            this.clearRect(x, canvasCoordinate.y, width, this.internalPixelHeight, ctx);
                         }
                     } else {
                         ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
-                        ctx.fillRect(x, absoluteCoordinate.y, width, this.displayPixelHeight);
+                        ctx.fillRect(x, canvasCoordinate.y, width, this.internalPixelHeight);
                     }
                 }
             }
@@ -1464,8 +1434,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return false;
         }
 
-        const { x, y } = this.convertPixelToAbsoluteCoordinate(pixelRowAndCol);
-        this.drawHoverStyleRect(this.hoverCtx, x, y, this.displayPixelWidth, this.displayPixelHeight);
+        const { x, y } = this.convertPixelToCanvasCoordinate(pixelRowAndCol);
+        this.drawHoverStyleRect(this.hoverCtx, x, y, this.internalPixelWidth, this.internalPixelHeight);
 
         this.emit('pixel_hover', pixelRowAndCol, pixel);
 
@@ -1480,12 +1450,28 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.pixelHeight * this.editorSettings.zoomLevel;
     }
 
+    private get internalWidth(): number {
+        return this.displayWidth * this.magnificationScale;
+    }
+
+    private get internalHeight(): number {
+        return this.displayHeight * this.magnificationScale;
+    }
+
+    private get internalPixelWidth(): number {
+        return this.displayPixelWidth * this.magnificationScale;
+    }
+
+    private get internalPixelHeight(): number {
+        return this.displayPixelHeight * this.magnificationScale;
+    }
+
     public unhighlightPixel(): boolean {
         if (this.destroyed) {
             return false;
         }
 
-        this.hoverCtx.clearRect(0, 0, this.displayWidth, this.displayHeight);
+        this.hoverCtx.clearRect(0, 0, this.$hoverEl.width, this.$hoverEl.height);
         return true;
     }
 
@@ -1496,9 +1482,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return { x: pixelX, y: pixelY };
     }
 
-    private convertPixelToAbsoluteCoordinate(location: Coordinate): Coordinate {
-        const absoluteX = location.x * this.displayPixelWidth;
-        const absoluteY = location.y * this.displayPixelHeight;
+    private convertPixelToCanvasCoordinate(location: Coordinate): Coordinate {
+        const absoluteX = location.x * this.internalPixelWidth;
+        const absoluteY = location.y * this.internalPixelHeight;
 
         return { x: absoluteX, y: absoluteY };
     }

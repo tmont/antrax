@@ -9,6 +9,15 @@ import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './Pi
 import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {
+    getZoomIndex,
+    isValidZoomLevel,
+    isValidZoomLevelIndex,
+    zoomLevelIndexDefault,
+    zoomLevelIndexMax,
+    zoomLevelLabel,
+    zoomLevels
+} from './utils-zoom.ts';
+import {
     chars,
     clamp,
     type ColorPaletteSetStats,
@@ -94,11 +103,10 @@ const zoomFormTmpl = `
 <form class="form-vertical">
     <input class="form-control zoom-level-input"
            autocomplete="off"
-           value="1"
-           type="number"
-           min="0.1"
-           max="10"
-           step="0.1" />
+           type="range"
+           min="0"
+           max="${zoomLevelIndexMax}"
+           step="1" />
 </form>
 `;
 
@@ -766,12 +774,19 @@ export class Editor {
     }
 
     public updateZoomLevelUI(): void {
-        this.$zoomValue.innerText = this.settings.zoomLevel + 'x';
+        this.$zoomValue.innerText = (
+            isValidZoomLevel(this.settings.zoomLevel) ?
+                zoomLevelLabel[this.settings.zoomLevel] :
+                this.settings.zoomLevel
+        ) + 'x';
 
         // if the popover to set the zoom level is open, keep that in sync as well
         const $zoomInput = document.body.querySelector('input.zoom-level-input');
         if ($zoomInput instanceof HTMLInputElement) {
-            $zoomInput.value = this.settings.zoomLevel.toString();
+            const zoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
+                getZoomIndex(this.settings.zoomLevel) :
+                zoomLevelIndexDefault;
+            $zoomInput.value = zoomIndex.toString();
         }
     }
 
@@ -910,13 +925,11 @@ export class Editor {
                 const canvas = this.activeCanvas;
                 const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || { width: 0, height: 0 };
 
+                const currentZoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
+                    getZoomIndex(this.settings.zoomLevel) :
+                    zoomLevelIndexDefault;
 
-                let newZoomLevel = clamp(0.5, 10, this.settings.zoomLevel + dir);
-                if (newZoomLevel > 1) {
-                    newZoomLevel = Math.floor(newZoomLevel);
-                }
-
-                this.setAndClampZoomLevel(newZoomLevel);
+                this.setAndClampZoomIndex(currentZoomIndex + dir);
 
                 if (canvas) {
                     adjustCanvasPositionRelativeToCursor(canvas, e.clientX, e.clientY, oldWidth, oldHeight);
@@ -1027,7 +1040,8 @@ export class Editor {
             if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
                 const canvas = this.activeCanvas;
                 const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
-                this.setAndClampZoomLevel(1);
+
+                this.setAndClampZoomIndex(getZoomIndex(1));
                 if (canvas) {
                     adjustCanvasPositionRelativeToCursor(canvas, currentMouseCoords.x, currentMouseCoords.y, width, height);
                 }
@@ -1114,15 +1128,18 @@ export class Editor {
                 return;
             }
 
-            if (/^\d$/.test(e.key)) {
+            if (e.key === '-' || e.key === '=' || e.key === '_' || e.key === '+') {
+                const dir = e.key === '-' || e.key === '_' ? -1 : 1;
                 const canvas = this.activeCanvas;
                 const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || {
                     width: 0,
                     height: 0
                 };
 
-                const value = parseInt(e.key, 10);
-                this.setAndClampZoomLevel(value === 0 ? 10 : value);
+                const currentZoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
+                    getZoomIndex(this.settings.zoomLevel) :
+                    zoomLevelIndexDefault;
+                this.setAndClampZoomIndex(currentZoomIndex + dir);
 
                 if (canvas) {
                     adjustCanvasPositionRelativeToCursor(canvas, currentMouseCoords.x, currentMouseCoords.y, oldWidth, oldHeight);
@@ -1210,21 +1227,22 @@ export class Editor {
         });
 
         const $zoomFormContent = parseTemplate(zoomFormTmpl);
+
         const zoomPopover = new Popover({
             title: 'Set zoom level',
             content: $zoomFormContent,
         });
         const $zoomLabel = findElement(this.$gutterBottom, '.zoom-level-label');
         const $zoomInput = findInput($zoomFormContent, 'input');
-        $zoomFormContent.addEventListener('submit', (e) => {
-            e.preventDefault();
-        });
+        $zoomFormContent.addEventListener('submit', e => e.preventDefault());
 
-        $zoomInput.addEventListener('change', () => {
-            this.setAndClampZoomLevel($zoomInput.value);
-        });
+        $zoomInput.addEventListener('input', () => this.setAndClampZoomIndex(Number($zoomInput.value)));
         $zoomLabel.addEventListener('click', () => {
-            $zoomInput.value = this.settings.zoomLevel.toString();
+            const zoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
+                getZoomIndex(this.settings.zoomLevel) :
+                zoomLevelIndexDefault;
+            $zoomInput.value = zoomIndex.toString();
+
             zoomPopover.show($zoomLabel);
             $zoomInput.focus();
         });
@@ -1357,8 +1375,17 @@ export class Editor {
         this.initialized = true;
     }
 
-    private setAndClampZoomLevel(newZoomLevel: number | string): void {
-        this.settings.zoomLevel = clamp(0.1, 10, Number(newZoomLevel) || 1);
+    private setAndClampZoomIndex(newIndex: number): void {
+        const realZoomIndex = clamp(0, zoomLevelIndexMax, newIndex);
+        const newZoomLevel = isValidZoomLevelIndex(realZoomIndex) ?
+            zoomLevels[realZoomIndex] :
+            zoomLevels[zoomLevelIndexDefault];
+
+        if (this.settings.zoomLevel === newZoomLevel) {
+            return;
+        }
+
+        this.settings.zoomLevel = newZoomLevel;
         this.updateZoomLevelUI();
         this.project?.zoomTo();
     }

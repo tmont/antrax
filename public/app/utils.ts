@@ -196,6 +196,9 @@ export interface PixelCanvasDrawStateContext {
 
 export const chars = {
     times: String.fromCharCode(0xd7),
+    oneHalf: String.fromCharCode(0xbd),
+    oneFourth: String.fromCharCode(0xbc),
+    oneEighth: String.fromCharCode(0x215b),
 } as const;
 
 export const setTextAndTitle = ($el: HTMLElement, text: string): void => {
