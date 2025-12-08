@@ -865,9 +865,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 }
             });
 
-            const maxSize = 320;
+            const maxSize = 256; // NOTE: this should match the .canvas-preview size in the CSS (minus the padding)
             const maxDimension = Math.max($canvas.width, $canvas.height);
-
             const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
 
             $canvas.style.width = ($canvas.width * scale) + 'px';

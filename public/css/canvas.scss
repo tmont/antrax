@@ -17,7 +17,13 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: config.$gutter;
+    margin: 0 auto;
+
+    // prevents the modal dimensions from shifting as sizes change (e.g. pixel size in image export)
+    // the extra gutter is for padding.
+    $size: config.$gutter * 16;
+    width: $size + config.$gutter;
+    height: $size + config.$gutter;
 
     canvas {
         box-shadow: 2px 2px 5px rgba(black, 0.5);
