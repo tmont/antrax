@@ -1143,13 +1143,18 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateActiveObjectInfo();
     }
 
-    private updateItemAndRenderCanvasByPredicate(predicate: (canvas: PixelCanvas) => boolean): void {
-        this.groups
+    private getFilteredItems(predicate: (canvas: PixelCanvas) => boolean): ObjectGroupItem[] {
+        return this.groups
             .filter(group => group.getCanvases().some(predicate))
-            .reduce((items, group) => items.concat(group.getItems()), [] as ObjectGroupItem[])
+            .reduce((items, group) => items.concat(group.getItems()), [] as ObjectGroupItem[]);
+    }
+
+    private updateItemAndRenderCanvasByPredicate(predicate: (canvas: PixelCanvas) => boolean): void {
+        this.getFilteredItems(predicate)
             .forEach((item) => {
                 item.canvas.render();
-                item.updateObjectInfo();
+                item.updateThumbnail();
+                item.syncObjectDetailsUI();
             });
     }
 
@@ -1165,6 +1170,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         // Another option is to actually cache the current display mode's colors on the
         // canvas, and then this would be free, but that might be some premature optimization.
         this.updateItemAndRenderCanvasByPredicate(canvas => canvas.getColorPaletteSet() === paletteSet);
+    }
+
+    public updatePaletteSetUI(paletteSet: ColorPaletteSet): void {
+        this.getFilteredItems(canvas => canvas.getColorPaletteSet() === paletteSet)
+            .forEach(item => item.syncObjectDetailsUI());
     }
 
     public updateKangarooMode(): void {

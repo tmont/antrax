@@ -26,6 +26,7 @@ export type ColorPaletteSetCollectionEventMap = {
     color_change: [ ColorPaletteSet, ColorPalette, Atari7800Color, ColorIndex ];
     bg_select: [ ColorPaletteSet, Atari7800Color ];
     palette_set_select: [ ColorPaletteSet ];
+    name_change: [ ColorPaletteSet ];
 }
 
 const dropdownTmpl = `
@@ -240,10 +241,17 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
                     $editContent.addEventListener('submit', (e) => {
                         e.preventDefault();
 
-                        selectedPaletteSet.setName($nameInput.value);
-                        const $rowName = findElement($row, `.palette-set-name`);
-                        $rowName.innerText = selectedPaletteSet.getName();
                         editPopover.hide();
+
+                        const oldName = selectedPaletteSet.getName();
+                        const newName = $nameInput.value.trim();
+                        if (oldName === newName) {
+                            return;
+                        }
+
+                        selectedPaletteSet.setName(newName);
+                        findElement($row, `.palette-set-name`).innerText = selectedPaletteSet.getName();
+                        this.emit('name_change', selectedPaletteSet);
                     });
 
                     const action = anchor.getAttribute('data-action');

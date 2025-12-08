@@ -773,6 +773,9 @@ export class Editor {
             this.activeCanvas.setColorPaletteSet(paletteSet);
             this.updateObjectStats();
         });
+        this.paletteSets.on('name_change', (paletteSet) => {
+            this.project?.updatePaletteSetUI(paletteSet);
+        });
     }
 
     private setActiveColor(colorValue: DisplayModeColorIndex): void {
