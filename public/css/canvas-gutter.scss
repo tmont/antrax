@@ -39,18 +39,26 @@
         min-width: 4em;
         text-align: center;
     }
-    .selection-size-container {
+    .selection-size-container, .canvas-location-container {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 0.25rem;
 
-        // same story as above, try to prevent it from shifting around until you get to three digits
-        min-width: 5em;
-
         i {
             font-size: $inline-icon-size;
         }
+    }
+
+    .selection-size-container {
+        // same story as above, try to prevent it from shifting around until you get to three digits
+        min-width: 5em;
+    }
+
+    .canvas-location-container {
+        // same story as above, try to prevent it from shifting around until you get to four digits
+        min-width: 6em;
+        cursor: pointer;
     }
 
     .gutter-list {

@@ -21,6 +21,7 @@ import {
     chars,
     clamp,
     type ColorPaletteSetStats,
+    type Coordinate,
     type Dimensions,
     type DisplayModeColorIndex,
     type DisplayModeColorValue,
@@ -147,6 +148,7 @@ export class Editor {
     private readonly $canvasHeightInput: HTMLInputElement;
     private readonly $canvasCoordinates: HTMLElement;
     private readonly $selectionSize: HTMLElement;
+    private readonly $canvasLocation: HTMLElement;
     private readonly $activeGroupName: HTMLElement;
     private readonly $activeObjectName: HTMLElement;
     private readonly $canvasArea: HTMLElement;
@@ -183,6 +185,7 @@ export class Editor {
         this.$canvasHeightInput = findInput(this.$gutterBottom, '#option-canvas-height');
         this.$canvasCoordinates = findElement(this.$gutterTop, '.current-coordinates');
         this.$selectionSize = findElement(this.$gutterTop, '.selection-size');
+        this.$canvasLocation = findElement(this.$gutterTop, '.canvas-location');
         this.$activeGroupName = findElement(this.$gutterTop, '.breadcrumb .active-group-name');
         this.$activeObjectName = findElement(this.$gutterTop, '.breadcrumb .active-object-name');
         this.$canvasSidebar = findElement(this.$el, '.canvas-sidebar');
@@ -245,6 +248,7 @@ export class Editor {
             this.$canvasCoordinates.innerText = `0,0`;
 
             if (activeCanvas) {
+                this.syncCanvasLocation();
                 this.onPixelDimensionsChanged(activeCanvas);
                 this.onCanvasDimensionsChanged(activeCanvas);
                 this.onDisplayModeChanged(activeCanvas);
@@ -257,6 +261,8 @@ export class Editor {
                 // onDisplayModeChanged also calls syncSelectionActions so we don't need this
                 // on the other side of the conditional here.
                 this.syncSelectionActions(null);
+
+                this.syncCanvasLocation({ x: 0, y: 0 });
             }
 
             this.syncDisplayModeControl();
@@ -421,6 +427,22 @@ export class Editor {
         const canvas = this.project?.getActiveCanvas();
         const { width, height } = canvas?.getCurrentSelection() || { width: 0, height: 0 };
         this.$selectionSize.innerText = `${width}${chars.times}${height}`;
+    }
+
+    private syncCanvasLocation(coordinate?: Coordinate): void {
+        if (!coordinate) {
+            const style = window.getComputedStyle(this.$canvasArea);
+            const left = parseInt(style.getPropertyValue('left'), 10) || 0;
+            const top = parseInt(style.getPropertyValue('top'), 10) || 0;
+            coordinate = {
+                x: left,
+                y: top,
+            };
+        }
+
+        // when zooming we re-position the canvas using fancy math so we get sub=pixels. don't
+        // need to show that nonsense in the UI, though.
+        this.$canvasLocation.innerText = `${Math.round(coordinate.x)}, ${Math.round(coordinate.y)}`;
     }
 
     public pushUndoItem(canvas: PixelCanvas): void {
@@ -902,8 +924,13 @@ export class Editor {
                 deltaY = (ratioY * canvasRect.height) - distanceFromTopLeftY;
             }
 
-            this.$canvasArea.style.left = (canvasLeft - deltaX) + 'px';
-            this.$canvasArea.style.top = (canvasTop - deltaY) + 'px';
+            const coordinate: Coordinate = {
+                x: canvasLeft - deltaX,
+                y: canvasTop - deltaY,
+            };
+            this.$canvasArea.style.left = coordinate.x + 'px';
+            this.$canvasArea.style.top = coordinate.y + 'px';
+            this.syncCanvasLocation(coordinate);
         };
 
         let lastWheelEvent = 0;
@@ -1201,8 +1228,13 @@ export class Editor {
 
             panningOrigin = { x: clientX, y: clientY };
 
-            this.$canvasArea.style.top = (currentY + deltaY) + 'px';
-            this.$canvasArea.style.left = (currentX + deltaX) + 'px';
+            const coordinate: Coordinate = {
+                x: currentX + deltaX,
+                y: currentY + deltaY,
+            };
+            this.$canvasArea.style.top = coordinate.y + 'px';
+            this.$canvasArea.style.left = coordinate.x + 'px';
+            this.syncCanvasLocation(coordinate);
         });
 
         document.addEventListener('mouseup', () => {
@@ -1364,12 +1396,23 @@ export class Editor {
             });
         });
 
+        // top gutter stuff
         this.selectionButtons.$copy.addEventListener('click', () => this.copyActiveCanvasSelection());
         this.selectionButtons.$crop.addEventListener('click', () => this.cropToActiveSelection());
         this.selectionButtons.$delete.addEventListener('click', () => this.eraseActiveSelection());
         this.selectionButtons.$flipV.addEventListener('click', () => this.flipActiveSelection('vertical'));
         this.selectionButtons.$flipH.addEventListener('click', () => this.flipActiveSelection('horizontal'));
         this.selectionButtons.$paste.addEventListener('click', () => this.pasteCopyBuffer());
+
+        this.$canvasLocation.addEventListener('click', () => {
+            const coordinate: Coordinate = {
+                x: 64,
+                y: 64,
+            };
+            this.$canvasArea.style.left = `${coordinate.x}px`;
+            this.$canvasArea.style.top = `${coordinate.y}px`;
+            this.syncCanvasLocation(coordinate);
+        });
 
         this.updateZoomLevelUI();
         this.initialized = true;

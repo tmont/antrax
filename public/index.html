@@ -90,7 +90,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="canvas-container">
+                    <div class="canvas-content">
                         <div class="canvas-gutter top">
                             <div class="gutter-list gutter-list-sm canvas-selection-controls">
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="copy" title="Copy selection [Ctrl+C]" autocomplete="off" disabled>
@@ -127,16 +127,24 @@
                             <div class="divider"></div>
 
                             <div class="gutter-list">
-                                <div class="current-coordinates">0, 0</div>
-                                <div class="selection-size-container">
+                                <div class="current-coordinates" title="Mouse coordinates on canvas">0, 0</div>
+                                <div class="selection-size-container" title="Selection size">
                                     <i class="fa-solid fa-border-none"></i>
                                     <div class="selection-size">0&times;0</div>
+                                </div>
+                                <div class="canvas-location-container"
+                                     title="Canvas coordinates, click to relocate to original position">
+                                    <i class="fa-solid fa-bullseye"></i>
+                                    <div class="canvas-location">0, 0</div>
                                 </div>
                             </div>
 
                             <div class="divider"></div>
                         </div>
-                        <div class="canvas-area"></div>
+
+                        <div class="canvas-container">
+                            <div class="canvas-area"></div>
+                        </div>
                     </div>
                 </div>
 
