@@ -417,7 +417,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                         const firstCanvas = canvases[0];
 
-                        const maxSize = 320;
+                        const maxSize = 256; // NOTE: this should match the max size of .canvas-preview
                         const { width, height } = firstCanvas.getDisplayDimensions();
                         const maxDimension = Math.max(width, height);
 
