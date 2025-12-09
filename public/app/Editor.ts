@@ -270,13 +270,8 @@ export class Editor {
             const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
             $displayModeSelect.value = activeCanvas?.getDisplayMode()?.name || 'none';
 
-            if (activeCanvas) {
-                findElement(this.$canvasSidebar, '.no-selected-object').style.display = 'none';
-                findElement(this.$canvasSidebar, '.has-selected-object').style.display = 'block';
-            } else {
-                findElement(this.$canvasSidebar, '.no-selected-object').style.display = '';
-                findElement(this.$canvasSidebar, '.has-selected-object').style.display = '';
-            }
+            findElement(this.$canvasSidebar, '.no-selected-object').classList.toggle('hidden', !!activeCanvas);
+            findElement(this.$canvasSidebar, '.has-selected-object').classList.toggle('hidden', !activeCanvas);
         });
 
         const onCanvasPixelsChanged = (e: { behavior: PixelDrawingBehavior }, canvas: PixelCanvas) => {
