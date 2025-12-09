@@ -93,8 +93,6 @@
     }
 
     &.dropdown {
-        z-index: config.$z-index-modal-overlay + 1; // dropdowns go on top of everything
-
         .popover-content {
             padding: 0;
         }
