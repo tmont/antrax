@@ -195,6 +195,7 @@ export interface PixelCanvasDrawStateContext {
 }
 
 export const chars = {
+    ellipsis: String.fromCharCode(0x2026),
     times: String.fromCharCode(0xd7),
     oneHalf: String.fromCharCode(0xbd),
     oneFourth: String.fromCharCode(0xbc),

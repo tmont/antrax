@@ -93,6 +93,8 @@
     }
 
     &.dropdown {
+        z-index: config.$z-index-modal-overlay + 1; // dropdowns go on top of everything
+
         .popover-content {
             padding: 0;
         }
@@ -127,5 +129,10 @@
     .popover-content {
         background-color: config.$card-body-bg;
         padding: config.$gutter-half;
+
+        &.medium {
+            overflow: auto;
+            max-height: 35vh;
+        }
     }
 }

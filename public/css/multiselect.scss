@@ -1,0 +1,52 @@
+@use "./config";
+
+.multiselect {
+    .multiselect-target {
+        display: flex;
+        gap: config.$gutter-quarter;
+        align-items: center;
+        cursor: pointer;
+
+        .multiselect-target-label {
+            display: flex;
+            align-items: center;
+            gap: config.$gutter-quarter;
+        }
+
+        .extra {
+            color: config.$muted-color;
+            font-size: 80%;
+        }
+
+        .caret {
+            transition: transform linear 100ms;
+        }
+    }
+
+    &.open {
+        .caret {
+            transform: rotate(180deg);
+        }
+    }
+}
+
+.multiselect-item {
+    .icon {
+        visibility: hidden;
+    }
+
+    &.group .multiselect-item-label {
+        font-variant: small-caps;
+        font-weight: bold;
+    }
+
+    &.has-group .multiselect-item-label {
+        margin-left: config.$gutter;
+    }
+
+    &.selected {
+        .icon {
+            visibility: visible;
+        }
+    }
+}

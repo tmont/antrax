@@ -28,6 +28,7 @@ export interface PopoverOptions {
     timeoutMs?: number;
     type?: 'default' | 'danger' | 'success';
     arrowAlign?: PopoverArrowAlignment;
+    size?: 'medium' | 'default';
 }
 
 export class Popover extends EventEmitter<PopoverEventMap> {
@@ -85,6 +86,9 @@ export class Popover extends EventEmitter<PopoverEventMap> {
         }
 
         const $content = findElement(this.$el, '.popover-content');
+        if (options.size === 'medium') {
+            $content.classList.add('medium');
+        }
         if (options.content instanceof HTMLElement) {
             $content.appendChild(options.content);
         } else {

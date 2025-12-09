@@ -7,12 +7,20 @@ import { EventEmitter } from './EventEmitter.ts';
 import { GlobalEvents } from './GlobalEvents.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
+import {
+    isItemGroup,
+    MultiSelect,
+    type MultiSelectItem,
+    type MultiSelectItemGroup,
+    type MultiSelectItemSingle
+} from './MultiSelect.ts';
 import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import { ObjectGroupItem } from './ObjectGroupItem.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
     type AssemblyNumberFormatRadix,
+    chars,
     clamp,
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
@@ -527,21 +535,21 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const exportId = 'export';
         const content = findTemplateContent(document, '#modal-content-export-form');
 
-        const $el = content.cloneNode(true) as ParentNode;
-        const $codeTextarea = findOrDie($el, '.export-code', node => node instanceof HTMLTextAreaElement);
-        const $indentTabInput = findInput($el, '#export-indent-tab');
-        const $indent4SpacesInput = findInput($el, '#export-indent-spaces-4');
-        const $indent2SpacesInput = findInput($el, '#export-indent-spaces-2');
-        const $addressInput = findInput($el, '#export-address');
-        const $addressLabelInput = findInput($el, '#export-address-label');
-        const $byteRadixInput = findSelect($el, '#export-byte-radix');
-        const $labelColonInput = findInput($el, '#export-label-colon');
-        const $exportObjectInput = findInput($el, '#export-object');
-        const $exportHeaderInput = findInput($el, '#export-header');
-        const $exportPalettesInput = findInput($el, '#export-palettes');
-        const $detailLotsInput = findInput($el, '#export-detail-level-lots');
-        const $detailSomeInput = findInput($el, '#export-detail-level-some');
-        const $detailNoneInput = findInput($el, '#export-detail-level-none');
+        const $modalContent = content.cloneNode(true) as ParentNode;
+        const $codeTextarea = findOrDie($modalContent, '.export-code', node => node instanceof HTMLTextAreaElement);
+        const $indentTabInput = findInput($modalContent, '#export-indent-tab');
+        const $indent4SpacesInput = findInput($modalContent, '#export-indent-spaces-4');
+        const $indent2SpacesInput = findInput($modalContent, '#export-indent-spaces-2');
+        const $addressInput = findInput($modalContent, '#export-address');
+        const $addressLabelInput = findInput($modalContent, '#export-address-label');
+        const $byteRadixInput = findSelect($modalContent, '#export-byte-radix');
+        const $labelColonInput = findInput($modalContent, '#export-label-colon');
+        const $exportObjectInput = findInput($modalContent, '#export-object');
+        const $exportHeaderInput = findInput($modalContent, '#export-header');
+        const $exportPalettesInput = findInput($modalContent, '#export-palettes');
+        const $detailLotsInput = findInput($modalContent, '#export-detail-level-lots');
+        const $detailSomeInput = findInput($modalContent, '#export-detail-level-some');
+        const $detailNoneInput = findInput($modalContent, '#export-detail-level-none');
 
         // sync form inputs with previous options
         $indentTabInput.checked = this.codeGenOptions.indentChar === '\t';
@@ -560,7 +568,60 @@ export class Project extends EventEmitter<ProjectEventMap> {
         $detailSomeInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.Some;
         $detailNoneInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.None;
 
+        const groupMap = canvases.reduce((groupMap, canvas) => {
+            const group = canvas.getGroup();
+            if (!groupMap.has(group)) {
+                groupMap.set(group, []);
+            }
+
+            groupMap.get(group)!.push(canvas);
+            return groupMap;
+        }, new Map<ObjectGroup, PixelCanvas[]>());
+
+        const filterItems = groupMap.entries()
+            .reduce((items, [ group, canvases ]): MultiSelectItem[] => {
+                items.push({
+                    id: group.id,
+                    groupLabel: group.getName(),
+                } as MultiSelectItemGroup);
+
+                canvases.forEach((canvas) => {
+                    items.push({
+                        selected: true,
+                        label: canvas.getName(),
+                        id: canvas.id,
+                        group: group.id,
+                    } as MultiSelectItemSingle);
+                });
+
+                return items;
+            }, []);
+
+        // show object filter only if there is more than one object
+        const $objectFilter = findElement($modalContent, '.export-asm-object-filter');
+        if (canvases.length > 1) {
+            const objectFilter = new MultiSelect({
+                $mount: $objectFilter,
+                defaultLabel: 'Choose objects' + chars.ellipsis,
+            });
+
+            objectFilter.setItems(filterItems);
+            objectFilter.init();
+
+            objectFilter.on('select', () => generateCode());
+            objectFilter.on('unselect', () => generateCode());
+        } else {
+            const $na = document.createElement('span');
+            $na.innerText = 'n/a';
+            $na.classList.add('text-muted');
+            $objectFilter.insertAdjacentElement('afterend', $na);
+            $objectFilter.remove();
+        }
+
         const generateCode = (): boolean => {
+            const filteredCanvases = canvases.filter((canvas) =>
+                filterItems.some(item => item.id === canvas.id && !isItemGroup(item) && item.selected));
+
             const baseOptions: CodeGenerationOptionsBase = {
                 addressOffsetRadix: 16,
                 indentChar: $indentTabInput.checked ?
@@ -605,13 +666,13 @@ export class Project extends EventEmitter<ProjectEventMap> {
             const genThunks: Array<() => string> = [];
 
             if ($exportHeaderInput.checked) {
-                canvases.forEach(canvas => genThunks.push(() => canvas.generateHeaderCode(options)));
+                filteredCanvases.forEach(canvas => genThunks.push(() => canvas.generateHeaderCode(options)));
             }
             if ($exportObjectInput.checked) {
-                genThunks.push(() => CodeGenerator.generate(canvases, options));
+                genThunks.push(() => CodeGenerator.generate(filteredCanvases, options));
             }
             if ($exportPalettesInput.checked) {
-                const paletteSetMap = canvases.reduce((map, canvas) => {
+                const paletteSetMap = filteredCanvases.reduce((map, canvas) => {
                     const paletteSet = canvas.getColorPaletteSet();
                     map[paletteSet.id] = paletteSet;
                     return map;
@@ -673,7 +734,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     type: 'primary',
                 },
             ],
-            contentHtml: $el,
+            contentHtml: $modalContent,
         });
 
         this.logger.debug('showing export ASM modal');
