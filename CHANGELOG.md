@@ -1,3 +1,15 @@
+## v0.2.2 (2025-12-09)
+- Fixed modal dimensions shifting when changing form values in animation
+  and image export dialogs
+- Object count is now shown in the palette set dropdown for each 
+  palette set
+- Fixed object info in the sidebar not updating when a palette set 
+  name is changed
+- Added group/object filter to ASM export
+- List of colors now scrolls and the bottom gutter always remains visible
+- Very rudimentary support for touch events (enough that you can draw
+  and things don't appear totally broken)
+
 ## v0.2.0 (2025-12-08)
 - New zooming algorithm that removes anti-aliasing at small zoom sizes
 - Zoom levels are now fixed instead of simple increments/decrements
