@@ -985,13 +985,17 @@ export class Editor {
                 return;
             }
 
-            if (Modal.isActive()) {
-                return;
-            }
-
             // we want ESC to hide popovers even if an input is focused
-            if (e.key === 'Escape' && Popover.hideTopMost()) {
-                return;
+            if (e.key === 'Escape') {
+                // popovers take precedence over modals, because some modals open popovers
+                if (Popover.hideTopMost()) {
+                    return;
+                }
+
+                if (Modal.current) {
+                    Modal.current.hide();
+                    return;
+                }
             }
 
             if (
