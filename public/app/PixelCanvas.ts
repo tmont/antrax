@@ -564,7 +564,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             select: 1,
         };
 
-        const activatePixelAtCursor = (e: MouseEvent): void => {
+        const activatePixelAtCursor = (e: { clientX: number; clientY: number; ctrlKey: boolean }): void => {
             switch (this.drawContext.state) {
                 case 'drawing':
                 case 'selecting':
@@ -825,6 +825,45 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             activatePixelAtCursor(e);
         };
 
+        const onTouchMove = (e: TouchEvent): void => {
+            const touch = e.touches.item(0);
+            if (!touch) {
+                return;
+            }
+
+            activatePixelAtCursor({
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                ctrlKey: false,
+            });
+        };
+
+        const onTouchStart = (e: TouchEvent): void => {
+            const touch = e.touches.item(0);
+            if (!touch) {
+                return;
+            }
+
+            startDrawing();
+
+            activatePixelAtCursor({
+                clientX: touch.clientX,
+                clientY: touch.clientY,
+                ctrlKey: false,
+            });
+
+            this.addEvent(this.$el.ownerDocument, 'touchmove', onTouchMove);
+        };
+
+        const startDrawing = () => {
+            if (this.editorSettings.drawMode === 'select') {
+                this.setDrawState('selecting');
+            } else {
+                this.setDrawState('drawing');
+                this.emit('draw_start');
+            }
+        };
+
         const onMouseDown = (e: MouseEvent) => {
             if (e.shiftKey) {
                 return;
@@ -841,12 +880,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 return;
             }
 
-            if (this.editorSettings.drawMode === 'select') {
-                this.setDrawState('selecting');
-            } else {
-                this.setDrawState('drawing');
-                this.emit('draw_start');
-            }
+            startDrawing();
 
             this.unhighlightPixel();
 
@@ -856,6 +890,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         const onMouseUp = () => {
             this.$el.removeEventListener('mousemove', onMouseMove);
+            this.$el.removeEventListener('touchmove', onTouchMove);
             switch (this.drawContext.state) {
                 case 'drawing':
                     this.setDrawState('idle');
@@ -901,6 +936,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.addEvent(this.$el, 'mousemove', onHover);
         this.addEvent(this.$el, 'mouseout', onMouseOut);
         this.addEvent(this.$el.ownerDocument, 'mouseup', onMouseUp);
+
+        this.addEvent(this.$el, 'touchstart', onTouchStart);
+        this.addEvent(this.$el, 'touchmove', onTouchMove);
+        this.addEvent(this.$el.ownerDocument, 'touchend', onMouseUp);
     }
 
     private addEvent(target: EventTarget, name: string, listener: (...args: any[]) => void): void {
