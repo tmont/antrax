@@ -118,10 +118,10 @@ export const isLeftMouseButton = (e: MouseEvent): boolean => e.button === 0;
 export type DrawMode =
     'draw' | 'erase' | 'fill' | 'dropper' |
     'rect' | 'rect-filled' | 'ellipse' | 'ellipse-filled' |
-    'line' | 'select';
+    'line' | 'select' | 'move';
 const drawModeMap: Record<DrawMode, 1> = {
     ellipse: 1, 'ellipse-filled': 1, draw: 1, erase: 1, dropper: 1, fill: 1, line: 1, rect: 1, 'rect-filled': 1,
-    select: 1,
+    select: 1, move: 1,
 };
 export const isDrawMode = (mode: unknown): mode is DrawMode =>
     typeof mode === 'string' && !!drawModeMap[mode as unknown as DrawMode];
@@ -187,11 +187,24 @@ export const generateId = (): string => Array.from(crypto.getRandomValues(idArr)
 
 export type SiblingInsertOrder = 'before' | 'after';
 
-export type PixelCanvasDrawState = 'idle' | 'drawing' | 'selecting' | 'selected';
+export type PixelCanvasDrawState = 'idle' | 'drawing' | 'selecting' | 'selected' | 'moving';
+
+export interface LocatedPixel {
+    row: number;
+    col: number;
+    pixel: PixelInfo | null;
+}
 
 export interface PixelCanvasDrawStateContext {
     state: PixelCanvasDrawState;
     selection: Rect | null;
+    /**
+     * De-referenced pixel data that is currently being moved
+     */
+    movedData: PixelInfo[][];
+    moveOffset: Coordinate | null;
+    mouseDownOrigin: LocatedPixel | null;
+    eraseOnMove: boolean;
 }
 
 export const chars = {

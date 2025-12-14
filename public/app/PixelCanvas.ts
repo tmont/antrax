@@ -23,6 +23,7 @@ import {
     get2dContext,
     isLeftMouseButton,
     isPaletteIndex,
+    type LocatedPixel,
     nope,
     type PaletteIndex,
     type PixelCanvasDrawState,
@@ -55,11 +56,11 @@ export interface CanvasOptions extends Dimensions {
 
 interface DrawPixelOptions {
     behavior: PixelDrawingBehavior;
-    erasing?: boolean; // erase the pixel instead of coloring it, defaults to false
-    emit?: boolean; // emit pixel_draw, defaults to true
+    color: DisplayModeColorIndex | null;
+    emit: boolean; // emit pixel_draw, defaults to true
     ctx?: CanvasRenderingContext2D;
     immutable?: boolean; // do not update the pixel's color, defaults to false
-    forceErase?: boolean; // erase even if it's not a user-initiated action
+    allowErasure: boolean;
 }
 
 export type PixelDrawingBehavior =
@@ -67,12 +68,6 @@ export type PixelDrawingBehavior =
     'user' |
     // internal system (e.g. rendering) initiated the draw action
     'internal';
-
-interface LocatedPixel {
-    row: number;
-    col: number;
-    pixel: PixelInfo | null;
-}
 
 export interface PixelDrawingEvent {
     pixel: PixelInfo;
@@ -176,6 +171,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.drawContext = {
             state: 'idle',
             selection: null,
+            movedData: [],
+            mouseDownOrigin: null,
+            moveOffset: null,
+            eraseOnMove: true,
         };
 
         this.setActiveColor(this.activeColor);
@@ -562,12 +561,14 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             rect: 1,
             'rect-filled': 1,
             select: 1,
+            move: 1,
         };
 
         const activatePixelAtCursor = (e: { clientX: number; clientY: number; ctrlKey: boolean }): void => {
             switch (this.drawContext.state) {
                 case 'drawing':
                 case 'selecting':
+                case 'moving':
                     break;
                 case 'idle':
                 case 'selected':
@@ -616,8 +617,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                     const fill = (coordinate: Coordinate, pixel: PixelInfo) => {
                         drawn = this.drawPixelFromRowAndCol(coordinate, pixel, {
                             behavior: 'user',
-                            erasing,
+                            color: erasing ? null : this.activeColor,
                             emit: false,
+                            allowErasure: true,
                         }) || drawn;
 
                         const { x: col, y: row } = coordinate;
@@ -658,7 +660,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 }
 
                 case 'erase':
-                    this.drawPixelFromRowAndCol(pixelCoordinate, pixelData.pixel, { behavior: 'user', erasing: true });
+                    this.drawPixelFromRowAndCol(pixelCoordinate, pixelData.pixel, {
+                        behavior: 'user',
+                        color: null,
+                        emit: true,
+                        allowErasure: true,
+                    });
                     break;
 
                 case 'dropper':
@@ -753,19 +760,21 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                             // TODO erasing?
                             const drawn = this.drawPixelFromRowAndCol({ x: col, y: row }, pixel, {
                                 behavior: 'user',
+                                color: this.activeColor,
                                 emit: false,
                                 ctx: transientCtx,
                                 immutable: true,
+                                allowErasure: true,
                             });
 
                             if (drawn) {
                                 this.transientState.push({
-                                    color: this.activeColor, // TODO this isn't used...
+                                    color: this.activeColor,
                                     coordinate: {
                                         x: col,
                                         y: row,
                                     },
-                                    pixel,
+                                    pixel, // NOTE: pixel must not be de-referenced
                                 });
                             }
                         }
@@ -775,7 +784,12 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 }
 
                 case 'draw':
-                    this.drawPixelFromRowAndCol(pixelCoordinate, pixelData.pixel, { behavior: 'user', erasing });
+                    this.drawPixelFromRowAndCol(pixelCoordinate, pixelData.pixel, {
+                        behavior: 'user',
+                        color: erasing ? null : this.activeColor,
+                        emit: true,
+                        allowErasure: true,
+                    });
                     break;
 
                 case 'select': {
@@ -799,7 +813,72 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                         height,
                     };
 
-                    this.renderTransient();
+                    this.renderSelection();
+                    break;
+                }
+
+                case 'move': {
+                    if (!this.drawContext.selection) {
+                        this.logger.error(`in "move" state but there is no selection`, this.drawContext);
+                        return;
+                    }
+
+                    if (!this.drawContext.mouseDownOrigin) {
+                        this.drawContext.mouseDownOrigin = pixelData;
+
+                        // we allow dragging anywhere on the canvas to move the selection around, but it
+                        // moves relative to the cursor's current position
+                        this.drawContext.moveOffset = {
+                            x: pixelData.col - this.drawContext.selection.x,
+                            y: pixelData.row - this.drawContext.selection.y,
+                        };
+                    }
+
+                    // if first time it's moved, store current selection's pixel data, and delete selection
+                    // then, render selection's pixel data onto transient
+                    // move selection to new pixel
+                    // NOTE: this isn't on mousedown, because you can lift your mouse and move the same
+                    // selection again, but we want to move the previously selected pixel data, not the currently
+                    // selected pixel data.
+                    if (!this.drawContext.movedData.length) {
+                        const movedData = this.getSelectionPixelData();
+                        if (this.drawContext.eraseOnMove) {
+                            this.logger.info(`first move: erasing current selection`);
+                            this.eraseCurrentSelection();
+                        }
+                        this.drawContext.movedData = movedData;
+                    }
+
+                    if (!this.drawContext.moveOffset) {
+                        throw new Error(`drawContext.moveOffset not set?`);
+                    }
+
+                    const movedLocation: Coordinate = {
+                        x: pixelData.col - this.drawContext.moveOffset.x,
+                        y: pixelData.row - this.drawContext.moveOffset.y,
+                    };
+
+                    // move selection to the new location
+                    this.drawContext.selection = {
+                        ...this.drawContext.selection,
+                        ...movedLocation,
+                    };
+
+                    this.transientState = [];
+
+                    // render movedData onto the transient rect
+                    this.renderSelection((pixel, coordinate) => {
+                        // the pixel we'll draw to the real canvas is different from the one we just drew
+                        // to the transient canvas
+                        const pixelToDraw = this.pixelData[coordinate.y]?.[coordinate.x];
+                        if (pixelToDraw) {
+                            this.transientState.push({
+                                color: pixel.modeColorIndex,
+                                coordinate,
+                                pixel: pixelToDraw,
+                            });
+                        }
+                    });
                     break;
                 }
 
@@ -858,6 +937,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const startDrawing = () => {
             if (this.editorSettings.drawMode === 'select') {
                 this.setDrawState('selecting');
+            } else if (this.editorSettings.drawMode === 'move') {
+                this.setDrawState('moving');
             } else {
                 this.setDrawState('drawing');
                 this.emit('draw_start');
@@ -901,11 +982,15 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 case 'selected':
                 case 'idle':
                     break;
+                case 'moving':
+                    this.setDrawState('selected');
+                    break;
                 default:
                     nope(this.drawContext.state);
                     break;
             }
 
+            this.drawContext.mouseDownOrigin = null;
             mouseDownOrigin = null;
             lastDrawnPixel = null;
             this.finalizeTransientState();
@@ -919,6 +1004,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             this.unhighlightPixel();
 
             if (e.shiftKey) {
+                return;
+            }
+
+            if (this.editorSettings.drawMode === 'move') {
                 return;
             }
 
@@ -974,8 +1063,18 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             case 'selecting':
             case 'idle':
                 this.drawContext.selection = null;
+                this.drawContext.movedData = [];
+                this.drawContext.moveOffset = null;
+                this.drawContext.mouseDownOrigin = null;
+                this.drawContext.eraseOnMove = true;
+                break;
+            case 'moving':
                 break;
             case 'selected':
+                // NOTE: do not reset movedData here, we want to be able to move the same
+                // block of data again
+                this.drawContext.moveOffset = null;
+                this.drawContext.mouseDownOrigin = null;
                 break;
             default:
                 nope(this.drawContext.state);
@@ -986,24 +1085,49 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public resetDrawContext(): void {
+        this.logger.debug('resetting draw context');
+        if (this.drawContext.movedData.length) {
+            this.finalizeTransientState(() => true);
+        }
+
         this.setDrawState('idle');
         this.transientState = [];
         this.transientCtx.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height);
     }
 
-    private finalizeTransientState(): void {
+    private finalizeTransientState(predicate?: () => boolean): void {
+        if (!this.transientState.length) {
+            return;
+        }
+
         let drawn = false;
 
-        if (this.drawContext.state !== 'selecting' && this.drawContext.state !== 'selected') {
-            while (this.transientState.length) {
-                const data = this.transientState.pop()!;
-                drawn = this.drawPixelFromRowAndCol(data.coordinate, data.pixel, {
-                    behavior: 'user',
-                    emit: false,
-                }) || drawn;
-            }
-            this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, this.transientCtx);
+        predicate = predicate ||
+            (() => this.drawContext.state !== 'selecting' && this.drawContext.state !== 'selected');
+
+        if (!predicate()) {
+            return;
         }
+
+        this.logger.debug(`committing transient state (${this.transientState.length} pixels)`);
+        while (this.transientState.length) {
+            const data = this.transientState.pop()!;
+            if (this.pixelData[data.coordinate.y]?.[data.coordinate.x]) {
+                // in some cases the transient data is dereferenced, so we must explicitly set the pixel
+                // into the canonical pixelData array
+                this.pixelData[data.coordinate.y]![data.coordinate.x] = data.pixel;
+            } else {
+                this.logger.warn(`transient pixel does not exist in pixel data at ${data.coordinate.x},${data.coordinate.y}`);
+            }
+
+            drawn = this.drawPixelFromRowAndCol(data.coordinate, data.pixel, {
+                behavior: 'internal',
+                emit: false,
+                color: data.color,
+                allowErasure: true,
+            }) || drawn;
+        }
+        this.clearTransientRect();
 
         if (drawn) {
             this.emit('pixel_draw_aggregate', { behavior: 'user' });
@@ -1014,15 +1138,44 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return this.drawContext.state;
     }
 
-    public setSelection(rect: Rect): void {
+    public setSelection(rect: Rect, moveData?: PixelInfo[][] | null, eraseOnMove = true): void {
+        this.logger.info(`setting selection to ${rect.width}x${rect.height} at ${rect.x},${rect.y}`);
+        this.transientState = [];
         this.drawContext.selection = rect;
+        this.drawContext.eraseOnMove = eraseOnMove;
+
+        if (moveData) {
+            this.drawContext.movedData = moveData;
+            this.drawContext.movedData.forEach((row, y) => {
+                row.forEach((pixel, x) => {
+                    this.transientState.push({
+                        pixel,
+                        color: pixel.modeColorIndex,
+                        coordinate: {
+                            x: rect.x + x,
+                            y: rect.y + y,
+                        },
+                    });
+                });
+            });
+        }
+
         this.setDrawState('selected');
-        this.renderTransient();
+        this.renderSelection();
     }
 
+    /**
+     * Gets the dereferenced pixel data for the current selection
+     */
     public getSelectionPixelData(): PixelInfo[][] {
         if (!this.drawContext.selection) {
             return [];
+        }
+
+        // if the selection is being moved around, use that instead of whatever
+        // is currently selected
+        if (this.drawContext.movedData.length) {
+            return this.drawContext.movedData;
         }
 
         const copiedData: PixelInfo[][] = [];
@@ -1050,125 +1203,240 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         return copiedData;
     }
 
-    public eraseSelection(rect: Rect): void {
-        if (!rect.width || !rect.height) {
+    private execAgainstSelectedData(callback: (rect: Rect, pixelData: PixelInfo[][], offset: Coordinate) => void): void {
+        if (!this.drawContext.selection) {
             return;
         }
 
-        let eraseCount = 0;
-        for (let y = rect.y; y < rect.y + rect.height; y++) {
-            const row = this.pixelData[y];
-            if (!row) {
-                continue;
-            }
-
-            for (let x = rect.x; x < rect.x + rect.width; x++) {
-                const pixel = row[x];
-                if (!pixel) {
-                    break;
-                }
-                pixel.modeColorIndex = null;
-                eraseCount++;
-            }
-        }
-
-        this.clearRect(
-            rect.x * this.internalPixelWidth,
-            rect.y * this.internalPixelHeight,
-            rect.width * this.internalPixelWidth,
-            rect.height * this.internalPixelHeight,
-        );
-
-        const totalCount = rect.width * rect.height;
-        this.logger.debug(`erased ${eraseCount}/${totalCount} pixel${eraseCount === 1 ? '' : 's'} from selection`);
-
-        this.emit('pixel_draw_aggregate', { behavior: 'user' });
-    }
-
-    public flipSelection(rect: Rect, dir: 'horizontal' | 'vertical'): void {
-        if (!rect.width || !rect.height) {
-            return;
-        }
-        if ((rect.width === 1 && dir === 'horizontal') || (rect.height === 1 && dir === 'vertical')) {
-            // can't flip a single unit
-            return;
-        }
-
-        // forceErase is needed since we are not clearing the selection first. normally we could
-        // we just clear the relevant rect and not need forceErase, but we are not processing the
-        // middle row if there is an odd number of rows, so it'll be erased entirely if we clear
-        // everything first.
-        const drawOptions: DrawPixelOptions = {
-            emit: false,
-            behavior: 'internal',
-            immutable: true,
-            forceErase: true,
+        const isMoving = this.isMoving();
+        const pixelData = isMoving ? this.drawContext.movedData : this.pixelData;
+        const rect = isMoving ?
+            { x: 0, y: 0, width: pixelData[0]!.length, height: pixelData.length } :
+            this.drawContext.selection;
+        const offset: Coordinate = isMoving ? this.drawContext.selection : {
+            x: 0,
+            y: 0,
         };
 
-        let flipCount = 0;
-        if (dir === 'horizontal') {
-            const colors = this.getColors();
-            const mapping = this.displayMode.getReflectedColorMapping(colors);
+        if (!rect.width || !rect.height) {
+            return;
+        }
+
+        callback(rect, pixelData, offset);
+    }
+
+    /**
+     * Erases data outlined by the current selection and deletes the data currently being moved
+     */
+    public eraseCurrentSelection(behavior: PixelDrawingBehavior = 'user'): void {
+        this.execAgainstSelectedData((rect, pixelData, offset) => {
+            let eraseCount = 0;
             for (let y = rect.y; y < rect.y + rect.height; y++) {
-                const row = this.pixelData[y];
+                const row = pixelData[y];
                 if (!row) {
-                    break;
-                }
-
-                for (let x = 0; x < Math.floor(rect.width / 2); x++) {
-                    const leftX = rect.x + x;
-                    const rightX = rect.x + rect.width - 1 - x;
-                    const leftValue = row[leftX];
-                    const rightValue = row[rightX];
-                    if (!leftValue || !rightValue) {
-                        break;
-                    }
-
-                    row[leftX] = {
-                        modeColorIndex: mapping[rightValue.modeColorIndex || 0] as any,
-                    };
-                    row[rightX] = {
-                        modeColorIndex: mapping[leftValue.modeColorIndex || 0] as any,
-                    };
-                    flipCount += 2;
-
-                    this.drawPixelFromRowAndCol({ x: leftX, y }, row[leftX], drawOptions);
-                    this.drawPixelFromRowAndCol({ x: rightX, y }, row[rightX], drawOptions);
-                }
-            }
-        } else {
-            for (let y = 0; y < Math.floor(rect.height / 2); y++) {
-                const topY = rect.y + y;
-                const botY = rect.y + rect.height - 1 - y;
-                const topRow = this.pixelData[topY];
-                const bottomRow = this.pixelData[botY];
-                if (!topRow || !bottomRow) {
-                    break;
+                    continue;
                 }
 
                 for (let x = rect.x; x < rect.x + rect.width; x++) {
-                    const topValue = topRow[x];
-                    const bottomValue = bottomRow[x];
-                    if (!topValue || !bottomValue) {
+                    const pixel = row[x];
+                    if (!pixel) {
+                        break;
+                    }
+                    pixel.modeColorIndex = null;
+                    eraseCount++;
+                }
+            }
+
+            const isMoving = this.isMoving();
+
+            this.clearRect(
+                (rect.x + offset.x) * this.internalPixelWidth,
+                (rect.y + offset.y) * this.internalPixelHeight,
+                rect.width * this.internalPixelWidth,
+                rect.height * this.internalPixelHeight,
+                isMoving ? this.transientCtx : this.ctx,
+            );
+
+            if (isMoving) {
+                this.clearRect(
+                    (rect.x + offset.x) * this.internalPixelWidth,
+                    (rect.y + offset.y) * this.internalPixelHeight,
+                    rect.width * this.internalPixelWidth,
+                    rect.height * this.internalPixelHeight,
+                    this.ctx,
+                );
+
+                // we cleared the transient data (including the selection rect), so we must re-render the
+                // selection rect on the transient canvas.
+                this.renderSelectionRect();
+            }
+
+            const totalCount = rect.width * rect.height;
+            this.logger.debug(`erased ${eraseCount}/${totalCount} pixel${eraseCount === 1 ? '' : 's'} from selection`);
+
+            this.emit('pixel_draw_aggregate', { behavior });
+        });
+    }
+
+    public flipCurrentSelection(dir: 'horizontal' | 'vertical'): void {
+        this.execAgainstSelectedData((rect, pixelData, offset) => {
+            if ((rect.width === 1 && dir === 'horizontal') || (rect.height === 1 && dir === 'vertical')) {
+                // can't flip a single unit
+                return;
+            }
+
+            const isMoving = this.isMoving();
+            const ctx = isMoving ? this.transientCtx : this.ctx;
+
+            // allowErasure=false because we clear the rect first. this is possible because we are processing
+            // the middle row/column (even though we don't need to). that in turn is necessary so that we
+            // can flip transient data (i.e. moved data). since both the transient data and the selection rect
+            // are rendered to the same canvas, we need to re-render the entire selection area.
+            // NOTE: allowErasure=false only exists for performance reasons, it's not actually necessary.
+            this.clearRect(
+                rect.x * this.internalPixelWidth,
+                rect.y * this.internalPixelHeight,
+                rect.width * this.internalPixelWidth,
+                rect.height * this.internalPixelHeight,
+                ctx,
+            );
+            const drawOptions: Pick<DrawPixelOptions, 'emit' | 'behavior' | 'immutable' | 'allowErasure' | 'ctx'> = {
+                emit: false,
+                behavior: 'internal',
+                immutable: true,
+                allowErasure: false,
+                ctx,
+            };
+
+            this.transientState = [];
+
+            const flipped: Record<`${number},${number}`, number> = {};
+            if (dir === 'horizontal') {
+                const colors = this.getColors();
+                const mapping = this.displayMode.getReflectedColorMapping(colors);
+                for (let y = rect.y; y < rect.y + rect.height; y++) {
+                    const row = pixelData[y];
+                    if (!row) {
                         break;
                     }
 
-                    topRow[x] = bottomValue;
-                    bottomRow[x] = topValue;
-                    flipCount += 2;
+                    for (let x = 0; x < Math.ceil(rect.width / 2); x++) {
+                        const leftX = rect.x + x;
+                        const rightX = rect.x + rect.width - 1 - x;
+                        const leftValue = row[leftX];
+                        const rightValue = row[rightX];
+                        if (!leftValue || !rightValue) {
+                            break;
+                        }
 
-                    this.drawPixelFromRowAndCol({ x, y: topY }, bottomValue, drawOptions);
-                    this.drawPixelFromRowAndCol({ x, y: botY }, topValue, drawOptions);
+                        row[leftX] = {
+                            modeColorIndex: mapping[rightValue.modeColorIndex || 0] as any,
+                        };
+                        row[rightX] = {
+                            modeColorIndex: mapping[leftValue.modeColorIndex || 0] as any,
+                        };
+                        flipped[`${x},${y}`] = leftX === rightX ? 0 : 2;
+
+                        this.drawPixelFromRowAndCol({ x: leftX + offset.x, y: y + offset.y }, row[leftX], {
+                            ...drawOptions,
+                            color: row[leftX].modeColorIndex,
+                        });
+                        this.drawPixelFromRowAndCol({ x: rightX + offset.x, y: y + offset.y }, row[rightX], {
+                            ...drawOptions,
+                            color: row[rightX].modeColorIndex,
+                        });
+
+                        if (isMoving) {
+                            this.transientState.push({
+                                color: row[leftX].modeColorIndex,
+                                coordinate: {
+                                    x: leftX + offset.x,
+                                    y: y + offset.y,
+                                },
+                                pixel: row[leftX],
+                            });
+                            this.transientState.push({
+                                color: row[rightX].modeColorIndex,
+                                coordinate: {
+                                    x: rightX + offset.x,
+                                    y: y + offset.y,
+                                },
+                                pixel: row[rightX],
+                            });
+                        }
+                    }
+                }
+            } else {
+                for (let y = 0; y < Math.ceil(rect.height / 2); y++) {
+                    const topY = rect.y + y;
+                    const botY = rect.y + rect.height - 1 - y;
+                    const topRow = pixelData[topY];
+                    const bottomRow = pixelData[botY];
+                    if (!topRow || !bottomRow) {
+                        break;
+                    }
+
+                    for (let x = rect.x; x < rect.x + rect.width; x++) {
+                        const topValue = topRow[x];
+                        const bottomValue = bottomRow[x];
+                        if (!topValue || !bottomValue) {
+                            break;
+                        }
+
+                        topRow[x] = bottomValue;
+                        bottomRow[x] = topValue;
+                        flipped[`${x},${y}`] = topY === botY ? 0 : 2;
+
+                        this.drawPixelFromRowAndCol({ x: x + offset.x, y: topY + offset.y }, bottomValue, {
+                            ...drawOptions,
+                            color: bottomValue.modeColorIndex,
+                        });
+                        this.drawPixelFromRowAndCol({ x: x + offset.x, y: botY + offset.y }, topValue, {
+                            ...drawOptions,
+                            color: topValue.modeColorIndex,
+                        });
+
+                        if (isMoving) {
+                            this.transientState.push({
+                                color: bottomValue.modeColorIndex,
+                                coordinate: {
+                                    x: x + offset.x,
+                                    y: topY + offset.y,
+                                },
+                                pixel: bottomValue,
+                            });
+                            this.transientState.push({
+                                color: topValue.modeColorIndex,
+                                coordinate: {
+                                    x: x + offset.x,
+                                    y: botY + offset.y,
+                                },
+                                pixel: topValue,
+                            });
+                        }
+                    }
                 }
             }
-        }
 
-        const totalCount = rect.width * rect.height;
-        this.logger.debug(`${dir}ly flipped ${flipCount}/${totalCount} pixel${flipCount === 1 ? '' : 's'} from selection`);
+            const flipCount = Object.values(flipped).reduce((sum, count) => sum + count, 0);
+            const totalCount = rect.width * rect.height;
+            this.logger.debug(`${dir}ly flipped ${flipCount}/${totalCount} pixel${flipCount === 1 ? '' : 's'} from selection`);
 
-        if (flipCount) {
-            this.emit('pixel_draw_aggregate', { behavior: 'user' });
-        }
+            if (flipCount) {
+                if (isMoving) {
+                    // this is necessary because we are rendering to the transient canvas, which means
+                    // the selection rect gets blown away by the actual pixel data we are moving around.
+                    // for a normal non-moved selection, the transient canvas isn't touched because
+                    // we write the pixel data directly to the main editor canvas.
+
+                    // NOTE: we are not calling renderSelection() because we just rendered all the data
+                    // a couple lines above this one, all we need to do is re-render the selection rectangle,
+                    // not the actual moved data again.
+                    this.renderSelectionRect();
+                }
+                this.emit('pixel_draw_aggregate', { behavior: 'user' });
+            }
+        });
     }
 
     public clear(): void {
@@ -1210,7 +1478,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         ctx.fillStyle = 'rgba(164, 164, 255, 0.35)';
         ctx.strokeRect(x, y, width, height);
         ctx.fillRect(x, y, width, height);
-
     }
 
     public render(): void {
@@ -1230,7 +1497,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             for (let col = 0; col < pixelRow.length; col++) {
                 totalPixels++;
                 const pixelInfo = pixelRow[col]!;
-                if (this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, { behavior: 'internal', emit: false })) {
+                const drawn = this.drawPixelFromRowAndCol({ x: col, y: row }, pixelInfo, {
+                    behavior: 'internal',
+                    emit: false,
+                    color: pixelInfo.modeColorIndex,
+                    allowErasure: false,
+                });
+                if (drawn) {
                     pixelsDrawn += (pixelInfo.modeColorIndex !== null ? 1 : 0);
                 }
             }
@@ -1239,7 +1512,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         this.logger.debug(`drew ${pixelsDrawn}/${totalPixels} pixel${pixelsDrawn === 1 ? '' : 's'}`);
 
         this.renderGrid();
-        this.renderTransient();
+        this.renderSelection();
         this.logger.debug(`rendering complete in ${Date.now() - start}ms`);
         this.emit('pixel_draw_aggregate', { behavior: 'internal' });
     }
@@ -1334,9 +1607,20 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         ctx.stroke();
     }
 
-    public renderTransient(): void {
+    public renderSelection(onRenderedMovedPixel?: (pixel: PixelInfo, coordinate: Coordinate) => void): void {
         const { selection, state } = this.drawContext;
-        if (!selection || (state !== 'selected' && state !== 'selecting')) {
+        if (!selection || (state !== 'selected' && state !== 'selecting' && state !== 'moving')) {
+            return;
+        }
+
+        this.clearTransientRect();
+        this.renderMovedData(onRenderedMovedPixel);
+        this.renderSelectionRect();
+    }
+
+    private renderSelectionRect(): void {
+        const { selection } = this.drawContext;
+        if (!selection) {
             return;
         }
 
@@ -1344,9 +1628,33 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const y = selection.y * this.internalPixelHeight;
         const w = selection.width * this.internalPixelWidth;
         const h = selection.height * this.internalPixelHeight;
-
-        this.clearTransientRect();
         this.drawHoverStyleRect(this.transientCtx, x, y, w, h, 12);
+    }
+
+    private renderMovedData(callback?: (pixel: PixelInfo, coordinate: Coordinate) => void): void {
+        const { selection, movedData } = this.drawContext;
+        if (!selection) {
+            return;
+        }
+
+        movedData.forEach((pixelRow, i) => {
+            const row = i + selection.y;
+            pixelRow.forEach((pixel, j) => {
+                const col = j + selection.x;
+                const drawn = this.drawPixelFromRowAndCol({ x: col, y: row }, pixel, {
+                    behavior: 'internal',
+                    emit: false,
+                    ctx: this.transientCtx,
+                    immutable: true,
+                    color: pixel.modeColorIndex,
+                    allowErasure: true,
+                });
+
+                if (callback && drawn) {
+                    callback(pixel, { x: col, y: row });
+                }
+            })
+        });
     }
 
     private getColorForModeIndex(index: DisplayModeColorIndex): DisplayModeColorValue | null {
@@ -1366,16 +1674,13 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const ctx = options.ctx || this.ctx;
         const behavior = options.behavior;
         const immutable = options.immutable === true;
-        const isUserAction = behavior === 'user';
-        const shouldErase = isUserAction || options.forceErase === true;
+        const shouldErase = options.allowErasure; // isUserAction || options.forceErase === true;
 
         // if it's the user actually drawing something, we use the current palette/color, otherwise,
         // it's just an internal render, and we use the pixel's current palette/color
-        const newColor = isUserAction ?
-            (options.erasing ? null : this.activeColor) :
-            pixel.modeColorIndex;
+        const newColor = options.color;
 
-        // NOTE: all the "if (isUserAction)" stuff is for performance reasons, apparently
+        // NOTE: all the "if (shouldErase)" stuff is for performance reasons, apparently
         // calling a function that does the same conditional is significantly slower than just
         // doing it inline. and since this is called in a loop during render() it gets called
         // a lot.
@@ -1438,15 +1743,17 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             }
         }
 
+        // in some cases (e.g. drawing to the transient canvas) we don't want to update the
+        // pixel with the new color: we keep it as is despite drawing something different
+        // to the canvas. in many (all?) cases we pass the pixel around by reference so that
+        // it's easier to mutate.
         if (!immutable) {
             pixel.modeColorIndex = newColor;
         }
 
-        if (isUserAction) {
-            // important to not emit for internal drawing actions for performance reasons
-            if (options.emit !== false) {
-                this.emit('pixel_draw', { pixel, row, col, behavior });
-            }
+        // important to not emit for internal drawing actions for performance reasons
+        if (options.emit) {
+            this.emit('pixel_draw', { pixel, row, col, behavior });
         }
 
         return true;
@@ -1662,6 +1969,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
     public getCurrentSelection(): Readonly<PixelCanvasDrawStateContext['selection']> {
         return this.drawContext.selection;
+    }
+
+    public isMoving(): boolean {
+        return !!this.drawContext.selection && this.drawContext.movedData.length > 0;
     }
 
     public get asmLabel(): string {

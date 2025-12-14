@@ -243,7 +243,21 @@ export class Editor {
             this.setGroupName(activeCanvas?.getGroup());
             this.setObjectName(activeCanvas);
 
+            // draw modes:
+            // the only weird one is "move", where it makes no sense to be in "move" mode
+            // if nothing is selected. so if you activate a canvas that has nothing selected,
+            // and you're in "move" mode, instead switch to "select" mode.
+            // if you switch to a canvas that was previously moving something, forcefully switch back
+            // to "move" mode.
+
+            if (this.settings.drawMode === 'move' && !activeCanvas?.getCurrentSelection()) {
+                this.setDrawMode('select');
+            } else if (activeCanvas?.isMoving()) {
+                this.setDrawMode('move');
+            }
+
             this.onPaletteSetChanged();
+            this.syncDrawModeButtons();
 
             this.$canvasCoordinates.innerText = `0,0`;
 
@@ -723,12 +737,14 @@ export class Editor {
             return;
         }
 
-        const canvas = this.activeCanvas;
-        if (!canvas) {
-            return;
-        }
-
         this.settings.drawMode = newMode;
+
+        Array.from(this.$canvasArea.classList).forEach((cls) => {
+            if (/^draw-mode-/.test(cls)) {
+                this.$canvasArea.classList.remove(cls);
+            }
+        });
+        this.$canvasArea.classList.add(`draw-mode-${newMode}`);
 
         this.$canvasSidebar.querySelectorAll('[data-mode]').forEach((el) => {
             const drawMode = el.getAttribute('data-mode');
@@ -743,7 +759,35 @@ export class Editor {
 
         this.logger.debug(`drawMode set to ${this.settings.drawMode}`);
 
-        canvas.resetDrawContext();
+        const canvas = this.activeCanvas;
+        if (!canvas) {
+            return;
+        }
+
+        if (this.settings.drawMode !== 'move') {
+            // in "move" mode the selection stays up, so we keep the current context
+            canvas.resetDrawContext();
+        }
+
+        // some draw modes do some hidden destructive actions (particularly "move" mode), so just
+        // preemptively create an undo checkpoint so that the user can get back to where they
+        // started easily.
+        this.pushUndoItem(canvas);
+    }
+
+    public syncDrawModeButtons(): void {
+        const canvas = this.activeCanvas;
+        const $buttons = this.$canvasSidebar.querySelectorAll<HTMLButtonElement>('button[data-mode]');
+        if (!canvas) {
+            $buttons.forEach($button => $button.disabled = true);
+            return;
+        }
+
+        const somethingIsSelected = !!canvas.getCurrentSelection();
+        const moveMode: DrawMode = 'move';
+        $buttons.forEach(($button) => {
+            $button.disabled = $button.getAttribute('data-mode') === moveMode && !somethingIsSelected;
+        });
     }
 
     public setPaletteSets(paletteSets: ColorPaletteSetCollection): void {
@@ -838,6 +882,13 @@ export class Editor {
     private onUncoloredPixelBehaviorChanged(): void {
         this.updateUncolorPixelBehaviorUI();
         this.project?.setUncoloredPixelBehavior();
+    }
+
+    private deselectAll(): void {
+        this.activeCanvas?.resetDrawContext();
+        if (this.settings.drawMode === 'move') {
+            this.setDrawMode('select');
+        }
     }
 
     public init(): void {
@@ -1023,7 +1074,7 @@ export class Editor {
 
                 if (e.shiftKey) {
                     this.logger.debug(`deselecting due to Ctrl+Shift+A`);
-                    this.activeCanvas.resetDrawContext();
+                    this.deselectAll();
                     return;
                 }
 
@@ -1057,7 +1108,7 @@ export class Editor {
 
             if (e.key === 'Escape') {
                 this.logger.debug(`deselecting due to ESC`);
-                this.activeCanvas?.resetDrawContext();
+                this.deselectAll();
                 return;
             }
 
@@ -1124,6 +1175,12 @@ export class Editor {
             }
             if (e.key.toLowerCase() === 'z') {
                 this.setDrawMode('select');
+                return;
+            }
+            if (e.key.toLowerCase() === 'm') {
+                if (this.activeCanvas?.getCurrentSelection()) {
+                    this.setDrawMode('move');
+                }
                 return;
             }
 
@@ -1546,11 +1603,12 @@ export class Editor {
         if (canvas.getDisplayMode() !== copySelection.displayMode) {
             Popover.toast({
                 type: 'danger',
-                content: `Cannot apply selection from ${copySelection.displayMode.name} to ${canvas.getDisplayMode().name}`,
+                content: `Cannot apply selection from ${copySelection.displayMode.name} to ` +
+                    `${canvas.getDisplayMode().name} because they have incompatible display modes`,
             });
             return false;
         }
-        const location: Rect = canvas.getCurrentSelection() || {
+        const location: Rect = {
             x: 0,
             y: 0,
             ...canvas.getDimensions(),
@@ -1562,21 +1620,24 @@ export class Editor {
 
         this.logger.info(`pasting ${copiedSize} selection from ${copySelection.canvas.getName()} ` +
             `at ${location.x},${location.y}`);
-        const drawCount = canvas.applyPartialPixelData(copySelection.pixelData, location);
 
-        if (drawCount) {
-            Popover.toast({
-                type: 'success',
-                content: `Successfully applied ${drawCount} pixel${drawCount === 1 ? '' : 's'} originally ` +
-                    `from ${copySelection.canvas.getName()}`,
-            });
-        } else {
-            Popover.toast({
-                type: 'default',
-                content: `Selection from ${copySelection.canvas.getName()} was successfully applied, ` +
-                    `but no pixels were drawn`,
-            });
-        }
+        const pixelData = copySelection.pixelData;
+
+        // paste onto [0, 0], select the newly pasted data, and go into move mode. note that
+        // we are manually setting other options so that it doesn't commit it to the canvas by default
+        // and also doesn't erase the selection once you start moving (which is the default behavior).
+        const selectionRect: Rect = {
+            ...location,
+            width: Math.min(copiedWidth, location.width),
+            height: Math.min(copiedHeight, location.height),
+        };
+        canvas.setSelection(selectionRect, pixelData, false);
+        this.setDrawMode('move');
+
+        Popover.toast({
+            type: 'success',
+            content: `Successfully copied data from ${copySelection.canvas.getName()} onto ${canvas.getName()}`,
+        });
 
         return true;
     }
@@ -1589,7 +1650,7 @@ export class Editor {
         }
 
         this.logger.info(`erasing selected ${rect.width}${chars.times}${rect.height} pixels`);
-        canvas.eraseSelection(rect);
+        canvas.eraseCurrentSelection();
     }
 
     public flipActiveSelection(dir: 'horizontal' | 'vertical'): void {
@@ -1600,7 +1661,7 @@ export class Editor {
         }
 
         this.logger.info(`flipping selected ${rect.width}${chars.times}${rect.height} pixels ${dir}ly`);
-        canvas.flipSelection(rect, dir);
+        canvas.flipCurrentSelection(dir);
     }
 
     private syncSelectionActions(canvas: PixelCanvas | null): void {
@@ -1615,6 +1676,7 @@ export class Editor {
         $rotate.disabled = true; // rotate not supported yet
         $flipH.disabled = disabled || !canvas?.getDisplayMode().supportsHorizontalFlip;
         this.syncPasteSelectionAction();
+        this.syncDrawModeButtons();
     }
 
     private syncPasteSelectionAction(): void {
