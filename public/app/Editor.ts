@@ -259,7 +259,7 @@ export class Editor {
             this.onPaletteSetChanged();
             this.syncDrawModeButtons();
 
-            this.$canvasCoordinates.innerText = `0,0`;
+            this.$canvasCoordinates.innerText = `0, 0`;
 
             if (activeCanvas) {
                 this.syncCanvasLocation();
