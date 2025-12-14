@@ -1853,9 +1853,6 @@ export class Editor {
     public loadJson(json: object): void {
         const start = Date.now();
 
-        // TODO remove this once things are more stable
-        this.logger.debug(`loading JSON`, json);
-
         this.ensureSerialized(json);
 
         const paletteMountEl = findElement(this.$el, '.content-header');
