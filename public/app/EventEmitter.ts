@@ -1,6 +1,6 @@
 export type EventListener = (...args: any[]) => void;
 
-type EventArgMap = {
+export type EventArgMap = {
     [name: string]: any[];
 };
 

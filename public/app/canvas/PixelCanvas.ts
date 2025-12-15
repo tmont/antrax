@@ -1,11 +1,8 @@
 import type { ColorPalette } from '../ColorPalette.ts';
 import type { ColorPaletteSet } from '../ColorPaletteSet.ts';
-import type { Atari7800Color } from '../colors.ts';
 import DisplayMode from '../DisplayMode.ts';
 import type { EditorSettings } from '../Editor.ts';
 import { type SerializationContext, SerializationTypeError } from '../errors.ts';
-import { EventEmitter } from '../EventEmitter.ts';
-import { Logger } from '../Logger';
 import { ObjectGroup } from '../ObjectGroup.ts';
 import {
     clamp,
@@ -32,6 +29,12 @@ import {
     type PixelInfoSerialized,
     type Rect
 } from '../utils.ts';
+import { BackgroundCanvas } from './BackgroundCanvas.ts';
+import { BaseCanvas, type BaseCanvasOptions } from './BaseCanvas.ts';
+import { GridCanvas } from './GridCanvas.ts';
+import { HoverCanvas } from './HoverCanvas.ts';
+import { TransientCanvas } from './TransientCanvas.ts';
+import type { EditorCanvas } from './types.ts';
 
 interface TransientPixelData {
     coordinate: Coordinate;
@@ -106,62 +109,50 @@ export interface PixelCanvasSerialized {
     activeColor: DisplayModeColorValueSerialized;
 }
 
-export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
-    private width: number;
-    private height: number;
-    private displayWidth: number;
-    private displayHeight: number;
-    private pixelWidth: number;
-    private pixelHeight: number;
-    private readonly editorSettings: Readonly<EditorSettings>;
-    private readonly ctx: CanvasRenderingContext2D;
-    private readonly hoverCtx: CanvasRenderingContext2D;
-    private readonly gridCtx: CanvasRenderingContext2D;
-    private readonly bgCtx: CanvasRenderingContext2D;
-    private readonly transientCtx: CanvasRenderingContext2D;
-    private readonly logger: Logger;
+export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements EditorCanvas {
     private readonly eventMap: Array<[ EventTarget, string, (...args: any[]) => void ]> = [];
     private pixelData: PixelInfo[][];
     private readonly $container: HTMLElement;
-    private readonly $frameContainer: HTMLDivElement;
     private name: string;
     public readonly id: string;
     private group: ObjectGroup;
     private destroyed = false;
-    private displayMode: DisplayMode;
-    private palette: ColorPalette;
-    private paletteSet: ColorPaletteSet;
     private activeColor: DisplayModeColorIndex;
-    private magnificationScale = 4;
 
     private static instanceCount = 0;
-    private static transparentPatternMap: Record<string, CanvasPattern> = {};
 
-    private readonly $el: HTMLCanvasElement;
-    private readonly $gridEl: HTMLCanvasElement;
-    private readonly $hoverEl: HTMLCanvasElement;
-    private readonly $bgEl: HTMLCanvasElement;
-    private readonly $transientEl: HTMLCanvasElement;
+    private readonly hoverCanvas: HoverCanvas;
+    private readonly bgCanvas: BackgroundCanvas;
+    private readonly transientCanvas: TransientCanvas;
+    private readonly gridCanvas: GridCanvas;
 
     private transientState: TransientPixelData[] = [];
     private readonly drawContext: PixelCanvasDrawStateContext;
 
-    public static readonly transparentColor1 = '#8f8f8f';
-    public static readonly transparentColor2 = '#a8a8a8';
-
     public constructor(options: CanvasOptions) {
-        super();
+        const baseOptions: BaseCanvasOptions = {
+            canvasSettings: {
+                displayMode: options.displayMode instanceof DisplayMode ?
+                    options.displayMode :
+                    DisplayMode.create(options.displayMode),
+                height: options.height,
+                width: options.width,
+                magnificationScale: 4,
+                palette: options.palette,
+                paletteSet: options.paletteSet,
+                pixelHeight: options.pixelHeight,
+                pixelWidth: options.pixelWidth,
+            },
+            editorSettings: options.editorSettings,
+            $frameContainer: document.createElement('div'),
+        };
+
+        super(baseOptions);
+
         PixelCanvas.instanceCount++;
         this.id = options.id || generateId();
         this.name = options.name || `Object ${PixelCanvas.instanceCount}`;
-        this.logger = Logger.from(this);
         this.group = options.group;
-        this.editorSettings = options.editorSettings;
-        this.displayMode = options.displayMode instanceof DisplayMode ?
-            options.displayMode :
-            DisplayMode.create(options.displayMode);
-        this.palette = options.palette;
-        this.paletteSet = options.paletteSet;
 
         if (this.paletteSet.getPalettes().indexOf(this.palette) === -1) {
             throw new Error(`ColorPalette{${this.palette.id}} does not belong to ColorPaletteSet{${this.paletteSet.id}}`);
@@ -181,72 +172,23 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.$container = options.mountEl;
 
-        this.$frameContainer = document.createElement('div');
         this.$frameContainer.classList.add('frame-container');
-
-        this.$el = document.createElement('canvas');
-        this.$el.classList.add('editor');
         this.$frameContainer.appendChild(this.$el);
 
         this.pixelData = options.pixelData || [];
-        this.pixelWidth = options.pixelWidth;
-        this.pixelHeight = options.pixelHeight;
-        this.width = options.width;
-        this.height = options.height;
-
-        this.displayWidth = this.width * this.displayPixelWidth;
-        this.displayHeight = this.height * this.displayPixelHeight;
         this.logger.info(`setting display to ${this.displayWidth}x${this.displayHeight}`);
 
-        this.$gridEl = document.createElement('canvas');
-        this.$gridEl.classList.add('editor-grid');
-
-        this.$hoverEl = document.createElement('canvas');
-        this.$hoverEl.classList.add('editor-hover');
-
-        this.$bgEl = document.createElement('canvas');
-        this.$bgEl.classList.add('editor-bg');
-
-        this.$transientEl = document.createElement('canvas');
-        this.$transientEl.classList.add('editor-transient');
-
-        this.ctx = get2dContext(this.$el);
-        this.hoverCtx = get2dContext(this.$hoverEl);
-        this.bgCtx = get2dContext(this.$bgEl);
-        this.gridCtx = get2dContext(this.$gridEl);
-        this.transientCtx = get2dContext(this.$transientEl);
+        this.hoverCanvas = new HoverCanvas(baseOptions);
+        this.bgCanvas = new BackgroundCanvas(baseOptions);
+        this.transientCanvas = new TransientCanvas(baseOptions);
+        this.gridCanvas = new GridCanvas(baseOptions);
 
         this.setCanvasDimensions();
         this.enable();
     }
 
-    private getTransparentPattern(): CanvasPattern {
-        const key = `${this.editorSettings.zoomLevel}:${this.pixelWidth}x${this.pixelHeight}`;
-        let pattern = PixelCanvas.transparentPatternMap[key] || null;
-
-        if (!pattern) {
-            const $canvas = document.createElement('canvas');
-            $canvas.width = Math.max(2, this.internalPixelWidth);
-            $canvas.height = Math.max(2, this.internalPixelHeight);
-
-            const ctx = get2dContext($canvas);
-
-            ctx.fillStyle = PixelCanvas.transparentColor1;
-            ctx.fillRect(0, 0, $canvas.width / 2, $canvas.height / 2);
-            ctx.fillRect($canvas.width / 2, $canvas.height / 2, $canvas.width / 2, $canvas.height / 2);
-            ctx.fillStyle = PixelCanvas.transparentColor2;
-            ctx.fillRect($canvas.width / 2, 0, $canvas.width / 2, $canvas.height / 2);
-            ctx.fillRect(0, $canvas.height / 2, $canvas.width / 2, $canvas.height / 2);
-
-            pattern = this.ctx.createPattern($canvas, 'repeat');
-            if (!pattern) {
-                throw new Error(`could not create transparent pattern`);
-            }
-
-            PixelCanvas.transparentPatternMap[key] = pattern;
-        }
-
-        return pattern;
+    protected get canvasClassName(): string[] {
+        return [ 'editor' ];
     }
 
     public getPixelDimensions(): Dimensions {
@@ -282,7 +224,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     public getUnderlyingBackgroundCanvas(): HTMLCanvasElement {
-        return this.$bgEl;
+        return this.bgCanvas.getUnderlyingCanvas();
     }
 
     public getUnderlyingEditorCanvas(): HTMLCanvasElement {
@@ -311,10 +253,6 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         });
     }
 
-    private execOnCanvasElements(thunk: (canvasEl: HTMLCanvasElement) => void): void {
-        [ this.$el, this.$gridEl, this.$hoverEl, this.$bgEl, this.$transientEl ].forEach(thunk);
-    }
-
     private setCanvasDimensions(): void {
         if (this.destroyed) {
             return;
@@ -323,20 +261,21 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         // TODO use same magnification for zoomLevel > 1, speeds up drawing quite a bit at
         // high resolutions on large canvases. problem is the selection/hover style is terrible
         // due to the dotted line stroke width.
-        this.magnificationScale = this.editorSettings.zoomLevel < 1 ?
+        this.settings.magnificationScale = this.editorSettings.zoomLevel < 1 ?
             1 / this.editorSettings.zoomLevel :
             1;
-
-        this.displayWidth = this.width * this.displayPixelWidth;
-        this.displayHeight = this.height * this.displayPixelHeight;
 
         this.$frameContainer.style.width = this.displayWidth + 'px';
         this.$frameContainer.style.height = this.displayHeight + 'px';
 
-        this.execOnCanvasElements((canvasEl) => {
-            canvasEl.width = this.internalWidth;
-            canvasEl.height = this.internalHeight;
-        });
+        const canvases: BaseCanvas[] = [
+            this,
+            this.gridCanvas,
+            this.hoverCanvas,
+            this.bgCanvas,
+            this.transientCanvas,
+        ];
+        canvases.forEach(canvas => canvas.syncInternalDimensions());
 
         this.fillPixelDataArray();
     }
@@ -356,37 +295,21 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         }
     }
 
-    public getDisplayMode(): DisplayMode {
-        return this.displayMode;
-    }
-
     public supportsKangarooMode(): boolean {
-        return this.displayMode.supportsKangarooMode;
+        return this.settings.displayMode.supportsKangarooMode;
     }
 
     public canExportToASM(): boolean {
-        return this.displayMode.canExportToASM;
-    }
-
-    public getColors(): DisplayModeColorValue[] {
-        return this.displayMode.getColors(this.paletteSet, this.palette, this.editorSettings.kangarooMode);
-    }
-
-    private get backgroundColor(): Atari7800Color {
-        return this.paletteSet.getBackgroundColor();
+        return this.settings.displayMode.canExportToASM;
     }
 
     public setDisplayMode(newMode: DisplayMode | DisplayModeName): void {
         if (typeof newMode === 'string') {
             newMode = DisplayMode.create(newMode);
         }
-        this.displayMode = newMode;
+        this.settings.displayMode = newMode;
         this.setActiveColor(0);
         this.emit('display_mode_change');
-    }
-
-    public getColorPalette(): ColorPalette {
-        return this.palette;
     }
 
     public setColorPalette(newPalette: ColorPalette): void {
@@ -404,13 +327,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             throw new Error(`Cannot set color palette to ${newPalette.id} because it is not a part of palette set ${this.paletteSet.getName()}`);
         }
 
-        this.palette = newPalette;
+        this.settings.palette = newPalette;
         this.logger.debug(`setting color palette to ${this.palette.name} {${this.palette.id}}`);
         this.render();
-    }
-
-    public getColorPaletteSet(): ColorPaletteSet {
-        return this.paletteSet;
     }
 
     public setColorPaletteSet(newPaletteSet: ColorPaletteSet, paletteIndex?: PaletteIndex): void {
@@ -426,8 +345,8 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             oldPaletteIndex = 0;
         }
 
+        this.settings.paletteSet = newPaletteSet;
         this.logger.debug(`setting color palette set to ${this.paletteSet.getName()} {${this.paletteSet.id}}`);
-        this.paletteSet = newPaletteSet;
 
         const newPalettes = this.paletteSet.getPalettes();
         if (newPalettes.indexOf(this.palette) === -1) {
@@ -493,10 +412,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         if (!this.$frameContainer.isConnected) {
             this.logger.debug('appending frame container and canvases');
             this.$container.appendChild(this.$frameContainer);
-            this.$el.insertAdjacentElement('afterend', this.$gridEl);
-            this.$el.insertAdjacentElement('afterend', this.$hoverEl);
-            this.$el.insertAdjacentElement('afterend', this.$bgEl);
-            this.$el.insertAdjacentElement('afterend', this.$transientEl);
+            this.gridCanvas.show();
+            this.hoverCanvas.show();
+            this.transientCanvas.show();
+            this.bgCanvas.show();
         }
 
         this.$frameContainer.style.display = '';
@@ -552,7 +471,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         let lastDrawnPixel: PixelInfo | null = null;
         this.transientState = [];
 
-        const transientCtx = this.transientCtx;
+        const transientCtx = this.transientCanvas.getRenderingContext();
 
         const clampedDrawModes: Partial<Record<DrawMode, 1>> = {
             ellipse: 1,
@@ -1046,7 +965,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         $canvas.height = height * scale;
 
         const ctx = get2dContext($canvas);
-        ctx.drawImage(this.$bgEl, 0, 0, $canvas.width, $canvas.height);
+        ctx.drawImage(this.bgCanvas.getUnderlyingCanvas(), 0, 0, $canvas.width, $canvas.height);
         ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
     }
 
@@ -1092,7 +1011,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         this.setDrawState('idle');
         this.transientState = [];
-        this.transientCtx.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height);
+        this.transientCanvas.clearAll();
     }
 
     private finalizeTransientState(predicate?: () => boolean): void {
@@ -1254,7 +1173,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 (rect.y + offset.y) * this.internalPixelHeight,
                 rect.width * this.internalPixelWidth,
                 rect.height * this.internalPixelHeight,
-                isMoving ? this.transientCtx : this.ctx,
+                isMoving ? this.transientCanvas.getRenderingContext() : this.ctx,
             );
 
             if (isMoving) {
@@ -1286,7 +1205,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             }
 
             const isMoving = this.isMoving();
-            const ctx = isMoving ? this.transientCtx : this.ctx;
+            const ctx = isMoving ? this.transientCanvas.getRenderingContext() : this.ctx;
 
             // allowErasure=false because we clear the rect first. this is possible because we are processing
             // the middle row/column (even though we don't need to). that in turn is necessary so that we
@@ -1460,24 +1379,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     }
 
     private clearTransientRect(): void {
-        this.clearRect(0, 0, this.$transientEl.width, this.$transientEl.height, this.transientCtx);
-    }
-
-    private drawHoverStyleRect(
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        lineWidthDivisor = 25,
-    ): void {
-        const dashSize = Math.max(2, Math.round(this.displayPixelWidth / 15));
-        ctx.strokeStyle = 'rgba(80, 80, 164, 0.75)';
-        ctx.setLineDash([ dashSize, dashSize ]);
-        ctx.lineWidth = Math.max(1, Math.round(this.displayPixelWidth / lineWidthDivisor));
-        ctx.fillStyle = 'rgba(164, 164, 255, 0.35)';
-        ctx.strokeRect(x, y, width, height);
-        ctx.fillRect(x, y, width, height);
+        this.transientCanvas.clearAll();
     }
 
     public render(): void {
@@ -1522,57 +1424,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        const ctx = this.bgCtx;
-
-        this.logger.debug('rendering bg');
-
-        ctx.clearRect(0, 0, this.$bgEl.width, this.$bgEl.height);
-
-        let fillStyle: string | CanvasPattern;
-
-        if (this.editorSettings.uncoloredPixelBehavior === 'background') {
-            fillStyle = this.backgroundColor.hex;
-        } else {
-            const color0 = this.getColors()[0];
-            if (!color0) {
-                fillStyle = this.getTransparentPattern();
-            } else {
-                const colors = color0.colors;
-                const canvas = document.createElement('canvas');
-                canvas.width = this.internalPixelWidth;
-                canvas.height = this.internalPixelHeight;
-
-                const ctx = get2dContext(canvas);
-
-                colors.forEach((color, i) => {
-                    switch (color.value) {
-                        case 'background':
-                            ctx.fillStyle = this.backgroundColor.hex;
-                            break;
-                        case 'transparent':
-                            ctx.fillStyle = this.getTransparentPattern();
-                            break;
-                        default: {
-                            const { palette, index } = color.value;
-                            ctx.fillStyle = palette.getColorAt(index).hex;
-                            break;
-                        }
-                    }
-
-                    ctx.fillRect(i * (canvas.width / colors.length), 0, canvas.width / colors.length, canvas.height);
-                });
-
-                const pattern = ctx.createPattern(canvas, 'repeat');
-                if (!pattern) {
-                    throw new Error('Failed to create pattern');
-                }
-
-                fillStyle = pattern;
-            }
-        }
-
-        ctx.fillStyle = fillStyle;
-        ctx.fillRect(0, 0, this.$bgEl.width, this.$bgEl.height);
+        this.bgCanvas.render();
     }
 
     public renderGrid(): void {
@@ -1580,31 +1432,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return;
         }
 
-        const ctx = this.gridCtx;
-
-        this.logger.debug('rendering grid');
-
-        const width = this.$gridEl.width;
-        const height = this.$gridEl.height;
-        ctx.clearRect(0, 0, width, height);
-        if (!this.editorSettings.showGrid) {
-            return;
-        }
-
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let i = 0; i <= width; i += this.internalPixelWidth) {
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, height);
-        }
-
-        for (let i = 0; i <= height; i += this.internalPixelHeight) {
-            ctx.moveTo(0, i);
-            ctx.lineTo(width, i);
-        }
-
-        ctx.stroke();
+        this.gridCanvas.render();
     }
 
     public renderSelection(onRenderedMovedPixel?: (pixel: PixelInfo, coordinate: Coordinate) => void): void {
@@ -1628,7 +1456,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
         const y = selection.y * this.internalPixelHeight;
         const w = selection.width * this.internalPixelWidth;
         const h = selection.height * this.internalPixelHeight;
-        this.drawHoverStyleRect(this.transientCtx, x, y, w, h, 12);
+        this.transientCanvas.drawHoverStyleRect(x, y, w, h, 12);
     }
 
     private renderMovedData(callback?: (pixel: PixelInfo, coordinate: Coordinate) => void): void {
@@ -1644,7 +1472,7 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
                 const drawn = this.drawPixelFromRowAndCol({ x: col, y: row }, pixel, {
                     behavior: 'internal',
                     emit: false,
-                    ctx: this.transientCtx,
+                    ctx: this.transientCanvas.getRenderingContext(),
                     immutable: true,
                     color: pixel.modeColorIndex,
                     allowErasure: true,
@@ -1780,36 +1608,10 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return false;
         }
 
-        const { x, y } = this.convertPixelToCanvasCoordinate(pixelRowAndCol);
-        this.drawHoverStyleRect(this.hoverCtx, x, y, this.internalPixelWidth, this.internalPixelHeight);
-
+        this.hoverCanvas.render({ x: col, y: row });
         this.emit('pixel_hover', pixelRowAndCol, pixel);
 
         return true;
-    }
-
-    private get displayPixelWidth(): number {
-        return this.pixelWidth * this.editorSettings.zoomLevel;
-    }
-
-    private get displayPixelHeight(): number {
-        return this.pixelHeight * this.editorSettings.zoomLevel;
-    }
-
-    private get internalWidth(): number {
-        return this.displayWidth * this.magnificationScale;
-    }
-
-    private get internalHeight(): number {
-        return this.displayHeight * this.magnificationScale;
-    }
-
-    private get internalPixelWidth(): number {
-        return this.displayPixelWidth * this.magnificationScale;
-    }
-
-    private get internalPixelHeight(): number {
-        return this.displayPixelHeight * this.magnificationScale;
     }
 
     public unhighlightPixel(): boolean {
@@ -1817,22 +1619,9 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
             return false;
         }
 
-        this.hoverCtx.clearRect(0, 0, this.$hoverEl.width, this.$hoverEl.height);
+        this.hoverCanvas.render({ x: 0, y: 0, erase: true });
+
         return true;
-    }
-
-    private convertAbsoluteToPixelCoordinate(location: Coordinate): Coordinate {
-        const pixelX = Math.floor((location.x / this.editorSettings.zoomLevel) / this.pixelWidth);
-        const pixelY = Math.floor((location.y / this.editorSettings.zoomLevel) / this.pixelHeight);
-
-        return { x: pixelX, y: pixelY };
-    }
-
-    private convertPixelToCanvasCoordinate(location: Coordinate): Coordinate {
-        const absoluteX = location.x * this.internalPixelWidth;
-        const absoluteY = location.y * this.internalPixelHeight;
-
-        return { x: absoluteX, y: absoluteY };
     }
 
     private getPixelAt(screenLocation: Coordinate): LocatedPixel {
@@ -1864,11 +1653,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
     public setDimensions(width: number | null, height: number | null): void {
         let changed = false;
         if (width !== null && this.width !== width) {
-            this.width = width;
+            this.settings.width = width;
             changed = true;
         }
         if (height !== null && this.height !== height) {
-            this.height = height;
+            this.settings.height = height;
             changed = true;
         }
 
@@ -1887,11 +1676,11 @@ export class PixelCanvas extends EventEmitter<PixelCanvasEventMap> {
 
         let changed = false;
         if (width !== null && this.pixelWidth !== width) {
-            this.pixelWidth = width;
+            this.settings.pixelWidth = width;
             changed = true;
         }
         if (height !== null && this.pixelHeight !== height) {
-            this.pixelHeight = height;
+            this.settings.pixelHeight = height;
             changed = true;
         }
 
