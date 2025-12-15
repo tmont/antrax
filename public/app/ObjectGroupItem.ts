@@ -1,4 +1,5 @@
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import { copyToClipboard } from './copy.ts';
 import type { EditorSettings } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -12,6 +13,10 @@ import {
     findCanvas,
     findElement,
     findInput,
+    findOrDie,
+    findTemplateContent,
+    get2dContext,
+    hasMessage,
     parseTemplate,
     setTextAndTitle
 } from './utils.ts';
@@ -59,6 +64,7 @@ const objectOverflowTmpl = `
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
     <li class="dropdown-item"><a href="#" data-action="export-image"><i class="fa-solid fa-fw fa-image icon"></i>Export image&hellip;</a></li>
+    <li class="dropdown-item"><a href="#" data-action="debug"><i class="fa-solid fa-fw fa-terminal icon"></i>Debug&hellip;</a></li>
     <li class="dropdown-item divider"></li>
     <li class="dropdown-item"><a href="#" data-action="delete" class="text-danger"><i class="fa-solid fa-fw fa-trash icon"></i>Delete&hellip;</a></li>
 </ul>
@@ -256,6 +262,59 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
                         );
 
                         modal.show();
+                        break;
+                    }
+                    case 'debug': {
+                        const $tmpl = findTemplateContent(document, '#modal-content-object-debug');
+
+                        const $content = findElement($tmpl.cloneNode(true) as typeof $tmpl, '.object-debug-form');
+
+                        const $input = findOrDie($content, '.code', node => node instanceof HTMLTextAreaElement);
+                        $input.value = JSON.stringify(this.canvas.clonePixelData(), null, '  ');
+
+                        const modal = Modal.create({
+                            contentHtml: $content,
+                            title: `Debug info for ${this.canvasName}`,
+                            actions: [
+                                'cancel',
+                                {
+                                    type: 'primary',
+                                    align: 'start',
+                                    labelHtml: `<i class="fa-solid fa-copy"></i> Copy`,
+                                    id: 'copy',
+                                },
+                                {
+                                    type: 'danger',
+                                    align: 'end',
+                                    labelHtml: `<i class="fa-solid fa-exclamation-triangle"></i> Save`,
+                                    id: 'save',
+                                },
+                            ],
+                        });
+
+                        modal.show();
+
+                        modal.on('action', async (action) => {
+                            if (action.id === 'save') {
+                                let json: any;
+                                try {
+                                    json = JSON.parse($input.value);
+                                } catch (e) {
+                                    const message = hasMessage(e) ? e.message : '';
+                                    Popover.toast({
+                                        type: 'danger',
+                                        content: `Failed to parse JSON${message ? ': ' + message : ''}`,
+                                    });
+                                    return;
+                                }
+
+                                this.logger.warn(`overriding canvas pixel data from user input`);
+                                this.canvas.setPixelData(json);
+                                modal.destroy();
+                            } else if (action.id === 'copy') {
+                                await copyToClipboard($input.value, 'Copied pixel data!');
+                            }
+                        });
                         break;
                     }
                 }

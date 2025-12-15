@@ -1,6 +1,7 @@
 import { CodeGenerator } from './CodeGenerator.ts';
 import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import { copyToClipboard } from './copy.ts';
 import { type EditorSettings, type UndoCheckpoint } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -738,26 +739,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         this.logger.debug('showing export ASM modal');
-        const $copySuccess = parseTemplate('<div><i class="fa-solid fa-check"></i> Code copied!</div>');
-        const $copyError = parseTemplate('<div><i class="fa-solid fa-exclamation-triangle"></i> Failed to copy :(</div>');
         exportModal.show();
         exportModal.on('action', async (action) => {
             if (action.id === exportId) {
                 this.logger.debug('exporting!');
-                try {
-                    await navigator.clipboard.writeText($codeTextarea.value);
-                    this.logger.info(`successfully wrote to clipboard`);
-                    Popover.toast({
-                        type: 'success',
-                        content: $copySuccess,
-                    });
-                } catch (e) {
-                    this.logger.error(`failed to write to clipboard`, e);
-                    Popover.toast({
-                        type: 'danger',
-                        content: $copyError,
-                    });
-                }
+                await copyToClipboard($codeTextarea.value, 'Copied code!');
             }
         });
     }

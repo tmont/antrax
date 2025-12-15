@@ -415,7 +415,7 @@
                     </tr>
                     <tr>
                         <td colspan="6">
-                            <textarea rows="20" class="form-control export-code code" readonly></textarea>
+                            <textarea rows="20" class="form-control export-code resize-v code" readonly></textarea>
                         </td>
                     </tr>
                 </table>
@@ -536,6 +536,19 @@
 
                 <div class="canvas-preview">
                     <canvas></canvas>
+                </div>
+            </div>
+        </template>
+
+        <template id="modal-content-object-debug">
+            <div class="object-debug-form" style="width: 25rem">
+                <textarea rows="20" class="form-control code resize-v" style="font-size: 80%;" spellcheck="false"></textarea>
+
+                <hr/>
+
+                <div class="alert alert-warning">
+                    This will override internal pixel data for the object and corrupt things unless you
+                    know what you&lsquo;re doing.
                 </div>
             </div>
         </template>
