@@ -1,4 +1,3 @@
-import type { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
 import type { EditorSettings } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';

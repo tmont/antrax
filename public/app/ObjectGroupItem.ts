@@ -287,7 +287,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
     }
 
     public updateObjectInfo(): void {
-        this.updateThumbnail(); // TODO don't call this from here, it should be called when needed
+        this.updateThumbnail();
         this.syncObjectDetailsUI();
     }
 
