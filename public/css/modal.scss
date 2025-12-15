@@ -28,6 +28,11 @@ $modal-z-index: config.$z-index-modal-overlay;
     border-radius: 4px;
     background-color: config.$bg-color;
 
+    // ensure it doesn't go offscreen
+    max-height: 90vh;
+    max-width: 90vw;
+    overflow: auto;
+
     $modal-padding-x: config.$gutter;
     $modal-padding-y: config.$gutter-half;
 
