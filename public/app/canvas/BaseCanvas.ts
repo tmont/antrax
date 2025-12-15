@@ -42,9 +42,8 @@ export abstract class BaseCanvas<T extends EventArgMap = {}, TRenderOptions exte
     public abstract show(): void;
     public abstract render(options: TRenderOptions): void;
 
-    public getUnderlyingCanvas(): HTMLCanvasElement {
-        // TODO probably remove this and make an actual API for interacting with the canvas
-        return this.$el;
+    public drawImageOnto(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number): void {
+        context.drawImage(this.$el, x, y, width, height);
     }
 
     public getRenderingContext(): CanvasRenderingContext2D {

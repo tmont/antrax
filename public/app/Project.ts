@@ -901,9 +901,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     const shouldRenderBg = isKangaroo || options.uncoloredStyle !== 'transparent';
 
                     if (shouldRenderBg) {
-                        ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), xOffset, yOffset, actualWidth, actualHeight);
+                        canvas.drawBackgroundOnto(ctx, xOffset, yOffset, actualWidth, actualHeight);
                     }
-                    ctx.drawImage(canvas.getUnderlyingEditorCanvas(), xOffset, yOffset, actualWidth, actualHeight);
+                    canvas.drawImageOnto(ctx, xOffset, yOffset, actualWidth, actualHeight);
 
                     if (orientation === 'horizontal') {
                         xOffset += actualWidth + gap;

@@ -445,8 +445,8 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                             if (canvas) {
                                 ctx.clearRect(0, 0, $preview.width, $preview.height);
-                                ctx.drawImage(canvas.getUnderlyingBackgroundCanvas(), 0, 0, $preview.width, $preview.height);
-                                ctx.drawImage(canvas.getUnderlyingEditorCanvas(), 0, 0, $preview.width, $preview.height);
+                                canvas.drawBackgroundOnto(ctx, 0, 0, $preview.width, $preview.height);
+                                canvas.drawImageOnto(ctx, 0, 0, $preview.width, $preview.height);
                             }
 
                             let fps = Number($fpsInput.value) || 0;

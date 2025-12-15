@@ -223,12 +223,14 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         return this.$el.getBoundingClientRect();
     }
 
-    public getUnderlyingBackgroundCanvas(): HTMLCanvasElement {
-        return this.bgCanvas.getUnderlyingCanvas();
-    }
-
-    public getUnderlyingEditorCanvas(): HTMLCanvasElement {
-        return this.$el;
+    public drawBackgroundOnto(
+        context: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+    ): void {
+        this.bgCanvas.drawImageOnto(context, x, y, width, height);
     }
 
     public getName(): string {
@@ -965,8 +967,8 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         $canvas.height = height * scale;
 
         const ctx = get2dContext($canvas);
-        ctx.drawImage(this.bgCanvas.getUnderlyingCanvas(), 0, 0, $canvas.width, $canvas.height);
-        ctx.drawImage(this.$el, 0, 0, $canvas.width, $canvas.height);
+        this.bgCanvas.drawImageOnto(ctx, 0, 0, $canvas.width, $canvas.height);
+        this.drawImageOnto(ctx, 0, 0, $canvas.width, $canvas.height);
     }
 
     private setDrawState(newState: PixelCanvasDrawState): void {
