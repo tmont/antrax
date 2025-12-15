@@ -1,12 +1,12 @@
-import type { ColorPalette } from './ColorPalette.ts';
-import type { ColorPaletteSet } from './ColorPaletteSet.ts';
-import type { Atari7800Color } from './colors.ts';
-import DisplayMode from './DisplayMode.ts';
-import type { EditorSettings } from './Editor.ts';
-import { type SerializationContext, SerializationTypeError } from './errors.ts';
-import { EventEmitter } from './EventEmitter.ts';
-import { Logger } from './Logger';
-import { ObjectGroup } from './ObjectGroup.ts';
+import type { ColorPalette } from '../ColorPalette.ts';
+import type { ColorPaletteSet } from '../ColorPaletteSet.ts';
+import type { Atari7800Color } from '../colors.ts';
+import DisplayMode from '../DisplayMode.ts';
+import type { EditorSettings } from '../Editor.ts';
+import { type SerializationContext, SerializationTypeError } from '../errors.ts';
+import { EventEmitter } from '../EventEmitter.ts';
+import { Logger } from '../Logger';
+import { ObjectGroup } from '../ObjectGroup.ts';
 import {
     clamp,
     CodeGenerationDetailLevel,
@@ -31,7 +31,7 @@ import {
     type PixelInfo,
     type PixelInfoSerialized,
     type Rect
-} from './utils.ts';
+} from '../utils.ts';
 
 interface TransientPixelData {
     coordinate: Coordinate;

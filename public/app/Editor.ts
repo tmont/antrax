@@ -5,7 +5,7 @@ import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
-import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './PixelCanvas.ts';
+import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import {

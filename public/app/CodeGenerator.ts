@@ -1,4 +1,4 @@
-import type { PixelCanvas } from './PixelCanvas.ts';
+import type { PixelCanvas } from './canvas/PixelCanvas.ts';
 import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,

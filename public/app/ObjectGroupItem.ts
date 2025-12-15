@@ -5,7 +5,7 @@ import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import type { ObjectGroup } from './ObjectGroup.ts';
-import { PixelCanvas, type PixelCanvasSerialized } from './PixelCanvas.ts';
+import { PixelCanvas, type PixelCanvasSerialized } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
     chars,

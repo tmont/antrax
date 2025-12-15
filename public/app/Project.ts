@@ -16,7 +16,7 @@ import {
 } from './MultiSelect.ts';
 import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import { ObjectGroupItem } from './ObjectGroupItem.ts';
-import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './PixelCanvas.ts';
+import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
     type AssemblyNumberFormatRadix,
