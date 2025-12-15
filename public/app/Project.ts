@@ -5,6 +5,7 @@ import { copyToClipboard } from './copy.ts';
 import { type EditorSettings, type UndoCheckpoint } from './Editor.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
+import { formatFileSize, formatNumber, formatRelativeTime } from './formatting.ts';
 import { GlobalEvents } from './GlobalEvents.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
@@ -19,6 +20,7 @@ import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import { ObjectGroupItem } from './ObjectGroupItem.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
+import { isValidZoomLevel, zoomLevelLabel } from './utils-zoom.ts';
 import {
     type AssemblyNumberFormatRadix,
     chars,
@@ -31,14 +33,13 @@ import {
     type DisplayModeColorIndex,
     type DisplayModeName,
     type ExportImageOptions,
+    findCanvas,
     findElement,
     findInput,
     findOrDie,
     findSelect,
     findTemplateContent,
     formatAssemblyNumber,
-    formatNumber,
-    formatRelativeTime,
     get2dContext,
     hasAddressLabel,
     type LoadedFile,
@@ -775,7 +776,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
         // only render those at this time. an optimization for another time, though.
         canvases.forEach(canvas => canvas.render());
 
-        const $canvas = findOrDie($modalContent, 'canvas', node => node instanceof HTMLCanvasElement);
+        const $canvas = findCanvas($modalContent, 'canvas');
+        const $info = findElement($modalContent, '.canvas-preview-info');
 
         const $bgColor = findInput($modalContent, '#export-images-bg');
         const $bgAlpha = findInput($modalContent, '#export-images-bg-alpha');
@@ -919,6 +921,17 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             $canvas.style.width = ($canvas.width * scale) + 'px';
             $canvas.style.height = ($canvas.height * scale) + 'px';
+
+            $canvas.toBlob((blob) => {
+                const size = blob?.size || 0;
+                const zoomLabel = isValidZoomLevel(this.editorSettings.zoomLevel) ?
+                    zoomLevelLabel[this.editorSettings.zoomLevel] :
+                    this.editorSettings.zoomLevel.toString();
+                $info.innerText = `${$canvas.width}${chars.times}${$canvas.height} ` +
+                    `${chars.interpunct} ${formatFileSize(size)} ` +
+                    `${chars.interpunct} zoom: ${zoomLabel}x`
+                $info.setAttribute('title', `${size} bytes`);
+            }, 'image/png');
         };
 
         $canvas.addEventListener('click', () => downloadImage());

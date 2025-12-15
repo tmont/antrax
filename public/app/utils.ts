@@ -210,6 +210,7 @@ export interface PixelCanvasDrawStateContext {
 export const chars = {
     ellipsis: String.fromCharCode(0x2026),
     times: String.fromCharCode(0xd7),
+    interpunct: String.fromCharCode(0xb7),
     oneHalf: String.fromCharCode(0xbd),
     oneFourth: String.fromCharCode(0xbc),
     oneEighth: String.fromCharCode(0x215b),
@@ -238,47 +239,5 @@ export interface LoadedFile {
     sizeInflated: number | null;
     loadTime: Date;
 }
-
-const relativeTimeFormatter = new Intl.RelativeTimeFormat([], {
-    style: 'short',
-    numeric: 'auto',
-});
-
-export const formatRelativeTime = (date: Date): string => {
-    const diffMs = date.getTime() - Date.now();
-    const absDiff = Math.abs(diffMs);
-    let value: number;
-    let unit: Intl.RelativeTimeFormatUnit;
-
-    if (absDiff < 60 * 1000) {
-        value = diffMs / 1000;
-        unit = 'second';
-    } else if (absDiff < 60 * 60 * 1000) {
-        value = diffMs / 60 / 1000;
-        unit = 'minute';
-    } else if (absDiff < 24 * 60 * 60 * 1000) {
-        value = diffMs / 24 / 60 / 1000;
-        unit = 'hour';
-    } else if (absDiff < 30 * 24 * 60 * 60 * 1000) {
-        value = diffMs / 24 / 60 / 1000;
-        unit = 'day';
-    } else if (absDiff < 3 * 30 * 24 * 60 * 60 * 1000) {
-        value = diffMs / 7 / 24 / 60 / 1000;
-        unit = 'week';
-    } else if (absDiff < 365 * 24 * 60 * 60 * 1000) {
-        value = diffMs / 30 / 24 / 60 / 1000;
-        unit = 'month';
-    } else {
-        value = diffMs / 365 * 24 * 60 * 60 * 1000;
-        unit = 'year';
-    }
-
-    return relativeTimeFormatter.format(Math.round(value), unit);
-};
-
-const numberFormatter = new Intl.NumberFormat([], {});
-export const formatNumber = (value: number): string => {
-    return numberFormatter.format(value);
-};
 
 export const clamp = (min: number, max: number, value: number): number => Math.max(min, Math.min(max, value));
