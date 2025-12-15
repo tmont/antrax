@@ -556,6 +556,12 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
 
                         seen[`${col},${row}`] = 1;
                         pixels.forEach((coordinate) => {
+                            if (coordinate.y >= this.height || coordinate.x >= this.width) {
+                                // the pixelData array might be larger than the actual canvas size
+                                // since we don't (immediately) prune the pixelData after a resize
+                                return;
+                            }
+
                             const pixel = this.pixelData[coordinate.y]?.[coordinate.x];
                             if (!pixel) {
                                 return;
