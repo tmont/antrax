@@ -177,6 +177,12 @@ export class Popover extends EventEmitter<PopoverEventMap> {
         return popover;
     }
 
+    public static hideAll(): void {
+        while (this.showingInstanceStack.length) {
+            this.hideTopMost();
+        }
+    }
+
     public static topMostContains(target: Node): boolean {
         const topMost = Popover.showingInstanceStack[Popover.showingInstanceStack.length - 1];
         return !!topMost?.$el.contains(target);

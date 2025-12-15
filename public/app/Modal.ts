@@ -1,4 +1,5 @@
 import { EventEmitter } from './EventEmitter.ts';
+import { Popover } from './Popover.ts';
 import { findElement, nope, parseTemplate } from './utils.ts';
 
 export interface ModalActionObjectBase {
@@ -189,16 +190,14 @@ export class Modal extends EventEmitter<ModalEventMap> {
         }
     }
 
-    public static isActive(): boolean {
-        return !!Modal.current;
-    }
-
     public show(): void {
         if (!this.isConnected) {
             document.body.appendChild(this.$el);
         }
 
         this.isConnected = true;
+
+        Popover.hideAll();
 
         this.$el.style.display = 'block';
         if (Modal.$overlay) {
