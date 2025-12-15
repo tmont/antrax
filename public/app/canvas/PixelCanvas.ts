@@ -1724,38 +1724,6 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         this.render();
     }
 
-    /**
-     * Applies a rectangular set of pixel data to a rectangular part of the
-     * canvas. The rectangles do not need to be the same size, the new data
-     * will fit to the given location and discard unused pixels.
-     * @return {int} The number of pixels that were drawn
-     */
-    public applyPartialPixelData(pixelData: PixelInfo[][], location: Rect): number {
-        let drawCount = 0;
-        const totalCount = pixelData.length & (pixelData[0]?.length || 0);
-        for (let i = 0; i < pixelData.length && i < location.height; i++) {
-            const row = pixelData[i]!;
-            let actualRow = location.y + i;
-            for (let j = 0; j < row.length && j < location.width; j++) {
-                const data = row[j]!;
-                let actualCol = location.x + j;
-                if (this.pixelData[actualRow]?.[actualCol]) {
-                    this.pixelData[actualRow][actualCol].modeColorIndex = data.modeColorIndex;
-                    drawCount++;
-                }
-            }
-        }
-
-        this.logger.info(`applied ${drawCount}/${totalCount} pixels from external pixel data`);
-
-        this.render();
-
-        // this is important so that we push onto the undo stack
-        this.emit('pixel_draw_aggregate', { behavior: 'user' });
-
-        return drawCount;
-    }
-
     public getCurrentSelection(): Readonly<PixelCanvasDrawStateContext['selection']> {
         return this.drawContext.selection;
     }
