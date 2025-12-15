@@ -539,6 +539,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const content = findTemplateContent(document, '#modal-content-export-form');
 
         const $modalContent = content.cloneNode(true) as ParentNode;
+        const $warningContainer = findElement($modalContent, '.warning-container');
         const $codeTextarea = findOrDie($modalContent, '.export-code', node => node instanceof HTMLTextAreaElement);
         const $indentTabInput = findInput($modalContent, '#export-indent-tab');
         const $indent4SpacesInput = findInput($modalContent, '#export-indent-spaces-4');
@@ -667,12 +668,17 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.codeGenOptions = options;
 
             const genThunks: Array<() => string> = [];
+            let warnings: string[] = [];
 
             if ($exportHeaderInput.checked) {
                 filteredCanvases.forEach(canvas => genThunks.push(() => canvas.generateHeaderCode(options)));
             }
             if ($exportObjectInput.checked) {
-                genThunks.push(() => CodeGenerator.generate(filteredCanvases, options));
+                genThunks.push(() => {
+                    const { code, warnings: lineWarnings } = CodeGenerator.generate(filteredCanvases, options);
+                    warnings = lineWarnings;
+                    return code;
+                });
             }
             if ($exportPalettesInput.checked) {
                 const paletteSetMap = filteredCanvases.reduce((map, canvas) => {
@@ -687,15 +693,19 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             try {
                 $codeTextarea.value = genThunks.map(thunk => thunk()).join('\n\n');
-                return true;
             } catch (e) {
                 Popover.toast({
                     content: `Code generation failure: ${(e as Error).message}`,
                     type: 'danger',
                 });
+                return false;
             }
 
-            return false;
+            $warningContainer.style.display = warnings.length ? 'block' : 'none';
+            if (warnings.length) {
+                findElement($warningContainer, '.alert-message').innerText = warnings.join('; ');
+            }
+            return true;
         };
 
         if (!generateCode()) {
