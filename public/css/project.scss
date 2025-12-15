@@ -202,10 +202,20 @@
         }
 
         .object-thumbnail {
-            width: $thumbnail-width;
-            height: $thumbnail-width;
-            object-fit: contain;
-            display: block;
+            position: relative;
+
+            &, canvas {
+                width: $thumbnail-width;
+                height: $thumbnail-width;
+            }
+
+            canvas {
+                object-fit: contain;
+                display: block;
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
         }
     }
 

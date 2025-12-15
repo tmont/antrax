@@ -514,6 +514,10 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         this.items.forEach(item => item.updateThumbnail());
     }
 
+    public updateAllThumbnailBackgrounds(): void {
+        this.items.forEach(item => item.updateThumbnailBg());
+    }
+
     public setZoomLevel(forceRender = true): void {
         this.items.forEach(item => item.canvas.setZoomLevel(forceRender));
     }

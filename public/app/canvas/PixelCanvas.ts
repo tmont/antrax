@@ -965,7 +965,11 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         this.eventMap.push([ target, name, listener ]);
     }
 
-    public copyImageToCanvas($canvas: HTMLCanvasElement, maxSize: number = Infinity): void {
+    public copyImageToCanvas(
+        $canvas: HTMLCanvasElement,
+        maxSize: number = Infinity,
+        which: 'both' | 'bg' | 'main' = 'both',
+    ): void {
         const width = this.displayWidth;
         const height = this.displayHeight;
         const maxDimension = Math.max(width, height);
@@ -975,8 +979,12 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         $canvas.height = height * scale;
 
         const ctx = get2dContext($canvas);
-        this.bgCanvas.drawImageOnto(ctx, 0, 0, $canvas.width, $canvas.height);
-        this.drawImageOnto(ctx, 0, 0, $canvas.width, $canvas.height);
+        if (which === 'both' || which === 'bg') {
+            this.bgCanvas.drawImageOnto(ctx, 0, 0, $canvas.width, $canvas.height);
+        }
+        if (which === 'both' || which === 'main') {
+            this.drawImageOnto(ctx, 0, 0, $canvas.width, $canvas.height);
+        }
     }
 
     private setDrawState(newState: PixelCanvasDrawState): void {

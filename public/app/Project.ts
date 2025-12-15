@@ -1151,6 +1151,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public zoomTo(): void {
+        // TODO why forceRender here?
         this.groups.forEach(group => group.setZoomLevel(group === this.activeGroup));
     }
 
@@ -1160,7 +1161,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public setUncoloredPixelBehavior(): void {
         this.canvases.forEach(canvas => canvas.setUncoloredPixelBehavior());
-        this.updateAllThumbnails();
+        this.groups.forEach(group => group.updateAllThumbnailBackgrounds());
     }
 
     public setPixelDimensions(width: number | null, height: number | null): void {

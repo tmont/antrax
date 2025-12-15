@@ -15,7 +15,6 @@ import {
     findInput,
     findOrDie,
     findTemplateContent,
-    get2dContext,
     hasMessage,
     parseTemplate,
     setTextAndTitle
@@ -24,7 +23,10 @@ import {
 const objectItemTmpl = `
 <div class="project-item" data-drag-item="object-group">
     <div class="project-list-item">
-        <canvas class="object-thumbnail" width="32" height="32"></canvas>
+        <div class="object-thumbnail">
+            <canvas class="bg" width="32" height="32"></canvas>
+            <canvas class="main" width="32" height="32"></canvas>
+        </div>
         <div class="item-name clamp-1"></div>
         <div class="item-controls">
             <button type="button" class="btn btn-sm btn-tertiary overflow-btn" title="More actions&hellip;">
@@ -107,7 +109,8 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
     private readonly logger: Logger;
     private $container: HTMLElement;
     private readonly $el: HTMLElement;
-    private readonly $thumbnail: HTMLCanvasElement;
+    private readonly $thumbnailBg: HTMLCanvasElement;
+    private readonly $thumbnailMain: HTMLCanvasElement;
     private initialized = false;
 
     public constructor(options: ObjectGroupItemOptions) {
@@ -117,7 +120,8 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         this.$container = options.mountEl;
         this.$el = parseTemplate(objectItemTmpl);
         this.$el.setAttribute('data-item-id', this.id);
-        this.$thumbnail = findCanvas(this.$el, '.object-thumbnail');
+        this.$thumbnailBg = findCanvas(this.$el, '.object-thumbnail canvas.bg');
+        this.$thumbnailMain = findCanvas(this.$el, '.object-thumbnail canvas.main');
 
         this.logger = Logger.from(this);
     }
@@ -342,7 +346,16 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
     }
 
     public updateThumbnail(): void {
-        this.canvas.copyImageToCanvas(this.$thumbnail, 20);
+        this.updateThumbnailBg();
+        this.updateThumbnailMain();
+    }
+
+    public updateThumbnailMain(): void {
+        this.canvas.copyImageToCanvas(this.$thumbnailMain, 20, 'main');
+    }
+
+    public updateThumbnailBg(): void {
+        this.canvas.copyImageToCanvas(this.$thumbnailBg, 20, 'bg');
     }
 
     public updateObjectInfo(): void {
