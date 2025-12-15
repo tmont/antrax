@@ -153,6 +153,7 @@ export type ProjectEventMap = {
     pixel_draw: [ PixelDrawingEvent, PixelCanvas ];
     pixel_draw_aggregate: [ Pick<PixelDrawingEvent, 'behavior'>, PixelCanvas ];
     canvas_reset: [ PixelCanvas ];
+    canvas_reset_start: [ PixelCanvas ];
     canvas_draw_state_change: [ Readonly<PixelCanvasDrawStateContext>, PixelCanvas ];
     active_object_name_change: [ PixelCanvas ];
     active_group_name_change: [ ObjectGroup ];
@@ -1092,6 +1093,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         canvas.on('pixel_hover', (...args) => {
             this.emit('pixel_hover', ...args, canvas);
         });
+        canvas.on('reset_start', () => this.emit('canvas_reset_start', canvas));
         canvas.on('reset', () => {
             this.emit('canvas_reset', canvas);
         });

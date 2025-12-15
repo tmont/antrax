@@ -307,6 +307,11 @@ export class Editor {
             this.$canvasCoordinates.innerText = `${coordinate.x}, ${coordinate.y}`;
             this.syncSelectionSize();
         });
+
+        // this ensures that clearing an inactive canvas before you've ever activated it
+        // (e.g. after load) can be undone
+        this.project.on('canvas_reset_start', canvas => this.pushUndoItem(canvas));
+
         this.project.on('canvas_reset', (canvas) => {
             this.syncDisplayModeControl(false);
             this.pushUndoItem(canvas);

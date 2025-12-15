@@ -83,6 +83,7 @@ type PixelCanvasEventMap = {
     pixel_draw: [ PixelDrawingEvent ];
     pixel_draw_aggregate: [ Pick<PixelDrawingEvent, 'behavior'> ];
     pixel_hover: [ Coordinate, PixelInfo ];
+    reset_start: [];
     reset: [];
     draw_start: [];
     draw_state_change: [ Readonly<PixelCanvasDrawStateContext> ];
@@ -1374,6 +1375,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
 
     public reset(): void {
         this.logger.debug(`resetting canvas`);
+        this.emit('reset_start');
         this.clear();
         this.fillPixelDataArray(true);
         this.emit('reset');
