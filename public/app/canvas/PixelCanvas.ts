@@ -262,7 +262,8 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
 
         // TODO use same magnification for zoomLevel > 1, speeds up drawing quite a bit at
         // high resolutions on large canvases. problem is the selection/hover style is terrible
-        // due to the dotted line stroke width.
+        // due to the dotted line stroke width. seems to also cause problems with the checkerboard
+        // at certain zoom levels (3x and 5x).
         this.settings.magnificationScale = this.editorSettings.zoomLevel < 1 ?
             1 / this.editorSettings.zoomLevel :
             1;
