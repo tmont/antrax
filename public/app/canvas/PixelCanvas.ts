@@ -455,9 +455,15 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
     }
 
     private selectColorAtPixel(pixel: PixelInfo | null): void {
-        if (typeof pixel?.modeColorIndex === 'number' && pixel.modeColorIndex !== this.activeColor) {
-            this.setActiveColor(pixel.modeColorIndex);
-            this.emit('active_color_change', pixel.modeColorIndex);
+        if (!pixel) {
+            return;
+        }
+
+        // select "color 0" if the pixel contains no color data
+        const selectedColor = pixel.modeColorIndex || 0;
+        if (selectedColor !== this.activeColor) {
+            this.setActiveColor(selectedColor);
+            this.emit('active_color_change', selectedColor);
         }
     }
 
