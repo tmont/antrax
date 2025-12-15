@@ -282,7 +282,7 @@ export class Editor {
             this.syncDisplayModeControl();
 
             const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
-            $displayModeSelect.value = activeCanvas?.getDisplayMode()?.name || 'none';
+            $displayModeSelect.value = activeCanvas?.displayMode.name || 'none';
 
             findElement(this.$canvasSidebar, '.no-selected-object').classList.toggle('hidden', !!activeCanvas);
             findElement(this.$canvasSidebar, '.has-selected-object').classList.toggle('hidden', !activeCanvas);
@@ -522,12 +522,12 @@ export class Editor {
             }
 
             option.disabled = !canvas ||
-                DisplayMode.create(option.value).numColors !== canvas.getDisplayMode().numColors;
+                DisplayMode.create(option.value).numColors !== canvas.displayMode.numColors;
         });
     }
 
     private onPaletteSetChanged(): void {
-        const set = this.activeCanvas?.getColorPaletteSet() || null;
+        const set = this.activeCanvas?.paletteSet || null;
         const $select = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         while ($select.options.length) {
             $select.remove(0);
@@ -548,7 +548,7 @@ export class Editor {
     }
 
     private onDisplayModeChanged(canvas: PixelCanvas): void {
-        const displayMode = canvas.getDisplayMode();
+        const displayMode = canvas.displayMode;
         this.logger.debug('display mode changed to', displayMode.name);
 
         const defaultPixelDimensions = canvas.getPixelDimensions();
@@ -601,9 +601,9 @@ export class Editor {
             return;
         }
 
-        const displayMode = canvas.getDisplayMode();
-        const paletteSet = canvas.getColorPaletteSet();
-        paletteSet.setActivePalette(displayMode.hasSinglePalette ? canvas.getColorPalette() : null);
+        const displayMode = canvas.displayMode;
+        const paletteSet = canvas.paletteSet;
+        paletteSet.setActivePalette(displayMode.hasSinglePalette ? canvas.palette : null);
         paletteSet.setActiveColor(canvas.getColors()[canvas.getActiveColor()]);
     }
 
@@ -614,10 +614,10 @@ export class Editor {
             return;
         }
 
-        const displayMode = canvas.getDisplayMode();
+        const displayMode = canvas.displayMode;
         this.logger.debug(`syncing canvas sidebar colors (displayMode=${displayMode.name})`);
 
-        const palette = canvas.getColorPalette();
+        const palette = canvas.palette;
         const paletteSet = this.paletteSets.getPaletteSets().find(set => set.getPalettes().some(p => p === palette));
         if (!paletteSet) {
             throw new Error(`Could not find PaletteSet for ColorPalette{${palette.id}}`);
@@ -669,7 +669,7 @@ export class Editor {
                     'transparent' :
                     (
                         color.value === 'background' ?
-                           canvas.getColorPaletteSet().getBackgroundColor().hex :
+                           canvas.paletteSet.getBackgroundColor().hex :
                             color.value.palette.getColorAt(color.value.index).hex
                     );
 
@@ -693,7 +693,7 @@ export class Editor {
             return;
         }
 
-        const palette = canvas.getColorPalette();
+        const palette = canvas.palette;
         const $select = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         const index = Array.from($select.options).findIndex(option => option.value === palette.id);
         if (index === -1) {
@@ -708,8 +708,8 @@ export class Editor {
         this.syncCanvasSidebarColors();
         this.syncActivePaletteAndColors();
 
-        const activePaletteSet = canvas.getColorPaletteSet();
-        activePaletteSet.setActivePalette(canvas.getDisplayMode().hasSinglePalette ? palette : null);
+        const activePaletteSet = canvas.paletteSet;
+        activePaletteSet.setActivePalette(canvas.displayMode.hasSinglePalette ? palette : null);
     }
 
     private onCanvasDimensionsChanged(canvas: PixelCanvas): void {
@@ -1430,7 +1430,7 @@ export class Editor {
         const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');
         $paletteSelect.addEventListener('change', () => {
             const paletteId = $paletteSelect.value;
-            const palette = this.activeCanvas?.getColorPaletteSet().getPalettes().find(palette => palette.id === paletteId);
+            const palette = this.activeCanvas?.paletteSet.findPaletteById(paletteId);
             if (!palette) {
                 this.logger.error(`selected palette ${paletteId} not found in active ColorPaletteSet`);
                 return;
@@ -1538,7 +1538,7 @@ export class Editor {
 
         this.copyBuffer.push({
             canvas,
-            displayMode: canvas.getDisplayMode(),
+            displayMode: canvas.displayMode,
             pixelData,
         });
 
@@ -1573,7 +1573,7 @@ export class Editor {
         canvas.clear();
 
         let width = rect.width;
-        const canvasWidthMultiple = canvas.getDisplayMode().pixelsPerByte;
+        const canvasWidthMultiple = canvas.displayMode.pixelsPerByte;
         if (canvasWidthMultiple > 0 && width % canvasWidthMultiple !== 0) {
             width = width + (canvasWidthMultiple - (width % canvasWidthMultiple));
         }
@@ -1600,11 +1600,11 @@ export class Editor {
             return false;
         }
 
-        if (canvas.getDisplayMode() !== copySelection.displayMode) {
+        if (canvas.displayMode !== copySelection.displayMode) {
             Popover.toast({
                 type: 'danger',
                 content: `Cannot apply selection from ${copySelection.displayMode.name} to ` +
-                    `${canvas.getDisplayMode().name} because they have incompatible display modes`,
+                    `${canvas.displayMode.name} because they have incompatible display modes`,
             });
             return false;
         }
@@ -1674,7 +1674,7 @@ export class Editor {
         const { $copy, $crop, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
         $copy.disabled = $crop.disabled = $delete.disabled = $flipV.disabled = disabled;
         $rotate.disabled = true; // rotate not supported yet
-        $flipH.disabled = disabled || !canvas?.getDisplayMode().supportsHorizontalFlip;
+        $flipH.disabled = disabled || !canvas?.displayMode.supportsHorizontalFlip;
         this.syncPasteSelectionAction();
         this.syncDrawModeButtons();
     }
@@ -1684,7 +1684,7 @@ export class Editor {
     }
 
     private getDefaultCanvasOptions(): Omit<CanvasOptions, 'group' | 'palette'> {
-        const paletteSet = this.activeCanvas?.getColorPaletteSet() || this.paletteSets.getPaletteSets()[0];
+        const paletteSet = this.activeCanvas?.paletteSet || this.paletteSets.getPaletteSets()[0];
         if (!paletteSet) {
             throw new Error(`Cannot generate canvas options because there are no palette sets`);
         }

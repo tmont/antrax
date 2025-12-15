@@ -1897,7 +1897,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         let palette: ColorPalette | null = null;
         let paletteSet: ColorPaletteSet | null = null;
         for (let i = 0; i < paletteSets.length; i++) {
-            palette = paletteSets[i]?.getPalettes().find(palette => palette.id === serialized.paletteId) || null;
+            palette = paletteSets[i]?.findPaletteById(serialized.paletteId) || null;
             if (palette) {
                 paletteSet = paletteSets[i]!;
                 break;

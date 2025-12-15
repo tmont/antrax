@@ -495,7 +495,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     public getObjectCountForPaletteSet(paletteSet: ColorPaletteSet): number {
         return this.groups
             .reduce((count, group) => count + group.getItems().reduce(
-                (count, item) => count + (item.canvas.getColorPaletteSet() === paletteSet ? 1 : 0),
+                (count, item) => count + (item.canvas.paletteSet === paletteSet ? 1 : 0),
                 0
             ), 0);
     }
@@ -673,7 +673,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             }
             if ($exportPalettesInput.checked) {
                 const paletteSetMap = filteredCanvases.reduce((map, canvas) => {
-                    const paletteSet = canvas.getColorPaletteSet();
+                    const paletteSet = canvas.paletteSet;
                     map[paletteSet.id] = paletteSet;
                     return map;
                 }, {} as Record<string, ColorPaletteSet>);
@@ -1220,7 +1220,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public setBackgroundColor(paletteSet: ColorPaletteSet): void {
-        this.updateItemAndRenderCanvasByPredicate(canvas => canvas.getColorPaletteSet() === paletteSet);
+        this.updateItemAndRenderCanvasByPredicate(canvas => canvas.paletteSet === paletteSet);
     }
 
     public updatePaletteColor(paletteSet: ColorPaletteSet, palette: ColorPalette): void {
@@ -1230,11 +1230,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         // a display mode+palette, but it seems wasteful to run that logic every time.
         // Another option is to actually cache the current display mode's colors on the
         // canvas, and then this would be free, but that might be some premature optimization.
-        this.updateItemAndRenderCanvasByPredicate(canvas => canvas.getColorPaletteSet() === paletteSet);
+        this.updateItemAndRenderCanvasByPredicate(canvas => canvas.paletteSet === paletteSet);
     }
 
     public updatePaletteSetUI(paletteSet: ColorPaletteSet): void {
-        this.getFilteredItems(canvas => canvas.getColorPaletteSet() === paletteSet)
+        this.getFilteredItems(canvas => canvas.paletteSet === paletteSet)
             .forEach(item => item.syncObjectDetailsUI());
     }
 

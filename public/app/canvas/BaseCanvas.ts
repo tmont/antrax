@@ -120,21 +120,6 @@ export abstract class BaseCanvas<T extends EventArgMap = {}, TRenderOptions exte
         this.ctx.clearRect(0, 0, this.$el.width, this.$el.height);
     }
 
-    // TODO remove this in favor of getter
-    public getDisplayMode(): DisplayMode {
-        return this.settings.displayMode;
-    }
-
-    // TODO remove this and use getter at call sites
-    public getColorPaletteSet(): ColorPaletteSet {
-        return this.paletteSet;
-    }
-
-    // TODO remove this in favor of getter
-    public getColorPalette(): ColorPalette {
-        return this.palette;
-    }
-
     public get palette(): ColorPalette {
         return this.settings.palette;
     }

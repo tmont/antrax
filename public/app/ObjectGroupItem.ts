@@ -267,7 +267,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         $overflowBtn.addEventListener('click', () => {
             // disable "Export ASM" option if it's not supported
             const $exportAsm = findElement($overflowContent, '[data-action="export-asm"]');
-            $exportAsm.classList.toggle('disabled', !canvas.getDisplayMode().canExportToASM);
+            $exportAsm.classList.toggle('disabled', !canvas.canExportToASM());
             overflowPopover.show($overflowBtn);
         });
 
@@ -299,7 +299,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
 
         findElement($el, '.canvas-size').innerText = `${width}${chars.times}${height}`;
 
-        const displayMode = canvas.getDisplayMode();
+        const displayMode = canvas.displayMode;
         findElement($el, '.display-mode-name').innerText = displayMode.name;
 
         const $paletteName = findElement($el, '.palette-name');
@@ -309,7 +309,7 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
 
         $displayModeDetails.style.display = displayMode.hasSinglePalette ? '' : 'none';
         $noDisplayModeDetails.style.display = displayMode.hasSinglePalette ? 'none' : '';
-        const paletteSet = canvas.getColorPaletteSet();
+        const paletteSet = canvas.paletteSet;
         $el.querySelectorAll('.palette-set-name').forEach(($setName) => {
             ($setName as HTMLElement).innerText = paletteSet.getShortName();
             $setName.setAttribute('title', `Palette set: ${paletteSet.getName()}`);
@@ -322,9 +322,10 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         $colorList.innerHTML = '';
 
         if (displayMode.hasSinglePalette) {
-            $paletteName.innerText = canvas.getColorPalette().name;
+            const palette = canvas.palette;
+            $paletteName.innerText = palette.name;
 
-            canvas.getColorPalette().colors.forEach((color) => {
+            palette.colors.forEach((color) => {
                 const $swatch = document.createElement('div');
                 $swatch.classList.add('color-swatch');
                 $swatch.style.backgroundColor = color.hex;

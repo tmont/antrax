@@ -519,12 +519,6 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         this.items.forEach(item => item.canvas.setZoomLevel(forceRender));
     }
 
-    public syncPaletteColors(palette: ColorPalette): void {
-        this.items
-            .filter(item => item.canvas.getColorPalette() === palette)
-            .forEach(item => item.syncPaletteColors());
-    }
-
     public toJSON(): ObjectGroupSerialized {
         return {
             id: this.id,

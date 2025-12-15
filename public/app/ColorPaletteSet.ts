@@ -120,6 +120,10 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         return this.palettes;
     }
 
+    public findPaletteById(paletteId: string | number): ColorPalette | null {
+        return this.palettes.find(palette => palette.id === String(paletteId)) || null;
+    }
+
     public getBackgroundColor(): Atari7800Color {
         return this.backgroundColor;
     }
