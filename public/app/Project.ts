@@ -106,10 +106,10 @@ const projectOverflowTmpl = `
         </div>
     </li>
     <li class="dropdown-item divider"></li>
-    <li class="dropdown-item"><a href="#" data-action="export-asm" class="disabled"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
+    <li class="dropdown-item"><a href="#" data-action="export-asm"><i class="fa-solid fa-fw fa-code icon"></i>Export ASM&hellip;</a></li>
     <li class="dropdown-item"><a href="#" data-action="export-images"><i class="fa-solid fa-fw fa-images icon"></i>Export spritesheet&hellip;</a></li>
     <li class="dropdown-item divider"></li>
-    <li class="dropdown-item"><a href="#" data-action="new" class="disabled"><i class="fa-solid fa-fw fa-folder-plus icon"></i>New project&hellip;</a></li>
+    <li class="dropdown-item"><a href="#" data-action="new"><i class="fa-solid fa-fw fa-folder-plus icon"></i>New project&hellip;</a></li>
 </ul>
 `;
 
@@ -169,6 +169,7 @@ export type ProjectEventMap = {
     action_add_object: [];
     action_load: [ File ];
     action_save: [ HTMLElement ];
+    action_new_project: [];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -357,6 +358,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
                         this.emit('action_save', $projectName);
                         break;
                     // "load" is handled by the input[type="file"] event listener
+                    case 'new':
+                        this.emit('action_new_project');
+                        break;
                     default:
                         this.logger.error(`unknown project overflow action: "${action}"`);
                         break;

@@ -148,6 +148,14 @@ interface SelectionButtons {
 
 type CopyBuffer = CopiedCanvasData[];
 
+const defaultSettings: Readonly<EditorSettings> = {
+    showGrid: false,
+    zoomLevel: 3,
+    uncoloredPixelBehavior: 'color0',
+    kangarooMode: false,
+    drawMode: 'draw',
+};
+
 export class Editor {
     private project: Project | null = null;
     private readonly logger: Logger;
@@ -218,11 +226,7 @@ export class Editor {
         };
 
         this.settings = options.settings || {
-            showGrid: false,
-            zoomLevel: 3,
-            uncoloredPixelBehavior: 'color0',
-            kangarooMode: false,
-            drawMode: 'draw',
+            ...defaultSettings,
         };
 
         this.paletteSets = new ColorPaletteSetCollection({
@@ -299,8 +303,7 @@ export class Editor {
             const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
             $displayModeSelect.value = activeCanvas?.displayMode.name || 'none';
 
-            findElement(this.$canvasSidebar, '.no-selected-object').classList.toggle('hidden', !!activeCanvas);
-            findElement(this.$canvasSidebar, '.has-selected-object').classList.toggle('hidden', !activeCanvas);
+            this.syncCanvasSidebarVisibility();
         });
 
         const onCanvasPixelsChanged = (e: { behavior: PixelDrawingBehavior }, canvas: PixelCanvas) => {
@@ -436,8 +439,37 @@ export class Editor {
                 this.load(await file.arrayBuffer(), loadedFile);
             }
         });
+        this.project.on('action_new_project', () => {
+            const modal = Modal.confirm(
+                {
+                    title: 'Create new project',
+                    type: 'danger',
+                    contentText: 'Creating a new project will discard all unsaved work. Proceed?',
+                },
+                () => {
+                    const emptySerialized: EditorSerialized = {
+                        paletteSetCollection: {
+                            paletteSets: [],
+                        },
+                        project: null,
+                        settings: {
+                            ...defaultSettings,
+                        },
+                    };
+                    this.loadJson(emptySerialized);
+                },
+            );
+
+            modal.show();
+        });
 
         this.updateObjectStats();
+    }
+
+    private syncCanvasSidebarVisibility(): void {
+        const activeCanvas = this.activeCanvas;
+        findElement(this.$canvasSidebar, '.no-selected-object').classList.toggle('hidden', !!activeCanvas);
+        findElement(this.$canvasSidebar, '.has-selected-object').classList.toggle('hidden', !activeCanvas);
     }
 
     private updateObjectStats(): void {
@@ -1881,7 +1913,7 @@ export class Editor {
             throw new SerializationTypeError(context, '<root>', 'object', json);
         }
 
-        if (!json.project || typeof json.project !== 'object') {
+        if (json.project && typeof json.project !== 'object') {
             throw new SerializationTypeError(context, 'project', 'object', json.project);
         }
         if (!json.paletteSetCollection || typeof json.paletteSetCollection !== 'object') {
@@ -1963,6 +1995,10 @@ export class Editor {
             );
 
             this.setProject(project);
+        } else {
+            const project = this.createProject('My Project');
+            this.setProject(project);
+            project.emit('canvas_activate', null);
         }
 
         this.undoContext = {};
@@ -1976,6 +2012,8 @@ export class Editor {
         this.updateUncolorPixelBehaviorUI();
         this.updateKangarooModeUI();
         this.setDrawMode(this.settings.drawMode, true);
+        // this.syncCanvasSidebarColors();
+        // this.syncDrawModeButtons();
 
         this.logger.info(`load successful in ${Date.now() - start}ms`);
     }
