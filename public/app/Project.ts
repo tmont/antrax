@@ -9,13 +9,7 @@ import { formatFileSize, formatNumber, formatRelativeTime } from './formatting.t
 import { GlobalEvents } from './GlobalEvents.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
-import {
-    isItemGroup,
-    MultiSelect,
-    type MultiSelectItem,
-    type MultiSelectItemGroup,
-    type MultiSelectItemSingle
-} from './MultiSelect.ts';
+import { isItemGroup } from './MultiSelect.ts';
 import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import { ObjectGroupItem } from './ObjectGroupItem.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './canvas/PixelCanvas.ts';
@@ -517,63 +511,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.emit('canvas_activate', this.activeItem?.canvas || null);
     }
 
-    private getFilteredMultiSelectItems(
-        canvases: PixelCanvas[],
-        $objectFilter: HTMLElement,
-        onSelect: () => void,
-    ): MultiSelectItem[] {
-        const groupMap = canvases.reduce((groupMap, canvas) => {
-            const group = canvas.getGroup();
-            if (!groupMap.has(group)) {
-                groupMap.set(group, []);
-            }
-
-            groupMap.get(group)!.push(canvas);
-            return groupMap;
-        }, new Map<ObjectGroup, PixelCanvas[]>());
-
-        const filterItems = groupMap.entries()
-            .reduce((items, [ group, canvases ]): MultiSelectItem[] => {
-                items.push({
-                    id: group.id,
-                    groupLabel: group.getName(),
-                } as MultiSelectItemGroup);
-
-                canvases.forEach((canvas) => {
-                    items.push({
-                        selected: true,
-                        label: canvas.getName(),
-                        id: canvas.id,
-                        group: group.id,
-                    } as MultiSelectItemSingle);
-                });
-
-                return items;
-            }, []);
-
-        // show object filter only if there is more than one object
-        if (canvases.length > 1) {
-            const objectFilter = new MultiSelect({
-                $mount: $objectFilter,
-                defaultLabel: 'Choose objects' + chars.ellipsis,
-            });
-
-            objectFilter.setItems(filterItems);
-            objectFilter.init();
-
-            objectFilter.on('select', onSelect);
-            objectFilter.on('unselect', onSelect);
-        } else {
-            const $na = document.createElement('span');
-            $na.innerText = 'n/a';
-            $na.classList.add('text-muted');
-            $objectFilter.insertAdjacentElement('afterend', $na);
-            $objectFilter.remove();
-        }
-
-        return filterItems;
-    }
-
     /**
      * @param canvases If omitted, defaults to the active canvas
      */
@@ -631,7 +568,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         $detailNoneInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.None;
         $prependGroupInput.checked = this.codeGenOptions.prependGroup;
 
-        const filterItems = this.getFilteredMultiSelectItems(
+        const filterItems = PixelCanvas.getFilteredMultiSelectItems(
             canvases,
             findElement($modalContent, '.export-asm-object-filter'),
             () => generateCode(),
@@ -841,7 +778,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             $input.addEventListener('change', () => generateImages());
         });
 
-        const filterItems = this.getFilteredMultiSelectItems(
+        const filterItems = PixelCanvas.getFilteredMultiSelectItems(
             canvases,
             findElement($modalContent, '.export-asm-object-filter'),
             () => generateImages(),

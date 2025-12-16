@@ -3,6 +3,12 @@ import type { ColorPaletteSet } from '../ColorPaletteSet.ts';
 import DisplayMode from '../DisplayMode.ts';
 import type { EditorSettings } from '../Editor.ts';
 import { type SerializationContext, SerializationTypeError } from '../errors.ts';
+import {
+    MultiSelect,
+    type MultiSelectItem,
+    type MultiSelectItemGroup,
+    type MultiSelectItemSingle
+} from '../MultiSelect.ts';
 import { ObjectGroup } from '../ObjectGroup.ts';
 import { toPascalCase } from '../utils-string.ts';
 import {
@@ -1902,6 +1908,63 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         code.push('*/');
 
         return code.join('\n');
+    }
+
+    public static getFilteredMultiSelectItems(
+        canvases: PixelCanvas[],
+        $objectFilter: HTMLElement,
+        onSelect: () => void,
+    ): MultiSelectItem[] {
+        const groupMap = canvases.reduce((groupMap, canvas) => {
+            const group = canvas.getGroup();
+            if (!groupMap.has(group)) {
+                groupMap.set(group, []);
+            }
+
+            groupMap.get(group)!.push(canvas);
+            return groupMap;
+        }, new Map<ObjectGroup, PixelCanvas[]>());
+
+        const filterItems = groupMap.entries()
+            .reduce((items, [ group, canvases ]): MultiSelectItem[] => {
+                items.push({
+                    id: group.id,
+                    groupLabel: group.getName(),
+                } as MultiSelectItemGroup);
+
+                canvases.forEach((canvas) => {
+                    items.push({
+                        selected: true,
+                        label: canvas.getName(),
+                        id: canvas.id,
+                        group: group.id,
+                    } as MultiSelectItemSingle);
+                });
+
+                return items;
+            }, []);
+
+        // show object filter only if there is more than one object
+        if (canvases.length > 1) {
+            const objectFilter = new MultiSelect({
+                $mount: $objectFilter,
+                defaultLabel: 'Choose objects' + chars.ellipsis,
+            });
+
+            objectFilter.setItems(filterItems);
+            objectFilter.init();
+
+            objectFilter.on('select', onSelect);
+            objectFilter.on('unselect', onSelect);
+        } else {
+            const $na = document.createElement('span');
+            $na.innerText = 'n/a';
+            $na.classList.add('text-muted');
+            $objectFilter.insertAdjacentElement('afterend', $na);
+            $objectFilter.remove();
+        }
+
+        return filterItems;
     }
 
     public clone(): PixelCanvas {

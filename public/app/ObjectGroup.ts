@@ -4,10 +4,12 @@ import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
+import { isItemGroup } from './MultiSelect.ts';
 import { ObjectGroupItem, type ObjectGroupItemOptions, type ObjectGroupItemSerialized } from './ObjectGroupItem.ts';
 import { PixelCanvas } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
+    clamp,
     findCanvas,
     findElement,
     findInput,
@@ -409,9 +411,9 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                         let currentFrame = 0;
                         const content = findTemplateContent(document, '#modal-content-animate-form');
-                        const $el = content.cloneNode(true) as ParentNode;
-                        const $fpsInput = findInput($el, '#animate-fps');
-                        const $preview = findCanvas($el, 'canvas');
+                        const $modalContent = content.cloneNode(true) as ParentNode;
+                        const $fpsInput = findInput($modalContent, '#animate-fps');
+                        const $preview = findCanvas($modalContent, 'canvas');
                         const ctx = get2dContext($preview);
 
                         const firstCanvas = canvases[0];
@@ -425,12 +427,13 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         $preview.width = width * scale;
                         $preview.height = height * scale;
 
-                        const $objectList = findElement($el, '.animate-form-object-list');
+                        const $objectList = findElement($modalContent, '.animate-form-object-list');
                         $objectList.innerHTML = '';
                         $objectList.style.maxWidth = `${maxSize}px`;
                         canvases.forEach((canvas, i) => {
                             const $canvas = document.createElement('canvas');
                             $canvas.setAttribute('title', `[${i}] ${canvas.getName()}`);
+                            $canvas.setAttribute('data-object-id', canvas.id);
                             canvas.copyImageToCanvas($canvas, 48);
                             $objectList.appendChild($canvas);
                         });
@@ -439,25 +442,50 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                         const maxFPS = Number($fpsInput.max) || 30;
                         const minFPS = Number($fpsInput.min) || 1;
+
+                        let filteredCanvases: PixelCanvas[] = canvases.concat([]);
+
+                        const filterItems = PixelCanvas.getFilteredMultiSelectItems(
+                            canvases,
+                            findElement($modalContent, '.animate-form-object-filter'),
+                            () => {
+                                filteredCanvases = canvases.concat([])
+                                    .filter(canvas => filterItems.some(item => item.id === canvas.id && !isItemGroup(item) && item.selected));
+
+                                $objectList.querySelectorAll('[data-object-id]').forEach(($canvas) => {
+                                    if (!($canvas instanceof HTMLElement)) {
+                                        return;
+                                    }
+
+                                    const canvasId = $canvas.getAttribute('data-object-id') || '';
+                                    $canvas.style.display = filterItems.some(item => item.id === canvasId && !isItemGroup(item) && item.selected) ?
+                                        '' :
+                                        'none';
+                                });
+                            },
+                        );
+
                         const drawFrame = () => {
-                            const canvas = canvases[currentFrame];
+                            const canvas = filteredCanvases[currentFrame];
 
                             if (canvas) {
                                 ctx.clearRect(0, 0, $preview.width, $preview.height);
                                 canvas.drawBackgroundOnto(ctx, 0, 0, $preview.width, $preview.height);
                                 canvas.drawImageOnto(ctx, 0, 0, $preview.width, $preview.height);
+                                currentFrame = (currentFrame + 1) % filteredCanvases.length;
+                            } else {
+                                currentFrame = 0;
                             }
 
-                            let fps = Number($fpsInput.value) || 0;
-                            fps = Math.min(maxFPS, Math.max(minFPS, fps));
-                            $fpsInput.value = fps.toString();
-
-                            currentFrame = (currentFrame + 1) % canvases.length;
-                            const lastFrame = Date.now();
-                            const waitMs = (1 / fps) * 1000;
+                            const lastFrameAt = Date.now();
 
                             const wait = () => {
-                                if (Date.now() - lastFrame >= waitMs) {
+                                const fps = clamp(minFPS, maxFPS, Number($fpsInput.value) || 0);
+                                if ($fpsInput.value !== fps.toString()) {
+                                    $fpsInput.value = fps.toString();
+                                }
+                                const nextFrameAt = lastFrameAt + ((1 / fps) * 1000);
+                                if (Date.now() >= nextFrameAt) {
                                     drawFrame();
                                     return;
                                 }
@@ -472,7 +500,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                             type: 'default',
                             title: `Animating ${this.name}`,
                             actions: 'close',
-                            contentHtml: $el,
+                            contentHtml: $modalContent,
                         });
 
                         modal.show();
