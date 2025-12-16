@@ -1,3 +1,27 @@
+## v0.3.0 (2025-12-15)
+- Implemented the __move__ draw mode (shortcut `M`)
+- Pasting onto the canvas now pastes automatically at `[0, 0]` and goes into
+  __move__ draw mode with pasted content selected
+- Transparent checkerboard pattern is now always square and does not scale
+  with the zoom level
+- Added "Debug" menu action for editing an object's raw pixel data structure
+- __Fill__ mode no longer fills off-canvas pixels that remain after a resize
+- Fixed thumbnails sometimes going blank and not updating properly
+- Modal dialogs will no longer go offscreen on small windows
+- Eye-dropper color selector can now select uncolored pixels (will select
+  color 0)
+- Image export modal now shows dimensions, size and zoom level
+- All popovers are now closed whenever a modal is opened
+- Fixed a "clear" action not being undo-able if the canvas has not been 
+  activated (e.g. after being loaded from an external file)
+- A warning is now shown when exporting ASM if the sum of the byte widths
+  exceeds 256
+- Added object filter to image export
+- Added option to prepend group name to object labels when exporting ASM
+- Added overflow menu in top gutter for active canvas selections
+    - Contains _Undo_, _Redo_ and _Rotate_
+- Implemented _rotate_ action for rotating the active canvas 90° clockwise
+
 ## v0.2.2 (2025-12-09)
 - Fixed modal dimensions shifting when changing form values in animation
   and image export dialogs
