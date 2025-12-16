@@ -157,12 +157,6 @@
                 flex-basis: $thumbnail-width;
                 flex-grow: 0;
                 flex-shrink: 0;
-                opacity: 0.75;
-                cursor: move;
-                transition: opacity linear 100ms;
-                &:hover {
-                    opacity: 1;
-                }
             }
 
             .object-details {

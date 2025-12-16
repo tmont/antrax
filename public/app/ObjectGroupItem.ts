@@ -21,7 +21,7 @@ import {
 } from './utils.ts';
 
 const objectItemTmpl = `
-<div class="project-item" data-drag-item="object-group">
+<div class="project-item" data-drag-item="object-item">
     <div class="project-list-item">
         <div class="object-thumbnail">
             <canvas class="bg" width="32" height="32"></canvas>

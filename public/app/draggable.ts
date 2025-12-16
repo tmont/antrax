@@ -9,6 +9,7 @@ export interface DragState {
 
 const logger = new Logger({ name: 'Draggable' });
 const activeItemClass = 'draggable-active-item';
+const activeTargetClass = 'draggable-active';
 const globalDraggingClass = 'draggable-dragging';
 
 export const enableDraggableItems = (): void => {
@@ -89,6 +90,8 @@ export const enableDraggableItems = (): void => {
             logger.debug(`drag ended for "${dragState.type}"`);
             GlobalEvents.instance.emit('draggable_end', { $item: dragState.item, type: dragState.type });
             dragState.item.classList.remove(activeItemClass);
+            document.body.querySelectorAll(`[data-empty-drop-target="${dragState.type}"]`)
+                .forEach((el) => el.classList.remove(activeTargetClass));
             dragState = null;
         }
     };
@@ -126,6 +129,8 @@ export const enableDraggableItems = (): void => {
 
         document.body.classList.add(globalDraggingClass);
         draggable.classList.add(activeItemClass);
+        document.body.querySelectorAll(`[data-empty-drop-target="${name}"]`)
+            .forEach((el) => el.classList.add(activeTargetClass));
 
         document.addEventListener('mousemove', onDragging);
         document.addEventListener('mouseup', onDragEnd);

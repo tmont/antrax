@@ -64,7 +64,7 @@ const tmpl = `
             <a href="#" class="loaded-file-link clamp-1"></a>
         </div>
     </div>
-    <div class="project-objects"></div>
+    <div class="project-objects" data-empty-drop-target="object-group"></div>
 </div>
 `;
 
@@ -425,7 +425,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         GlobalEvents.instance.on(`draggable_reorder.${this.eventNamespace}`, (e) => {
             const { $item: $element, type } = e;
-            if (type !== 'object-group') {
+            if (type !== 'object-item') {
                 return;
             }
 
@@ -472,6 +472,46 @@ export class Project extends EventEmitter<ProjectEventMap> {
             }
 
             currentGroup.moveItem(item, newGroup, sibling, e.order);
+        });
+
+        GlobalEvents.instance.on(`draggable_reorder.${this.eventNamespace}`, (e) => {
+            const { $item: $element, type } = e;
+            if (type !== 'object-group') {
+                return;
+            }
+
+            const groupId = $element.getAttribute('data-group-id');
+            if (!groupId) {
+                this.logger.error(`draggable element does not have data-group-id attribute`, $element);
+                return;
+            }
+
+            const currentGroup = this.groups.find(group => group.id === groupId);
+            if (!currentGroup) {
+                this.logger.error(`dragged group "${groupId}" not found in project.groups`);
+                return;
+            }
+
+            let sibling: ObjectGroup | null = null;
+            if (e.sibling) {
+                const siblingId = e.sibling.getAttribute('data-group-id');
+                if (siblingId) {
+                    sibling = this.groups.find(group => group.id === siblingId) || null;
+                }
+            }
+
+            if (!sibling) {
+                this.logger.debug(`dragged group has no sibling in drop target`, currentGroup);
+                return;
+            }
+
+            const currentIndex = this.groups.indexOf(currentGroup);
+            const newIndex = this.groups.indexOf(sibling);
+            this.groups.splice(currentIndex, 1);
+            this.groups.splice(newIndex, 0, currentGroup);
+
+            this.logger.info('new group order:',
+                this.groups.map(group => group.getName()).join(` ${chars.rightArrow} `));
         });
 
         this.$mountEl.appendChild(this.$el);

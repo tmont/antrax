@@ -9,6 +9,7 @@ import { ObjectGroupItem, type ObjectGroupItemOptions, type ObjectGroupItemSeria
 import { PixelCanvas } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
+    chars,
     clamp,
     findCanvas,
     findElement,
@@ -34,10 +35,11 @@ export interface ObjectGroupSerialized {
 }
 
 const objectGroupTmpl = `
-<div class="project-item-group">
+<div class="project-item-group" data-drag-item="object-group">
     <div class="group-item project-list-item section-item">
         <div class="group-name-container">
             <i class="fa-solid fa-chevron-up collapse-icon"></i>
+            <i class="icon fa-solid fa-grip" title="re-order this group" data-drag-handle></i>
             <header class="group-name clamp-1"></header>
         </div>
         <div class="item-controls">
@@ -46,7 +48,7 @@ const objectGroupTmpl = `
             </button>
         </div>
     </div>
-    <div class="group-items" data-empty-drop-target="object-group"></div>
+    <div class="group-items" data-empty-drop-target="object-item"></div>
 </div>
 `;
 
@@ -189,7 +191,8 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
             }
         }
 
-        this.logger.debug(`new item order:`, this.items.map(item => item.canvas.getName()).join(' → '));
+        this.logger.debug(`new item order:`,
+            this.items.map(item => item.canvas.getName()).join(` ${chars.rightArrow} `));
 
         return true;
     }
