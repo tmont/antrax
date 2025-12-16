@@ -6,6 +6,7 @@ import { type SerializationContext, SerializationTypeError } from '../errors.ts'
 import { ObjectGroup } from '../ObjectGroup.ts';
 import { toPascalCase } from '../utils-string.ts';
 import {
+    chars,
     clamp,
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
@@ -81,6 +82,7 @@ export interface PixelDrawingEvent {
 }
 
 type PixelCanvasEventMap = {
+    rotate: [];
     pixel_draw: [ PixelDrawingEvent ];
     pixel_draw_aggregate: [ Pick<PixelDrawingEvent, 'behavior'> ];
     pixel_hover: [ Coordinate, PixelInfo ];
@@ -1748,6 +1750,39 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         }
 
         this.render();
+    }
+
+    public rotatePixelData(): void {
+        this.logger.info(`rotating 90${chars.degree} clockwise`);
+        const newPixelData: PixelInfo[][] = [];
+
+        // rotate 90deg clockwise
+        for (let y = 0; y < this.height; y++) {
+            const row = this.pixelData[y];
+            if (!row) {
+                continue;
+            }
+
+            for (let x = 0; x < this.width; x++) {
+                const pixel = row[x];
+                if (!pixel) {
+                    continue;
+                }
+
+                // noinspection JSSuspiciousNameCombination
+                const newX = y;
+                const newY = this.width - 1 - x;
+                newPixelData[newY] = newPixelData[newY] || [];
+                newPixelData[newY]![newX] = pixel;
+            }
+        }
+
+        // NOTE: this renders twice due to the events in both of these functions, but i can't
+        // be bothered right now
+        // noinspection JSSuspiciousNameCombination
+        this.setDimensions(this.height, this.width);
+        this.setPixelData(newPixelData);
+        this.emit('rotate');
     }
 
     public getCurrentSelection(): Readonly<PixelCanvasDrawStateContext['selection']> {

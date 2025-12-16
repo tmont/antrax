@@ -149,6 +149,7 @@ export interface ProjectOptions {
 }
 
 export type ProjectEventMap = {
+    canvas_rotate: [ PixelCanvas ];
     canvas_activate: [ PixelCanvas | null ];
     pixel_hover: [ Coordinate, PixelInfo, PixelCanvas ];
     pixel_draw: [ PixelDrawingEvent, PixelCanvas ];
@@ -1184,6 +1185,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         canvas.on('draw_state_change', (newState) => {
             this.emit('canvas_draw_state_change', newState, canvas);
         });
+        canvas.on('rotate', () => this.emit('canvas_rotate', canvas));
     }
 
     public updateNameUI(): void {

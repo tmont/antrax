@@ -115,13 +115,13 @@ const zoomFormTmpl = `
 const selectionMoreTmpl = `
 <ul class="list-unstyled dropdown-menu">
     <li class="dropdown-item">
-        <a href="#" data-action="undo"><i class="fa-solid fa-fw fa-reply icon" title="[Ctrl+Z]"></i>Undo</a>
+        <a href="#" data-action="undo" title="[Ctrl+Z]"><i class="fa-solid fa-fw fa-reply icon"></i>Undo</a>
     </li>
     <li class="dropdown-item">
-        <a href="#" data-action="redo"><i class="fa-solid fa-fw fa-reply fa-rotate-180 icon" title="[Ctrl+Shift+Z] or [Ctrl+Y]"></i>Redo</a>
+        <a href="#" data-action="redo" title="[Ctrl+Shift+Z] or [Ctrl+Y]"><i class="fa-solid fa-fw fa-reply fa-rotate-180 icon"></i>Redo</a>
     </li>
     <li class="dropdown-item">
-        <a href="#" data-action="rotate" class="disabled"><i class="fa-solid fa-fw fa-rotate-left icon" title="[Shift+G]"></i>Rotate</a>
+        <a href="#" data-action="rotate" title="[Shift+G]"><i class="fa-solid fa-fw fa-rotate-left icon"></i>Rotate</a>
     </li>
 </ul>
 `;
@@ -327,6 +327,7 @@ export class Editor {
         // (e.g. after load) can be undone
         this.project.on('canvas_reset_start', canvas => this.pushUndoItem(canvas));
 
+        this.project.on('canvas_rotate', canvas => this.pushUndoItem(canvas));
         this.project.on('canvas_reset', (canvas) => {
             this.syncDisplayModeControl(false);
             this.pushUndoItem(canvas);
@@ -1148,6 +1149,11 @@ export class Editor {
                 return;
             }
 
+            if (e.shiftKey && e.key.toLocaleLowerCase() === 'g') {
+                this.activeCanvas?.rotatePixelData();
+                return;
+            }
+
             if (e.key.toLowerCase() === 'w' || e.key.toLowerCase() === 's' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
                 // select prev/next color
                 const activeCanvas = this.activeCanvas;
@@ -1498,7 +1504,7 @@ export class Editor {
 
             $undo.classList.toggle('disabled', !undoContext || undoContext.current <= 0);
             $redo.classList.toggle('disabled', !undoContext || undoContext.current >= undoContext.stack.length - 1);
-            $rotate.classList.toggle('disabled', true); // not implemented yet
+            $rotate.classList.toggle('disabled', !this.activeCanvas);
         };
 
         morePopover.on('show', syncMoreActions);
@@ -1517,7 +1523,8 @@ export class Editor {
                         syncMoreActions();
                         break;
                     case 'rotate':
-                        throw new Error('not implemented yet');
+                        this.activeCanvas?.rotatePixelData();
+                        break;
                 }
             });
         });
@@ -1959,6 +1966,8 @@ export class Editor {
 
         this.undoContext = {};
         this.emptyCopyBuffer();
+        // must come before project initialization so that the active canvas is properly detected
+        this.syncSelectionActions(null);
         this.paletteSets.init();
         this.project?.init();
         this.updateZoomLevelUI();
@@ -1966,7 +1975,6 @@ export class Editor {
         this.updateUncolorPixelBehaviorUI();
         this.updateKangarooModeUI();
         this.setDrawMode(this.settings.drawMode, true);
-        this.syncSelectionActions(null);
 
         this.logger.info(`load successful in ${Date.now() - start}ms`);
     }

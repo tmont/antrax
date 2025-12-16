@@ -209,6 +209,7 @@ export interface PixelCanvasDrawStateContext {
 }
 
 export const chars = {
+    degree: String.fromCharCode(0xb0),
     ellipsis: String.fromCharCode(0x2026),
     times: String.fromCharCode(0xd7),
     interpunct: String.fromCharCode(0xb7),
