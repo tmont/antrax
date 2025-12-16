@@ -1060,7 +1060,7 @@ export class Editor {
                 }
 
                 if (Modal.current) {
-                    Modal.current.hide();
+                    Modal.current.destroy();
                     return;
                 }
             }
