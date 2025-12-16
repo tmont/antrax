@@ -154,6 +154,7 @@ export interface CodeGenerationOptionsBase {
     commentLevel: ValueOf<typeof CodeGenerationDetailLevel>;
     paletteSet: boolean;
     padToHeight?: number;
+    prependGroup: boolean;
 }
 
 export interface CodeGenerationOptionsLabel extends CodeGenerationOptionsBase {

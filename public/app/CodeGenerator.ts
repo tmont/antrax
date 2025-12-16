@@ -57,14 +57,16 @@ export class CodeGenerator {
                     return;
                 }
 
+                const label = data.canvas.getASMLabel(options.prependGroup);
+
                 // NOTE: this heavily assumes that one chunk = one byte
                 sumWidth += chunks.length;
 
                 if (row === data.lines.length - 1) {
                     // first appearance of this object, needs a label
-                    code.push(`${data.canvas.asmLabel}${options.labelColon ? ':' : ''}`);
+                    code.push(`${label}${options.labelColon ? ':' : ''}`);
                 } else if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
-                    code.push(`; ${data.canvas.asmLabel}`);
+                    code.push(`; ${label}`);
                 }
 
                 code.push(...chunks);

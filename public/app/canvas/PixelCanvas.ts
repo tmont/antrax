@@ -4,6 +4,7 @@ import DisplayMode from '../DisplayMode.ts';
 import type { EditorSettings } from '../Editor.ts';
 import { type SerializationContext, SerializationTypeError } from '../errors.ts';
 import { ObjectGroup } from '../ObjectGroup.ts';
+import { toPascalCase } from '../utils-string.ts';
 import {
     clamp,
     CodeGenerationDetailLevel,
@@ -1757,12 +1758,8 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         return !!this.drawContext.selection && this.drawContext.movedData.length > 0;
     }
 
-    public get asmLabel(): string {
-        return this.name
-            .split(' ')
-            .map(word => (word[0]?.toUpperCase() + word.slice(1)).replace(/\W/ig, '') || '')
-            .filter(Boolean)
-            .join('');
+    public getASMLabel(prependGroup = false): string {
+        return toPascalCase((prependGroup ? this.group.getName() + ' ' : '') + this.name);
     }
 
     public generateByteLineChunks(options: CodeGenerationOptions): string[][] {
@@ -1862,7 +1859,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
 
         const code = [
             `/* ${this.name}${headerSegments.length ? ` (${headerSegments.join(', ')})` : ''}`,
-            `${indent}Address:       ${this.asmLabel}`,
+            `${indent}Address:       ${this.getASMLabel(options.prependGroup)}`,
             `${indent}Palette/Width: ${byte2}${paletteSegments.length ? ` (${paletteSegments.join(', ')})` : ''}`,
             ...paletteExtra,
         ];

@@ -200,7 +200,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.$stats = findElement(this.$el, '.project-stats');
         this.groups = options.groups || [];
         this.activeItem = options.activeItem || null;
-        this.codeGenOptions = options.codeGenOptions || {
+        this.codeGenOptions = {
             addressOffset: 0xc00,
             addressOffsetRadix: 16,
             byteRadix: 2,
@@ -210,6 +210,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             labelColon: false,
             object: true,
             paletteSet: true,
+            prependGroup: false,
+            ...options.codeGenOptions,
         };
         this.exportImagesOptions = options.exportImagesOptions || {
             backgroundColor: '#17181C',
@@ -611,6 +613,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const $detailLotsInput = findInput($modalContent, '#export-detail-level-lots');
         const $detailSomeInput = findInput($modalContent, '#export-detail-level-some');
         const $detailNoneInput = findInput($modalContent, '#export-detail-level-none');
+        const $prependGroupInput = findInput($modalContent, '#export-prepend-group');
 
         // sync form inputs with previous options
         $indentTabInput.checked = this.codeGenOptions.indentChar === '\t';
@@ -628,6 +631,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         $detailLotsInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.Lots;
         $detailSomeInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.Some;
         $detailNoneInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.None;
+        $prependGroupInput.checked = this.codeGenOptions.prependGroup;
 
         const filterItems = this.getFilteredMultiSelectItems(
             canvases,
@@ -652,6 +656,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                     CodeGenerationDetailLevel.Lots :
                     ($detailSomeInput.checked ? CodeGenerationDetailLevel.Some : CodeGenerationDetailLevel.None),
                 paletteSet: $exportPalettesInput.checked,
+                prependGroup: $prependGroupInput.checked,
             };
 
             let byteOffsetRaw = $addressInput.value;
@@ -739,6 +744,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             $detailLotsInput,
             $detailSomeInput,
             $detailNoneInput,
+            $prependGroupInput,
         ]
             .forEach((input) => {
                 input.addEventListener('change', generateCode);

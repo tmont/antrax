@@ -348,8 +348,7 @@
             <div class="export-form" style="width: 35em">
                 <table class="form">
                     <tr>
-                        <th>Export:</th>
-                        <td colspan="5">
+                        <td colspan="3">
                             <input type="checkbox" id="export-header" checked autocomplete="off"/>
                             <label for="export-header">Header info</label>
                             <input type="checkbox" id="export-object" checked autocomplete="off"/>
@@ -357,10 +356,7 @@
                             <input type="checkbox" id="export-palettes" checked autocomplete="off"/>
                             <label for="export-palettes">Palettes</label>
                         </td>
-                    </tr>
-                    <tr>
-                        <th>Indent char:</th>
-                        <td colspan="5">
+                        <td colspan="3" style="font-size: 90%">
                             <input type="radio" id="export-indent-tab" value="tab" name="export-indent" autocomplete="off"/>
                             <label for="export-indent-tab">TAB</label>
                             <input type="radio" id="export-indent-spaces-4" value="4 spaces" name="export-indent" autocomplete="off" checked/>
@@ -371,13 +367,16 @@
                     </tr>
                     <tr>
                         <th>Detail:</th>
-                        <td colspan="5">
+                        <td colspan="2">
                             <input type="radio" id="export-detail-level-lots" value="lots" name="export-detail-level" autocomplete="off" checked />
                             <label for="export-detail-level-lots">Lots</label>
                             <input type="radio" id="export-detail-level-some" value="some" name="export-detail-level" autocomplete="off" />
                             <label for="export-detail-level-some">Some</label>
                             <input type="radio" id="export-detail-level-none" value="none" name="export-detail-level" autocomplete="off"/>
                             <label for="export-detail-level-none">None</label>
+                        </td>
+                        <td colspan="3">
+                            <div class="export-asm-object-filter"></div>
                         </td>
                     </tr>
                     <tr>
@@ -388,29 +387,30 @@
                                    id="export-address"
                                    value="$C000"
                                    autocomplete="off"
+                                   style="max-width: 12em"
                                    required />
                         </td>
-                        <th><label for="export-address-label">Label:</label></th>
                         <td>
                             <input type="checkbox" id="export-address-label" autocomplete="off" />
+                            <label for="export-address-label">w/ label</label>
                         </td>
-                        <th><label for="export-label-colon">Label colon:</label></th>
-                        <td>
-                            <input type="checkbox" id="export-label-colon" autocomplete="off"/>
+                        <td colspan="2">
+                            <input type="checkbox" id="export-prepend-group" autocomplete="off"/>
+                            <label for="export-prepend-group">Prepend group</label>
                         </td>
                     </tr>
                     <tr>
-                        <th><label for="export-byte-radix">Byte format:</label></th>
+                        <td colspan="2">
+                            <input type="checkbox" id="export-label-colon" autocomplete="off"/>
+                            <label for="export-label-colon">Label colon</label>
+                        </td>
+                        <th colspan="2"><label for="export-byte-radix">Byte format:</label></th>
                         <td>
                             <select id="export-byte-radix" class="form-control">
                                 <option value="2" selected>Binary</option>
                                 <option value="10">Decimal</option>
                                 <option value="16">Hex</option>
                             </select>
-                        </td>
-                        <th>Objects:</th>
-                        <td colspan="3">
-                            <div class="export-asm-object-filter"></div>
                         </td>
                     </tr>
                     <tr>
