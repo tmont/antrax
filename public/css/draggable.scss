@@ -23,7 +23,7 @@ body.draggable-dragging {
 
     [data-drag-item].draggable-active-item {
         filter: contrast(125%);
-        background-color: rgba($active-bg, 0.1);
+        background-color: rgba($active-bg, 0.08);
     }
 
     [data-empty-drop-target].draggable-active {
@@ -41,12 +41,12 @@ body.draggable-dragging {
                 135deg,
                 transparent,
                 transparent 10px,
-                rgba($active-bg, 0.06) 10px,
-                rgba($active-bg, 0.06) 20px
+                rgba($active-bg, 0.04) 10px,
+                rgba($active-bg, 0.04) 20px
             );
             background-size: 200% 200%;
             pointer-events: none;
-            animation: drop-target 10s linear infinite;
+            animation: drop-target 15s linear infinite;
         }
     }
 }
