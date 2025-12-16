@@ -37,6 +37,7 @@ main() {
           "${rootDir}/public/index.html" \
           "${rootDir}/public/fonts/" \
           "${rootDir}/public/images/" \
+          "${rootDir}/public/assets/" \
           "${releaseDir}/public"
 
         local changelogContent
