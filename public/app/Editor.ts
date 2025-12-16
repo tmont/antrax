@@ -200,7 +200,7 @@ export class Editor {
         this.$canvasHeightInput = findInput(this.$gutterBottom, '#option-canvas-height');
         this.$canvasCoordinates = findElement(this.$gutterTop, '.current-coordinates');
         this.$selectionSize = findElement(this.$gutterTop, '.selection-size');
-        this.$canvasLocation = findElement(this.$gutterTop, '.canvas-location');
+        this.$canvasLocation = findElement(this.$gutterTop, '.canvas-location-container');
         this.$activeGroupName = findElement(this.$gutterTop, '.breadcrumb .active-group-name');
         this.$activeObjectName = findElement(this.$gutterTop, '.breadcrumb .active-object-name');
         this.$canvasSidebar = findElement(this.$el, '.canvas-sidebar');
@@ -472,7 +472,8 @@ export class Editor {
 
         // when zooming we re-position the canvas using fancy math so we get sub=pixels. don't
         // need to show that nonsense in the UI, though.
-        this.$canvasLocation.innerText = `${Math.round(coordinate.x)}, ${Math.round(coordinate.y)}`;
+        findElement(this.$canvasLocation, '.canvas-location').innerText =
+            `${Math.round(coordinate.x)}, ${Math.round(coordinate.y)}`;
     }
 
     public pushUndoItem(canvas: PixelCanvas): void {
