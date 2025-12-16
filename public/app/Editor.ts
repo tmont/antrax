@@ -2,6 +2,7 @@ import { ColorPaletteSet } from './ColorPaletteSet.ts';
 import { ColorPaletteSetCollection, type ColorPaletteSetCollectionSerialized } from './ColorPaletteSetCollection.ts';
 import DisplayMode from './DisplayMode.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
+import { formatFileSize } from './formatting.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
@@ -1787,7 +1788,7 @@ export class Editor {
                 .blob()
                 .then((blob) => {
                     file.sizeInflated = blob.size;
-                    this.logger.debug(`file inflated to ${(blob.size / 1024).toFixed(1)}KB`);
+                    this.logger.debug(`file inflated to ${formatFileSize(blob.size)}`);
                     return blob.text();
                 })
                 .then(stringified => this.loadJson(JSON.parse(stringified)))

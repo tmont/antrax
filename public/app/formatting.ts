@@ -44,17 +44,20 @@ export const formatFileSize = (numBytes: number): string => {
     let unit: string;
     let value = numBytes;
 
-    if (value < 1024) {
+    const kilobyte = 1000;
+    const megabyte = kilobyte ** 2;
+    const gigabyte = kilobyte ** 3;
+    if (value < kilobyte) {
         unit = 'byte';
-    } else if (value < 1024 * 1024) {
+    } else if (value < megabyte) {
         unit = 'kilobyte';
-        value /= 1024;
-    } else if (value < 1024 * 1024 * 1024) {
+        value /= kilobyte;
+    } else if (value < gigabyte) {
         unit = 'megabyte';
-        value /= 1024 / 1024;
+        value /= megabyte;
     } else {
         unit = 'gigabyte';
-        value /= 1024 / 1024 / 1024;
+        value /= gigabyte;
     }
 
     const fileSizeFormatter = new Intl.NumberFormat([], {

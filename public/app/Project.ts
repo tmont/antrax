@@ -329,8 +329,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             overflowPopover.hide();
 
             const filename = file.name;
-            const sizeKb = (file.size / 1024).toFixed(1);
-            this.logger.info(`selected file ${filename} (${file.type}), ${sizeKb}KB`);
+            this.logger.info(`selected file ${filename} (${file.type}), ${formatFileSize(file.size)}`);
             this.emit('action_load', file);
         });
 
@@ -402,16 +401,14 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             findElement($loadedFileInfo, '.filename').innerText = this.loadedFile.name;
 
-            const kb = (this.loadedFile.size / 1024).toFixed(1);
             const $size = findElement($loadedFileInfo, '.filesize');
             $size.setAttribute('title', formatNumber(this.loadedFile.size) + ' bytes');
-            $size.innerText = kb + 'KB';
+            $size.innerText = formatFileSize(this.loadedFile.size);
 
             const $sizeInflated = findElement($loadedFileInfo, '.filesize-inflated');
             if (this.loadedFile.sizeInflated) {
-                const kb = (this.loadedFile.sizeInflated / 1024).toFixed(1);
                 $sizeInflated.setAttribute('title', formatNumber(this.loadedFile.sizeInflated) + ' bytes');
-                $sizeInflated.innerText = kb + 'KB';
+                $sizeInflated.innerText = formatFileSize(this.loadedFile.sizeInflated);
             } else {
                 $sizeInflated.innerText = 'n/a';
                 $sizeInflated.removeAttribute('title');
