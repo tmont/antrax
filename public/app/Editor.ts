@@ -112,6 +112,20 @@ const zoomFormTmpl = `
 </form>
 `;
 
+const selectionMoreTmpl = `
+<ul class="list-unstyled dropdown-menu">
+    <li class="dropdown-item">
+        <a href="#" data-action="undo"><i class="fa-solid fa-fw fa-reply icon" title="[Ctrl+Z]"></i>Undo</a>
+    </li>
+    <li class="dropdown-item">
+        <a href="#" data-action="redo"><i class="fa-solid fa-fw fa-reply fa-rotate-180 icon" title="[Ctrl+Shift+Z] or [Ctrl+Y]"></i>Redo</a>
+    </li>
+    <li class="dropdown-item">
+        <a href="#" data-action="rotate" class="disabled"><i class="fa-solid fa-fw fa-rotate-left icon" title="[Shift+G]"></i>Rotate</a>
+    </li>
+</ul>
+`;
+
 export interface UndoCheckpoint {
     pixelData: PixelCanvas['pixelData'];
     canvasDimensions: Dimensions;
@@ -126,7 +140,7 @@ interface SelectionButtons {
     readonly $copy: HTMLButtonElement;
     readonly $crop: HTMLButtonElement;
     readonly $delete: HTMLButtonElement;
-    readonly $rotate: HTMLButtonElement;
+    readonly $more: HTMLButtonElement;
     readonly $flipV: HTMLButtonElement;
     readonly $flipH: HTMLButtonElement;
     readonly $paste: HTMLButtonElement;
@@ -197,10 +211,10 @@ export class Editor {
             $copy: findButton(this.$gutterTop, btnSelector('copy')),
             $crop: findButton(this.$gutterTop, btnSelector('crop')),
             $delete: findButton(this.$gutterTop, btnSelector('delete')),
-            $rotate: findButton(this.$gutterTop, btnSelector('rotate')),
             $flipH: findButton(this.$gutterTop, btnSelector('flip-h')),
             $flipV: findButton(this.$gutterTop, btnSelector('flip-v')),
             $paste: findButton(this.$gutterTop, btnSelector('paste')),
+            $more: findButton(this.$gutterTop, btnSelector('more')),
         };
 
         this.settings = options.settings || {
@@ -1469,6 +1483,46 @@ export class Editor {
         this.selectionButtons.$flipH.addEventListener('click', () => this.flipActiveSelection('horizontal'));
         this.selectionButtons.$paste.addEventListener('click', () => this.pasteCopyBuffer());
 
+        const $moreContent = parseTemplate(selectionMoreTmpl);
+        const morePopover = new Popover({
+            dropdown: true,
+            content: $moreContent,
+        });
+
+        const syncMoreActions = (): void => {
+            const $undo = findElement($moreContent, '[data-action="undo"]');
+            const $redo = findElement($moreContent, '[data-action="redo"]');
+            const $rotate = findElement($moreContent, '[data-action="rotate"]');
+
+            const undoContext = this.undoContext[this.activeCanvas?.id || ''];
+
+            $undo.classList.toggle('disabled', !undoContext || undoContext.current <= 0);
+            $redo.classList.toggle('disabled', !undoContext || undoContext.current >= undoContext.stack.length - 1);
+            $rotate.classList.toggle('disabled', true); // not implemented yet
+        };
+
+        morePopover.on('show', syncMoreActions);
+        $moreContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
+            anchor.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const action = anchor.getAttribute('data-action');
+                switch (action) {
+                    case 'undo':
+                        this.applyCurrentCheckpoint();
+                        syncMoreActions();
+                        break;
+                    case 'redo':
+                        this.applyCurrentCheckpoint(true);
+                        syncMoreActions();
+                        break;
+                    case 'rotate':
+                        throw new Error('not implemented yet');
+                }
+            });
+        });
+        this.selectionButtons.$more.addEventListener('click', () => morePopover.show(this.selectionButtons.$more));
+
         this.$canvasLocation.addEventListener('click', () => {
             const coordinate: Coordinate = {
                 x: 64,
@@ -1677,9 +1731,9 @@ export class Editor {
         const isSelected = drawState === 'selected';
         const disabled = !canvas || !isActiveCanvas || !isSelected;
 
-        const { $copy, $crop, $delete, $rotate, $flipH, $flipV } = this.selectionButtons;
+        const { $copy, $crop, $delete, $more, $flipH, $flipV } = this.selectionButtons;
         $copy.disabled = $crop.disabled = $delete.disabled = $flipV.disabled = disabled;
-        $rotate.disabled = true; // rotate not supported yet
+        $more.disabled = !canvas;
         $flipH.disabled = disabled || !canvas?.displayMode.supportsHorizontalFlip;
         this.syncPasteSelectionAction();
         this.syncDrawModeButtons();
