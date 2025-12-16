@@ -1,3 +1,7 @@
+## v0.3.1 (2025-12-16)
+- Fixed `Esc` keyboard shortcut not deselecting if a modal was opened
+  previously
+
 ## v0.3.0 (2025-12-15)
 - Implemented the __move__ draw mode (shortcut `M`)
 - Pasting onto the canvas now pastes automatically at `[0, 0]` and goes into
