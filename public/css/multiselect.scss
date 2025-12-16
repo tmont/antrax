@@ -6,6 +6,8 @@
         gap: config.$gutter-quarter;
         align-items: center;
         cursor: pointer;
+        justify-content: space-between;
+        width: 100%;
 
         .multiselect-target-label {
             display: flex;

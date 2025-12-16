@@ -4,15 +4,15 @@ import { Popover } from './Popover.ts';
 import { chars, findElement, parseTemplate } from './utils.ts';
 
 const tmpl = `
-<button class="multiselect btn btn-tertiary">
-    <div class="multiselect-target">
+<div class="multiselect">
+    <button class="multiselect-target btn btn-tertiary multi">
         <div class="multiselect-target-label">
             <div class="label clamp-1"></div>
             <div class="extra"></div>
         </div>
         <i class="fa-solid fa-caret-down caret"></i>
-    </div>
-</button>
+    </button>
+</div>
 `;
 const menuTmpl = `<ol class="list-unstyled multiselect-item-list dropdown-menu"></ol>`;
 
