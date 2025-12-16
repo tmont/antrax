@@ -123,10 +123,13 @@
         border-top-left-radius: 3px;
         border-bottom-left-radius: 3px;
         cursor: pointer;
+        opacity: 0.75;
+        transition: opacity linear 150ms;
 
         $thumbnail-width: 1.25rem;
 
         &:hover {
+            opacity: 1;
             &:not(&.active) {
                 background-color: rgba(config.$accent-bg, 0.5);
             }
@@ -136,6 +139,7 @@
             background-color: config.$canvas-sidebar-bg;
             border-color: config.$border-color;
             cursor: default;
+            opacity: 1;
 
             .item-name {
                 color: config.$primary-color;
