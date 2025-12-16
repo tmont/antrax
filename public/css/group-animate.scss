@@ -3,11 +3,14 @@
 .animate-form {
     flex: 1;
 
+    .animate-form-scrolling-list {
+        overflow: auto;
+    }
+
     .animate-form-object-list {
         display: flex;
         align-items: center;
         padding: config.$gutter-quarter 0;
         gap: config.$gutter-quarter;
-        overflow-x: auto;
     }
 }
