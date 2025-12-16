@@ -1,0 +1,110 @@
+@use "./config";
+
+.empty-project-hero {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("/images/bg-mario.png");
+    background-repeat: repeat;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: (config.$gutter * 4);
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.75);
+
+    .hero-container {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter;
+    }
+
+    .hero-text {
+        font-size: 150%;
+        text-align: center;
+    }
+
+    .row {
+        display: flex;
+        gap: (config.$gutter * 2);
+        justify-content: space-around;
+        align-items: flex-start;
+
+    }
+    .col, .aside-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter;
+    }
+
+    em {
+        color: config.$success-color;
+    }
+
+    .example-project-list {
+        display: flex;
+        justify-content: space-between;
+        gap: config.$gutter-half;
+
+        a {
+            flex: 1 0 0;
+            display: flex;
+            color: inherit;
+            text-decoration: none;
+            opacity: 0.85;
+            transition: opacity linear 150ms;
+
+            &:hover {
+                opacity: 1;
+            }
+
+            figure {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: config.$gutter-quarter;
+                width: 100%;
+
+                .image-container {
+                    width: 75%;
+                    aspect-ratio: 1/1;
+                    border: 2px solid config.$border-color;
+                    border-radius: 3px;
+                    box-shadow:
+                        2px 2px 2px rgba(0, 0, 0, 0.25),
+                        2px 2px 5px rgba(0, 0, 0, 0.5);
+
+                    img {
+                        display: block;
+                        object-fit: cover;
+                        border-radius: 2px;
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+
+                figcaption {
+                    font-size: 85%;
+                    font-weight: bold;
+                }
+            }
+        }
+    }
+
+    aside {
+        font-size: 90%;
+        color: config.$muted-color;
+        text-shadow: none;
+        margin-top: config.$gutter;
+        display: flex;
+        justify-content: center;
+
+        .aside-container {
+            max-width: 75%;
+        }
+    }
+}

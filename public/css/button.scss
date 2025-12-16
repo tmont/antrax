@@ -79,6 +79,11 @@
         cursor: not-allowed;
     }
 
+    &.btn-lg {
+        padding: config.$gutter-quarter config.$gutter-half;
+        font-size: 125%;
+    }
+
     &.btn-sm {
         padding: config.$gutter-eighth config.$gutter-quarter;
         font-size: 80%;

@@ -31,7 +31,6 @@ import {
     findButton,
     findElement,
     findInput,
-    findOrDie,
     findSelect,
     findTemplateContent,
     getColorValueCombinedLabel,
@@ -304,6 +303,7 @@ export class Editor {
             $displayModeSelect.value = activeCanvas?.displayMode.name || 'none';
 
             this.syncCanvasSidebarVisibility();
+            this.syncEmptyProjectHeroVisibility();
         });
 
         const onCanvasPixelsChanged = (e: { behavior: PixelDrawingBehavior }, canvas: PixelCanvas) => {
@@ -470,6 +470,12 @@ export class Editor {
         const activeCanvas = this.activeCanvas;
         findElement(this.$canvasSidebar, '.no-selected-object').classList.toggle('hidden', !!activeCanvas);
         findElement(this.$canvasSidebar, '.has-selected-object').classList.toggle('hidden', !activeCanvas);
+    }
+
+    private syncEmptyProjectHeroVisibility(): void {
+        findElement(this.$el, '.empty-project-hero').style.display = this.project?.hasItems() ?
+            'none' :
+            '';
     }
 
     private updateObjectStats(): void {
@@ -957,12 +963,9 @@ export class Editor {
         this.paletteSets.init();
         this.project.init();
 
-        findElement(this.$canvasSidebar, '.new-object-btn').addEventListener('click', () => {
-            if (!this.project) {
-                return;
-            }
-
-            this.project.createObjectInNewGroup(this.getDefaultCanvasOptions());
+        this.$el.querySelectorAll('.main-content .new-object-btn').forEach(($btn) => {
+            $btn.addEventListener('click', () =>
+                this.project?.createObjectInNewGroup(this.getDefaultCanvasOptions()));
         });
 
         const canvasContainer = findElement(this.$el, '.canvas-container');
@@ -1430,42 +1433,73 @@ export class Editor {
             });
         });
 
-        const infoContent = findTemplateContent(document, '#modal-content-help');
+        const $kbdContent = findTemplateContent(document, '#modal-content-keyboard-shortcuts');
+        const $changelogContent = findTemplateContent(document, '#modal-content-changelog');
 
-        findOrDie(document, '.help-link', node => node instanceof HTMLAnchorElement)
-            .addEventListener('click', (e) => {
-                e.preventDefault();
+        type LinkContent = [ string, string, DocumentFragment | HTMLElement ];
 
-                const modal = Modal.create({
-                    contentHtml: infoContent.cloneNode(true),
-                    actions: 'close',
-                    title: 'Info',
-                    type: 'default',
+        const metaLinks: LinkContent[] = [
+            [ 'Keyboard and mouse shortcuts', '.keyboard-link', $kbdContent ],
+            [ 'Help!', '.help-link', parseTemplate(`<p>I need somebody! Not just anybody!</p>`) ],
+            [ 'Changelog', '.changelog-link', $changelogContent ],
+        ];
+
+        metaLinks.forEach(([ title, selector, $content ]) => {
+            this.$el.querySelectorAll(`a${selector}`).forEach(($anchor) => {
+                $anchor.addEventListener('click', (e) => {
+                    e.preventDefault();
+
+                    const modal = Modal.create({
+                        contentHtml: $content.cloneNode(true),
+                        actions: 'close',
+                        title,
+                        type: 'default',
+                    });
+
+                    modal.on('action', () =>  modal.destroy());
+                    modal.show();
                 });
-
-                modal.on('action', () => {
-                    modal.destroy();
-                });
-                modal.show();
             });
+        });
 
-        const changelogContent = findTemplateContent(document, '#modal-content-changelog');
-        findOrDie(document, '.changelog-link', node => node instanceof HTMLAnchorElement)
-            .addEventListener('click', (e) => {
+        // empty project example links
+        let inFlight = false;
+        this.$el.querySelectorAll<HTMLAnchorElement>('.example-project-list a').forEach(($anchor) => {
+            $anchor.addEventListener('click', async (e) => {
                 e.preventDefault();
+                const assetUrl = new URL($anchor.href);
+                if (assetUrl.pathname === '#') {
+                    return;
+                }
 
-                const modal = Modal.create({
-                    contentHtml: changelogContent.cloneNode(true),
-                    actions: 'close',
-                    title: 'Changelog',
-                    type: 'default',
-                });
+                let data: Blob;
+                inFlight = true;
 
-                modal.on('action', () => {
-                    modal.destroy();
+                try {
+                    const res = await fetch(assetUrl);
+                    data = await res.blob();
+                } catch (e) {
+                    this.logger.error(`failed to load example project from "${assetUrl}"`, e);
+                    const msg = hasMessage(e) ? e.message : 'unknown error';
+                    Popover.toast({
+                        type: 'danger',
+                        content: `Failed to fetch example project "${assetUrl}: ${msg}"`,
+                    });
+                    return;
+                } finally {
+                    inFlight = false;
+                }
+
+                this.logger.info(`loading example project from "${assetUrl}"`);
+                const filename = assetUrl.pathname.replace(/\/.+?\//, '');
+                this.load(data, {
+                    loadTime: new Date(),
+                    name: filename,
+                    size: data.size,
+                    sizeInflated: null,
                 });
-                modal.show();
             });
+        });
 
         const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
         $displayModeSelect.addEventListener('change', () => {
@@ -2012,8 +2046,6 @@ export class Editor {
         this.updateUncolorPixelBehaviorUI();
         this.updateKangarooModeUI();
         this.setDrawMode(this.settings.drawMode, true);
-        // this.syncCanvasSidebarColors();
-        // this.syncDrawModeButtons();
 
         this.logger.info(`load successful in ${Date.now() - start}ms`);
     }

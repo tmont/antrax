@@ -1281,6 +1281,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
         canvas.setPixelData(checkpoint.pixelData);
     }
 
+    public hasItems(): boolean {
+        return this.groups.some(group => group.hasItems());
+    }
+
     public toJSON(): ProjectSerialized {
         return {
             name: this.name,

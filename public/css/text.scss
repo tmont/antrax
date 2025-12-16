@@ -8,6 +8,10 @@
     color: config.$primary-color !important;
 }
 
+.text-secondary {
+    color: config.$secondary-color !important;
+}
+
 .text-danger {
     color: config.$danger-color !important;
 }
@@ -22,4 +26,12 @@
 
 .text-muted {
     color: config.$muted-color;
+}
+
+.text-antrax {
+    font-weight: bold;
+    color: transparent !important;
+    background-clip: text;
+    background-image: linear-gradient(to right, #82450b, #bca73c, #aeeb64, #629fd9, #5e48ce);
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2) !important;
 }

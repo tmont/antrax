@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Atari 7800 Graphics Editor</title>
+        <title>Antrax: Atari 7800 Graphics Editor</title>
         <link rel="stylesheet" href="/app.css" />
         <link rel="shortcut icon" href="/images/logo.png" />
     </head>
@@ -10,7 +10,11 @@
         <div class="app">
             <div class="main-sidebar">
                 <div class="app-logo project-header">
-                    <span>Antrax <code>v$VERSION$</code> <small class="text-muted">(<code>$COMMIT$</code>)</small></span>
+                    <span>
+                        <span class="text-antrax">Antrax</span>
+                        <code>v$VERSION$</code>
+                        <small class="text-muted">(<code>$COMMIT$</code>)</small>
+                    </span>
                 </div>
                 <div class="project-container"></div>
             </div>
@@ -144,6 +148,106 @@
 
                         <div class="canvas-container">
                             <div class="canvas-area"></div>
+                            <div class="empty-project-hero">
+                                <div class="hero-container">
+                                    <p class="hero-text">
+                                        Your project is empty and therefore quite sad. Here are some things
+                                        to do:
+                                    </p>
+
+                                    <hr />
+
+                                    <div class="row">
+                                        <div class="col">
+                                            <p>
+                                                Graphics are organized into <em><strong>groups</strong></em> and
+                                                <em><strong>objects</strong></em>. An <em>object</em> is the actual
+                                                graphic, the <em>group</em> is just to make them easier to find.
+                                            </p>
+                                            <p>
+                                                Press this button to create a new
+                                                <em>group</em> and <em>object</em> and start drawing stuff.
+                                            </p>
+                                            <p style="text-align: center">
+                                                <button type="button" class="btn btn-lg btn-success new-object-btn">
+                                                    <i class="fa-solid fa-add"></i>
+                                                    Object
+                                                </button>
+                                            </p>
+                                        </div>
+                                        <div class="col">
+                                            <p>
+                                                Starting from scratch is hard and doing hard stuff is exhausting.
+                                                Try loading an example project to learn how
+                                                <span class="text-antrax">Antrax</span> works.
+                                            </p>
+
+                                            <p>
+                                                Or maybe just look at some pretty pictures.
+                                            </p>
+
+                                            <div class="example-project-list">
+                                                <a href="/assets/example-crystalis.json.gz">
+                                                    <figure>
+                                                        <div class="image-container">
+                                                            <img src="/images/example/example-crystalis.png"
+                                                                 alt="Screenshot for the Crystalis example project" />
+                                                        </div>
+                                                        <figcaption>
+                                                            <span class="title">Crystalis</span> (NES)
+                                                        </figcaption>
+                                                    </figure>
+                                                </a>
+
+                                                <a href="/assets/example-dragon-warrior.json.gz">
+                                                    <figure>
+                                                        <div class="image-container">
+                                                            <img src="/images/example/example-dragon-warrior.png"
+                                                                 alt="Screenshot for the Dragon Warrior example project"/>
+                                                        </div>
+                                                        <figcaption>
+                                                            <span class="title">Dragon Warrior</span> (NES)
+                                                        </figcaption>
+                                                    </figure>
+                                                </a>
+
+                                                <a href="/assets/example-mario-bros.json.gz">
+                                                    <figure>
+                                                        <div class="image-container">
+                                                            <img src="/images/example/example-mario-bros.png"
+                                                                 alt="Screenshot for the Mario Bros. example project"/>
+                                                        </div>
+                                                        <figcaption>
+                                                            <span class="title">Mario Bros.</span> (Atari 7800)
+                                                        </figcaption>
+                                                    </figure>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <hr />
+
+                                    <aside>
+                                        <div class="aside-container">
+                                            <p>
+                                                There are many shortcuts to make things easier and
+                                                more efficient. Press the keyboard button
+                                                <a class="keyboard-link" href="#"><i class="fa-solid fa-keyboard"></i></a>
+                                                to view them.
+                                            </p>
+                                            <p>
+                                                While you can use <span class="text-antrax">Antrax</span> for
+                                                generic pixel art, it is optimized to make things easier when
+                                                creating graphics for the Atari 7800. Which can be quite confusing.
+                                                Press the help button
+                                                <a class="help-link" href="#"><i class="fa-solid fa-circle-question"></i></a>
+                                                for more information about why things are the way they are.
+                                            </p>
+                                        </div>
+                                    </aside>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -151,8 +255,11 @@
                 <div class="canvas-gutter bottom">
                     <div class="app-links gutter-list">
                         <div class="link-list">
-                            <a class="help-link" href="#" title="Help and keyboard shortcuts">
+                            <a class="help-link" href="#" title="Help!">
                                 <i class="fa-solid fa-circle-question"></i></a>
+
+                            <a class="keyboard-link" href="#" title="Application shortcuts">
+                                <i class="fa-solid fa-keyboard"></i></a>
 
                             <a class="changelog-link" href="#" title="Changelog">
                                 <i class="fa-solid fa-list"></i></a>
@@ -211,7 +318,7 @@
 
         <div class="modal-overlay"></div>
 
-        <template id="modal-content-help">
+        <template id="modal-content-keyboard-shortcuts">
             <div class="col">
                 <section>
                     <header>Canvas interactions</header>
