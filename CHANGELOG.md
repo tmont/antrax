@@ -24,7 +24,8 @@
 - Added option to prepend group name to object labels when exporting ASM
 - Added overflow menu in top gutter for active canvas selections
     - Contains _Undo_, _Redo_ and _Rotate_
-- Implemented _rotate_ action for rotating the active canvas 90° clockwise
+- Implemented _rotate_ action for rotating the active canvas 90° 
+  counter-clockwise
 
 ## v0.2.2 (2025-12-09)
 - Fixed modal dimensions shifting when changing form values in animation

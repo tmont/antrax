@@ -1760,10 +1760,10 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
     }
 
     public rotatePixelData(): void {
-        this.logger.info(`rotating 90${chars.degree} clockwise`);
+        this.logger.info(`rotating 90${chars.degree} counter-clockwise`);
         const newPixelData: PixelInfo[][] = [];
 
-        // rotate 90deg clockwise
+        // rotate 90deg counter-clockwise
         for (let y = 0; y < this.height; y++) {
             const row = this.pixelData[y];
             if (!row) {
