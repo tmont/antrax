@@ -1,3 +1,14 @@
+## v0.3.2 (2025-12-16)
+- Fixed preview objects in animation dialog not using full width
+- Bullseye icon in top gutter now does something when you click on it
+- Added object filter to animation form
+- "New project" menu item now creates a new project instead of being disabled
+- Added ability to re-order groups the same you can re-order objects
+- Can now re-order groups and objects on mobile
+- Fixed my own confusion about which way "clockwise" goes
+- Added example projects and a "first-run" experience
+- Added sweet Atari 7800-style gradient to "Antrax" text
+
 ## v0.3.1 (2025-12-16)
 - Fixed `Esc` keyboard shortcut not deselecting if a modal was opened
   previously
