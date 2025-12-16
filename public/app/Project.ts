@@ -517,6 +517,63 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.emit('canvas_activate', this.activeItem?.canvas || null);
     }
 
+    private getFilteredMultiSelectItems(
+        canvases: PixelCanvas[],
+        $objectFilter: HTMLElement,
+        onSelect: () => void,
+    ): MultiSelectItem[] {
+        const groupMap = canvases.reduce((groupMap, canvas) => {
+            const group = canvas.getGroup();
+            if (!groupMap.has(group)) {
+                groupMap.set(group, []);
+            }
+
+            groupMap.get(group)!.push(canvas);
+            return groupMap;
+        }, new Map<ObjectGroup, PixelCanvas[]>());
+
+        const filterItems = groupMap.entries()
+            .reduce((items, [ group, canvases ]): MultiSelectItem[] => {
+                items.push({
+                    id: group.id,
+                    groupLabel: group.getName(),
+                } as MultiSelectItemGroup);
+
+                canvases.forEach((canvas) => {
+                    items.push({
+                        selected: true,
+                        label: canvas.getName(),
+                        id: canvas.id,
+                        group: group.id,
+                    } as MultiSelectItemSingle);
+                });
+
+                return items;
+            }, []);
+
+        // show object filter only if there is more than one object
+        if (canvases.length > 1) {
+            const objectFilter = new MultiSelect({
+                $mount: $objectFilter,
+                defaultLabel: 'Choose objects' + chars.ellipsis,
+            });
+
+            objectFilter.setItems(filterItems);
+            objectFilter.init();
+
+            objectFilter.on('select', onSelect);
+            objectFilter.on('unselect', onSelect);
+        } else {
+            const $na = document.createElement('span');
+            $na.innerText = 'n/a';
+            $na.classList.add('text-muted');
+            $objectFilter.insertAdjacentElement('afterend', $na);
+            $objectFilter.remove();
+        }
+
+        return filterItems;
+    }
+
     /**
      * @param canvases If omitted, defaults to the active canvas
      */
@@ -572,55 +629,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         $detailSomeInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.Some;
         $detailNoneInput.checked = this.codeGenOptions.commentLevel === CodeGenerationDetailLevel.None;
 
-        const groupMap = canvases.reduce((groupMap, canvas) => {
-            const group = canvas.getGroup();
-            if (!groupMap.has(group)) {
-                groupMap.set(group, []);
-            }
-
-            groupMap.get(group)!.push(canvas);
-            return groupMap;
-        }, new Map<ObjectGroup, PixelCanvas[]>());
-
-        const filterItems = groupMap.entries()
-            .reduce((items, [ group, canvases ]): MultiSelectItem[] => {
-                items.push({
-                    id: group.id,
-                    groupLabel: group.getName(),
-                } as MultiSelectItemGroup);
-
-                canvases.forEach((canvas) => {
-                    items.push({
-                        selected: true,
-                        label: canvas.getName(),
-                        id: canvas.id,
-                        group: group.id,
-                    } as MultiSelectItemSingle);
-                });
-
-                return items;
-            }, []);
-
-        // show object filter only if there is more than one object
-        const $objectFilter = findElement($modalContent, '.export-asm-object-filter');
-        if (canvases.length > 1) {
-            const objectFilter = new MultiSelect({
-                $mount: $objectFilter,
-                defaultLabel: 'Choose objects' + chars.ellipsis,
-            });
-
-            objectFilter.setItems(filterItems);
-            objectFilter.init();
-
-            objectFilter.on('select', () => generateCode());
-            objectFilter.on('unselect', () => generateCode());
-        } else {
-            const $na = document.createElement('span');
-            $na.innerText = 'n/a';
-            $na.classList.add('text-muted');
-            $objectFilter.insertAdjacentElement('afterend', $na);
-            $objectFilter.remove();
-        }
+        const filterItems = this.getFilteredMultiSelectItems(
+            canvases,
+            findElement($modalContent, '.export-asm-object-filter'),
+            () => generateCode(),
+        );
 
         const generateCode = (): boolean => {
             const filteredCanvases = canvases.filter((canvas) =>
@@ -824,6 +837,23 @@ export class Project extends EventEmitter<ProjectEventMap> {
             $input.addEventListener('change', () => generateImages());
         });
 
+        const filterItems = this.getFilteredMultiSelectItems(
+            canvases,
+            findElement($modalContent, '.export-asm-object-filter'),
+            () => generateImages(),
+        );
+
+        const setInfo = (blob: { size: number } | null): void => {
+            const size = blob?.size || 0;
+            const zoomLabel = isValidZoomLevel(this.editorSettings.zoomLevel) ?
+                zoomLevelLabel[this.editorSettings.zoomLevel] :
+                this.editorSettings.zoomLevel.toString();
+            $info.innerText = `${$canvas.width}${chars.times}${$canvas.height} ` +
+                `${chars.interpunct} ${formatFileSize(size)} ` +
+                `${chars.interpunct} zoom: ${zoomLabel}x`
+            $info.setAttribute('title', `${size} bytes`);
+        };
+
         const generateImages = (): void => {
             const originalPadding = this.exportImagesOptions.padding;
 
@@ -848,7 +878,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             const byGroup: Record<ObjectGroup['id'], PixelCanvas[]> = {};
 
-            canvases.forEach((canvas) => {
+            const filteredCanvases = canvases.filter((canvas) =>
+                filterItems.some(item => item.id === canvas.id && !isItemGroup(item) && item.selected));
+
+            filteredCanvases.forEach((canvas) => {
                 const key = canvas.getGroup().id;
                 byGroup[key] = byGroup[key] || [];
                 byGroup[key].push(canvas);
@@ -932,16 +965,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
             $canvas.style.width = ($canvas.width * scale) + 'px';
             $canvas.style.height = ($canvas.height * scale) + 'px';
 
-            $canvas.toBlob((blob) => {
-                const size = blob?.size || 0;
-                const zoomLabel = isValidZoomLevel(this.editorSettings.zoomLevel) ?
-                    zoomLevelLabel[this.editorSettings.zoomLevel] :
-                    this.editorSettings.zoomLevel.toString();
-                $info.innerText = `${$canvas.width}${chars.times}${$canvas.height} ` +
-                    `${chars.interpunct} ${formatFileSize(size)} ` +
-                    `${chars.interpunct} zoom: ${zoomLabel}x`
-                $info.setAttribute('title', `${size} bytes`);
-            }, 'image/png');
+            if ($canvas.width === 0 || $canvas.height === 0) {
+                setInfo(null);
+                return;
+            }
+
+            $canvas.toBlob(setInfo, 'image/png');
         };
 
         $canvas.addEventListener('click', () => downloadImage());
