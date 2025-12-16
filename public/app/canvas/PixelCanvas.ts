@@ -14,6 +14,7 @@ import { toPascalCase } from '../utils-string.ts';
 import {
     chars,
     clamp,
+    type ClientCoordinates,
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type Coordinate,
@@ -502,7 +503,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
             move: 1,
         };
 
-        const activatePixelAtCursor = (e: { clientX: number; clientY: number; ctrlKey: boolean }): void => {
+        const activatePixelAtCursor = (e: ClientCoordinates & Pick<KeyboardEvent, 'ctrlKey'>): void => {
             switch (this.drawContext.state) {
                 case 'drawing':
                 case 'selecting':

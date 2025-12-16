@@ -1,5 +1,6 @@
 import { type DraggableReorderEvent, GlobalEvents } from './GlobalEvents.ts';
 import { Logger } from './Logger.ts';
+import type { ClientCoordinates } from './utils.ts';
 
 export interface DragState {
     type: string;
@@ -13,7 +14,7 @@ const globalDraggingClass = 'draggable-dragging';
 export const enableDraggableItems = (): void => {
     let dragState: DragState | null = null;
 
-    const onDragging = (e: MouseEvent): void => {
+    const onDragging = (e: ClientCoordinates): void => {
         if (!dragState) {
             return;
         }
@@ -67,9 +68,20 @@ export const enableDraggableItems = (): void => {
         }
     };
 
-    const onDragEnd = (e: MouseEvent): void => {
+    const onTouchMove = (e: TouchEvent) => {
+        const touch = e.touches.item(0);
+        if (!touch) {
+            return;
+        }
+
+        onDragging(touch);
+    };
+
+    const onDragEnd = (): void => {
         document.removeEventListener('mousemove', onDragging);
         document.removeEventListener('mouseup', onDragEnd);
+        document.removeEventListener('touchmove', onTouchMove);
+        document.removeEventListener('touchend', onDragEnd);
 
         document.body.classList.remove(globalDraggingClass);
 
@@ -81,7 +93,7 @@ export const enableDraggableItems = (): void => {
         }
     };
 
-    document.addEventListener('mousedown', (e) => {
+    const onDragStart = (e: Event): void => {
         const handle = e.target;
         if (!(handle instanceof Element) || !handle.closest('[data-drag-handle]')) {
             return;
@@ -117,5 +129,10 @@ export const enableDraggableItems = (): void => {
 
         document.addEventListener('mousemove', onDragging);
         document.addEventListener('mouseup', onDragEnd);
-    });
+        document.addEventListener('touchend', onDragEnd);
+        document.addEventListener('touchmove', onTouchMove);
+    };
+
+    document.addEventListener('mousedown', onDragStart);
+    document.addEventListener('touchstart', onDragStart);
 };
