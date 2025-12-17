@@ -448,10 +448,6 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
         });
     }
 
-    public syncPaletteColors(): void {
-        this.syncObjectDetailsUI();
-    }
-
     public toJSON(): ObjectGroupItemSerialized {
         return {
             canvas: this.canvas.toJSON(),
