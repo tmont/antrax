@@ -1968,8 +1968,9 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         return filterItems;
     }
 
-    public clone(): PixelCanvas {
+    public clone(suffix?: string): PixelCanvas {
         return new PixelCanvas({
+            name: this.name + ' ' + (suffix || PixelCanvas.instanceCount),
             mountEl: this.$container,
             pixelWidth: this.pixelWidth,
             pixelHeight: this.pixelHeight,

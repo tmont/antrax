@@ -438,8 +438,12 @@ export class ObjectGroupItem extends EventEmitter<ObjectGroupItemEventMap> {
     }
 
     public clone(otherGroup?: ObjectGroup): ObjectGroupItem {
+        const group = otherGroup || this.canvas.getGroup();
+        const count = group.getItems()
+            .reduce((sum, item) =>
+                sum + (item !== this && item.canvasName.replace(/\s*\(\d+\)$/, '') === this.canvasName ? 1 : 0), 0);
         return new ObjectGroupItem({
-            canvas: this.canvas.clone(),
+            canvas: this.canvas.clone(`(${count + 1})`),
             mountEl: otherGroup?.$itemContainer || this.$container,
         });
     }
