@@ -1,3 +1,11 @@
+## v0.4.1 (2025-12-16)
+- Updated _Dragon Warrior_ example project
+- Fixed non-deterministic ordering of groups when exporting a spritesheet
+- Use previously loaded filename when saving
+- Fixed empty project message being useless on smaller screens
+- Cloning an object while inherit the original's name
+- Added viewport meta tags for mobile
+
 ## v0.4.0 (2025-12-16)
 - Fixed preview objects in animation dialog not using full width
 - Bullseye icon in top gutter now does something when you click on it
