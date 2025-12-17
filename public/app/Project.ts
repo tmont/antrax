@@ -865,18 +865,23 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 this.exportImagesOptions.padding = originalPadding;
             }
 
-            const byGroup: Record<ObjectGroup['id'], PixelCanvas[]> = {};
+            const byGroup: Record<ObjectGroup['id'], { sortOrder: number; canvases: PixelCanvas[] }> = {};
 
             const filteredCanvases = canvases.filter((canvas) =>
                 filterItems.some(item => item.id === canvas.id && !isItemGroup(item) && item.selected));
 
-            filteredCanvases.forEach((canvas) => {
+            filteredCanvases.forEach((canvas, i) => {
                 const key = canvas.getGroup().id;
-                byGroup[key] = byGroup[key] || [];
-                byGroup[key].push(canvas);
+                byGroup[key] = byGroup[key] || { sortOrder: i, canvases: [] };
+                byGroup[key].canvases.push(canvas);
             });
 
-            const groupedCanvases = Object.values(byGroup);
+            const groupedCanvases = Object.values(byGroup)
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map(obj => obj.canvases);
+
+            this.logger.debug('grouped canvas order:',
+                groupedCanvases.map(a => a.map(c => c.getName()).join(` ${chars.rightArrow} `)).join(` ${chars.rightArrow} `));
 
             const getScaled = (dimension: keyof Dimensions, canvas: PixelCanvas): number => {
                 if (options.pixelSize === 'default') {
