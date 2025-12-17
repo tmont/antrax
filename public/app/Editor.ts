@@ -1897,6 +1897,7 @@ export class Editor {
 
             try {
                 this.loadJson(json);
+                this.project?.setLoadedFile(file);
                 Popover.toast({
                     type: 'success',
                     content: `Successfully loaded data from ${filename}`,
