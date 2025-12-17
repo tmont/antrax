@@ -8,13 +8,18 @@
     height: 100%;
     background-image: url("/images/bg-mario.png");
     background-repeat: repeat;
+    overflow: auto;
 
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: safe center;
 
     padding: (config.$gutter * 4);
     text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.75);
+
+    @media (max-width: config.$media-breakpoint-sm) {
+        padding: config.$gutter;
+    }
 
     .hero-container {
         display: flex;
@@ -33,6 +38,9 @@
         justify-content: space-around;
         align-items: flex-start;
 
+        @media (max-width: config.$media-breakpoint-sm) {
+            flex-direction: column;
+        }
     }
     .col, .aside-container {
         flex: 1;
