@@ -1,4 +1,4 @@
-## v0.3.2 (2025-12-16)
+## v0.4.0 (2025-12-16)
 - Fixed preview objects in animation dialog not using full width
 - Bullseye icon in top gutter now does something when you click on it
 - Added object filter to animation form
