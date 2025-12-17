@@ -3,7 +3,7 @@
 - Fixed non-deterministic ordering of groups when exporting a spritesheet
 - Use previously loaded filename when saving
 - Fixed empty project message being useless on smaller screens
-- Cloning an object while inherit the original's name
+- Cloning an object will inherit the original's name
 - Added viewport meta tags for mobile
 
 ## v0.4.0 (2025-12-16)
