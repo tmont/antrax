@@ -424,6 +424,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         GlobalEvents.instance.on(`draggable_reorder.${this.eventNamespace}`, (e) => {
+            console.log(`draggable_reorder.project[${e.type}]`, this.name);
             const { $item: $element, type } = e;
             if (type !== 'object-item') {
                 return;
@@ -488,7 +489,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             const currentGroup = this.groups.find(group => group.id === groupId);
             if (!currentGroup) {
-                this.logger.error(`dragged group "${groupId}" not found in project.groups`);
+                this.logger.error(`dragged group "${groupId}" not found in project.groups`, this.groups);
                 return;
             }
 
@@ -520,11 +521,14 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public destroy(): void {
+        this.logger.info('destroying');
         this.activeItem = null;
         while (this.groups.length) {
             const group = this.groups.pop()!;
             group.destroy();
         }
+
+        this.logger.info(`clearing global events in "${this.eventNamespace}" namespace`);
         GlobalEvents.instance.off(`*.${this.eventNamespace}`);
         this.$el.remove();
     }

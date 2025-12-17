@@ -83,11 +83,23 @@ export class EventEmitter<TEventMap extends EventArgMap> {
         name?: EventNameOrAll<TEventMap, K>,
         listener?: (...args: TEventMap[K]) => void,
     ): void {
-        const { eventName, namespace } = name ? this.parseEventName(name as any) : { eventName: '*', namespace: '' };
+        const { eventName, namespace } = name ? this.parseEventName(name as any) : { eventName: allEvents, namespace: '' };
 
-        if (eventName === allEvents && !namespace) {
-            // remove all listeners for all events
-            this.events = {};
+        if (eventName === allEvents) {
+            if (namespace) {
+                // remove listeners for this namespace in all events, e.g. foo.off("*.my_namespace", myListener)
+                Object.keys(this.events).forEach((name: any) => {
+                    this.off(`${name}.${namespace}`, listener);
+                });
+            } else if (listener) {
+                // no namespace and a listener, e.g. foo.off("*", myListener)
+                Object.keys(this.events).forEach((name: any) => {
+                    this.off(name, listener);
+                });
+            } else {
+                // no namespace or listener, remove all listeners for all events, e.g. foo.off("*")
+                this.events = {};
+            }
             return;
         }
 
@@ -97,15 +109,14 @@ export class EventEmitter<TEventMap extends EventArgMap> {
         }
 
         if (!listener) {
-            if (eventName === allEvents) {
-                // remove all listeners for this event
+            // remove listeners only for this namespace, or all listeners if no namespace
+            if (!namespace) {
                 this.events[eventName] = [];
-            } else if (this.events[eventName]) {
-                // remove listeners only for this namespace
+            } else {
                 this.events[eventName] = this.events[eventName].filter(context => context.namespace !== namespace);
             }
-        } else if (name) {
-            const listeners = this.listeners(name);
+        } else {
+            const listeners = this.listeners(eventName);
             const index = listeners.findIndex(
                 x => (!namespace || x.namespace === namespace) && x.listener === listener,
             );
