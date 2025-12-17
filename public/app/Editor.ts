@@ -376,6 +376,7 @@ export class Editor {
                 group,
             });
         });
+        this.project.on('group_remove', () => this.syncEmptyProjectHeroVisibility());
         this.project.on('canvas_draw_state_change', (_, canvas) => {
             this.syncSelectionActions(canvas);
             this.syncSelectionSize();
