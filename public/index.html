@@ -8,6 +8,11 @@
         <link rel="shortcut icon" href="/images/logo.png" />
     </head>
     <body>
+        <svg id="svg-sprite" style="display: none" xmlns="http://www.w3.org/2000/svg">
+            <symbol id="svg-mouse-lmb" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m15.5 3h-2.5v-3h-2v3h-2.5c-2.481 0-4.5 2.019-4.5 4.5v8.5c0 4.411 3.589 8 8 8s8-3.589 8-8v-8.5c0-2.481-2.019-4.5-4.5-4.5zm2.5 4.5v2.5h-6v-5h3.5c1.378 0 2.5 1.121 2.5 2.5zm-6 14.5c-3.309 0-6-2.691-6-6v-4h12v4c0 3.309-2.691 6-6 6z"/></symbol>
+            <symbol id="svg-mouse-scroll" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m17.888 5.257-1.414-1.414 3.757-3.757 3.757 3.757-1.414 1.414-2.343-2.343zm2.343 4.329-2.343-2.343-1.414 1.414 3.757 3.757 3.757-3.757-1.414-1.414zm-5.231-.586v7.5c0 4.136-3.364 7.5-7.5 7.5s-7.5-3.364-7.5-7.5v-7.5c0-2.206 1.794-4 4-4h2.5v-5h2v5h2.5c2.206 0 4 1.794 4 4zm-6.5-2v5h4.5v-3c0-1.103-.897-2-2-2zm-6.5 2v3h4.5v-5h-2.5c-1.103 0-2 .897-2 2zm11 7.5v-2.5h-11v2.5c0 3.032 2.467 5.5 5.5 5.5s5.5-2.468 5.5-5.5z"/></symbol>
+        </svg>
+
         <div class="app">
             <div class="main-sidebar">
                 <div class="app-logo project-header">
@@ -325,23 +330,26 @@
                     <header>Canvas interactions</header>
                     <table>
                         <tr>
-                            <td>Scrollwheel, <kbd>W</kbd>, <kbd>S</kbd>, <kbd>&uarr;</kbd>, <kbd>&darr;</kbd></td>
+                            <td>
+                                <i class="icon icon-svg"><svg><use href="#svg-mouse-scroll" /></svg></i>,
+                                <kbd>W</kbd>, <kbd>S</kbd>, <kbd>&uarr;</kbd>, <kbd>&darr;</kbd>
+                            </td>
                             <td>Select adjacent color</td>
                         </tr>
                         <tr>
-                            <td><kbd>Shift</kbd> + Scrollwheel</td>
+                            <td><kbd>Shift</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-scroll" /></svg></i></td>
                             <td>Zoom canvas in/out</td>
                         </tr>
                         <tr>
-                            <td><kbd>Shift</kbd> + Click &amp; drag</td>
+                            <td><kbd>Shift</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i> &amp; drag</td>
                             <td>Pan canvas</td>
                         </tr>
                         <tr>
-                            <td><kbd>Ctrl</kbd> + Click</td>
+                            <td><kbd>Ctrl</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i></td>
                             <td>Erase pixel</td>
                         </tr>
                         <tr>
-                            <td><kbd>Alt</kbd> + Click, Middle click</td>
+                            <td><kbd>Alt</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i>, Middle click</td>
                             <td>Select color at this pixel</td>
                         </tr>
                     </table>
