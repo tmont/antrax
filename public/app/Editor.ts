@@ -181,6 +181,7 @@ export class Editor {
     private initialized = false;
     private settings: EditorSettings;
     private readonly copyBuffer: CopyBuffer = [];
+    private loadedFile: LoadedFile | null = null;
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
@@ -400,19 +401,22 @@ export class Editor {
 
             popover.show($target);
 
+            let filename: string;
+            let prefix: string;
+            if (this.loadedFile) {
+                prefix = this.loadedFile.name.replace(/\..*$/, '');
+                filename = `${prefix}.json.gz`;
+            } else {
+                const name = (this.project?.getName().trim() || 'antrax')
+                    .toLowerCase()
+                    .replace(/ /g, '_')
+                    .replace(/\W/g, '');
+                prefix = name || 'antrax';
+                filename = `${prefix}.json.gz`;
+            }
+
             const $filenameInput = findInput($form, 'input.filename-input');
-
-            // const entropy = new Date().toISOString()
-            //     .replace(/T/, '_')
-            //     .replace(/\..*$/, '')
-            //     .replace(/\W/g, '')
-
-            const name = (this.project?.getName().trim() || 'antrax')
-                .toLowerCase()
-                .replace(/ /g, '_')
-                .replace(/\W/g, '');
-            const prefix = name || 'antrax';
-            $filenameInput.value = `${prefix}.json.gz`;
+            $filenameInput.value = filename;
 
             $filenameInput.focus();
             $filenameInput.setSelectionRange(0, prefix.length);
@@ -1897,7 +1901,7 @@ export class Editor {
 
             try {
                 this.loadJson(json);
-                this.project?.setLoadedFile(file);
+                this.setLoadedFile(file);
                 Popover.toast({
                     type: 'success',
                     content: `Successfully loaded data from ${filename}`,
@@ -1922,7 +1926,7 @@ export class Editor {
                 })
                 .then(stringified => this.loadJson(JSON.parse(stringified)))
                 .then(() => {
-                    this.project?.setLoadedFile(file);
+                    this.setLoadedFile(file);
                     Popover.toast({
                         type: 'success',
                         content: `Successfully loaded data from ${filename}`,
@@ -1939,6 +1943,11 @@ export class Editor {
                     }
                 });
         }
+    }
+
+    private setLoadedFile(file: LoadedFile): void {
+        this.loadedFile = file;
+        this.project?.setLoadedFile(file);
     }
 
     private ensureSerialized(json: any): asserts json is EditorSerialized {
