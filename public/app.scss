@@ -261,7 +261,7 @@ hr {
 
 .transparent-checkerboard {
     // https://stackoverflow.com/a/65129916
-    // duplicated in PixelCanvas.transparentColor1 and PixelCanvas.transparentColor2
+    // duplicated in BackgroundCanvas.transparentColor1 and BackgroundCanvas.transparentColor2
     $color1: #8f8f8f;
     $color2: #a8a8a8;
     background-image: repeating-conic-gradient($color1 0 25%, $color2 0 50%);
