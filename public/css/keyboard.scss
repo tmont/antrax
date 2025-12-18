@@ -1,0 +1,63 @@
+@use "sass:color";
+@use "./config";
+
+kbd {
+    $bg: #ccc;
+    $bg2: #939393;
+
+    display: inline-block;
+    border: 1px solid #6c6c6c;
+    border-radius: 4px;
+    padding: 0.1em 0.5em;
+    text-align: center;
+    font-family: config.$font-mono;
+    color: config.$bg-color;
+    background-color: $bg;
+    background-image: linear-gradient(to bottom, $bg, $bg2);
+    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.3);
+    box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+ul.kbd-command-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+
+    li:not(:last-child) {
+        &:after {
+            content: "•";
+            margin: 0 0.5em;
+        }
+    }
+}
+
+.shortcuts-container {
+    display: flex;
+    flex-direction: column;
+    gap: config.$gutter-half;
+    max-height: 60vh;
+    overflow: auto;
+
+    td {
+        white-space: nowrap;
+    }
+
+    .col {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter;
+    }
+
+    section {
+        > header {
+            color: config.$accent-color;
+            margin-bottom: config.$gutter-quarter;
+            text-shadow: 1px 1px 1px black;
+        }
+    }
+}

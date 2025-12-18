@@ -325,135 +325,173 @@
         <div class="modal-overlay"></div>
 
         <template id="modal-content-keyboard-shortcuts">
-            <div class="col">
-                <section>
-                    <header>Canvas interactions</header>
-                    <table>
-                        <tr>
-                            <td>
-                                <i class="icon icon-svg"><svg><use href="#svg-mouse-scroll" /></svg></i>,
-                                <kbd>W</kbd>, <kbd>S</kbd>, <kbd>&uarr;</kbd>, <kbd>&darr;</kbd>
-                            </td>
-                            <td>Select adjacent color</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Shift</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-scroll" /></svg></i></td>
-                            <td>Zoom canvas in/out</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Shift</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i> &amp; drag</td>
-                            <td>Pan canvas</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Ctrl</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i></td>
-                            <td>Erase pixel</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Alt</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i>, Middle click</td>
-                            <td>Select color at this pixel</td>
-                        </tr>
-                    </table>
-                </section>
+            <div class="shortcuts-container">
+                <div class="col">
+                    <section>
+                        <header>Canvas interactions</header>
+                        <table>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li><i class="icon icon-svg"><svg><use href="#svg-mouse-scroll" /></svg></i></li>
+                                        <li><kbd>W</kbd></li>
+                                        <li><kbd>S</kbd></li>
+                                        <li><kbd>&uarr;</kbd></li>
+                                        <li><kbd>&darr;</kbd></li>
+                                    </ul>
+                                </td>
+                                <td>Select adjacent color</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li>
+                                            <kbd>Shift</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-scroll" /></svg></i>
+                                        </li>
+                                    </ul>
+                                </td>
+                                <td>Zoom canvas in/out</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li>
+                                            <kbd>Shift</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i> &amp; drag
+                                        </li>
+                                    </ul>
+                                </td>
+                                <td>Pan canvas</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Ctrl</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i></td>
+                                <td>Erase pixel</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li><kbd>Alt</kbd> + <i class="icon icon-svg"><svg><use href="#svg-mouse-lmb" /></svg></i></li>
+                                        <li>Middle click</li>
+                                    </ul>
+                                </td>
+                                <td>Select color at this pixel</td>
+                            </tr>
+                        </table>
+                    </section>
 
-                <section>
-                    <header>Draw mode shortcuts</header>
-                    <table>
-                        <tr><td><kbd>D</kbd></td><td>Draw</td></tr>
-                        <tr><td><kbd>E</kbd></td><td>Erase</td></tr>
-                        <tr><td><kbd>F</kbd></td><td>Fill</td></tr>
-                        <tr><td><kbd>Y</kbd></td><td>Eye-dropper (select color)</td></tr>
-                        <tr><td><kbd>R</kbd></td><td>Filled rectangle</td></tr>
-                        <tr><td><kbd>Shift</kbd> + <kbd>R</kbd></td><td>Rectangle</td></tr>
-                        <tr><td><kbd>C</kbd></td><td>Filled ellipse</td></tr>
-                        <tr><td><kbd>Shift</kbd> + <kbd>C</kbd></td><td>Ellipse</td></tr>
-                        <tr><td><kbd>L</kbd></td><td>Line</td></tr>
-                        <tr><td><kbd>Z</kbd></td><td>Select</td></tr>
-                        <tr><td><kbd>M</kbd></td><td>Move</td></tr>
-                    </table>
-                </section>
-            </div>
-            <div class="col">
-                <section>
-                    <header>Application shortcuts</header>
-                    <table>
-                        <tr>
-                            <td><kbd>G</kbd></td>
-                            <td>Toggle grid</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>T</kbd></td>
-                            <td>Toggle transparent checkerboard</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>K</kbd></td>
-                            <td>Toggle Kangaroo mode</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
-                            <td>Set zoom level to <strong>1x</strong></td>
-                        </tr>
-                        <tr>
-                            <td><kbd>-</kbd>, <kbd>_</kbd></td>
-                            <td>Decrease zoom level</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>=</kbd>, <kbd>+</kbd></td>
-                            <td>Increase zoom level</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>X</kbd></td>
-                            <td>Show &ldquo;Export ASM&rdquo; modal for active object</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Shift</kbd> + <kbd>X</kbd></td>
-                            <td>Show &ldquo;Export image&rdquo; modal for active object</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td>
-                            <td>Undo last draw action for active object</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <p><kbd>Ctrl</kbd> + <kbd>Y</kbd>,</p>
-                                <p><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></p>
-                            </td>
-                            <td>Redo last draw action for active object</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Shift</kbd> + <kbd>G</kbd></td>
-                            <td>Rotate active object 90&deg; counter-clockwise</td>
-                        </tr>
-                    </table>
-                </section>
+                    <section>
+                        <header>Draw mode shortcuts</header>
+                        <table>
+                            <tr><td><kbd>D</kbd></td><td>Draw</td></tr>
+                            <tr><td><kbd>E</kbd></td><td>Erase</td></tr>
+                            <tr><td><kbd>F</kbd></td><td>Fill</td></tr>
+                            <tr><td><kbd>Y</kbd></td><td>Eye-dropper (select color)</td></tr>
+                            <tr><td><kbd>R</kbd></td><td>Filled rectangle</td></tr>
+                            <tr><td><kbd>Shift</kbd> + <kbd>R</kbd></td><td>Rectangle</td></tr>
+                            <tr><td><kbd>C</kbd></td><td>Filled ellipse</td></tr>
+                            <tr><td><kbd>Shift</kbd> + <kbd>C</kbd></td><td>Ellipse</td></tr>
+                            <tr><td><kbd>L</kbd></td><td>Line</td></tr>
+                            <tr><td><kbd>Z</kbd></td><td>Select</td></tr>
+                            <tr><td><kbd>M</kbd></td><td>Move</td></tr>
+                        </table>
+                    </section>
+                    </div>
+                <div class="col">
+                    <section>
+                        <header>Application shortcuts</header>
+                        <table>
+                            <tr>
+                                <td><kbd>G</kbd></td>
+                                <td>Toggle grid</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>T</kbd></td>
+                                <td>Toggle transparent checkerboard</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>K</kbd></td>
+                                <td>Toggle Kangaroo mode</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Shift</kbd> + <kbd>0</kbd></td>
+                                <td>Set zoom level to <strong>1x</strong></td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li><kbd>-</kbd></li>
+                                        <li><kbd>_</kbd></li>
+                                    </ul>
+                                </td>
+                                <td>Decrease zoom level</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li><kbd>=</kbd></li>
+                                        <li><kbd>+</kbd></li>
+                                    </ul>
+                                </td>
+                                <td>Increase zoom level</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>X</kbd></td>
+                                <td>Show &ldquo;Export ASM&rdquo; modal for active object</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Shift</kbd> + <kbd>X</kbd></td>
+                                <td>Show &ldquo;Export image&rdquo; modal for active object</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Ctrl</kbd> + <kbd>Z</kbd></td>
+                                <td>Undo last draw action for active object</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li><kbd>Ctrl</kbd> + <kbd>Y</kbd></li>
+                                        <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd></li>
+                                    </ul>
+                                </td>
+                                <td>Redo last draw action for active object</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Shift</kbd> + <kbd>G</kbd></td>
+                                <td>Rotate active object 90&deg; counter-clockwise</td>
+                            </tr>
+                        </table>
+                    </section>
 
-                <section>
-                    <header>Selection shortcuts</header>
-                    <table>
-                        <tr>
-                            <td><kbd>Ctrl</kbd> + <kbd>A</kbd></td>
-                            <td>Select all</td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <p><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>A</kbd></p>
-                                <p><kbd>Esc</kbd></p>
-                            </td>
-                            <td>De-select all</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Ctrl</kbd> + <kbd>C</kbd></td>
-                            <td>Copy selected pixels</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Ctrl</kbd> + <kbd>V</kbd></td>
-                            <td>Paste copied pixels</td>
-                        </tr>
-                        <tr>
-                            <td><kbd>Delete</kbd></td>
-                            <td>Erase selected pixels</td>
-                        </tr>
-                    </table>
-                </section>
+                    <section>
+                        <header>Selection shortcuts</header>
+                        <table>
+                            <tr>
+                                <td><kbd>Ctrl</kbd> + <kbd>A</kbd></td>
+                                <td>Select all</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <ul class="kbd-command-list">
+                                        <li><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>A</kbd></li>
+                                        <li><kbd>Esc</kbd></li>
+                                    </ul>
+                                </td>
+                                <td>De-select all</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Ctrl</kbd> + <kbd>C</kbd></td>
+                                <td>Copy selected pixels</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Ctrl</kbd> + <kbd>V</kbd></td>
+                                <td>Paste copied pixels</td>
+                            </tr>
+                            <tr>
+                                <td><kbd>Delete</kbd></td>
+                                <td>Erase selected pixels</td>
+                            </tr>
+                        </table>
+                    </section>
+                </div>
             </div>
         </template>
 

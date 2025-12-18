@@ -81,19 +81,5 @@ $modal-z-index: config.$z-index-modal-overlay;
         padding: $modal-padding-x;
         display: flex;
         gap: config.$gutter-half;
-
-        .col {
-            display: flex;
-            flex-direction: column;
-            gap: config.$gutter;
-        }
-
-        section {
-            > header {
-                color: config.$accent-color;
-                margin-bottom: config.$gutter-quarter;
-                text-shadow: 1px 1px 1px black;
-            }
-        }
     }
 }

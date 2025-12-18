@@ -26,6 +26,7 @@
 @use "./css/form.scss";
 @use "./css/group-animate.scss";
 @use "./css/icon.scss";
+@use "./css/keyboard.scss";
 @use "./css/modal.scss";
 @use "./css/multiselect.scss";
 @use "./css/palette.scss";
@@ -266,18 +267,6 @@ hr {
     background-image: repeating-conic-gradient($color1 0 25%, $color2 0 50%);
     background-position: 0 50%;
     background-size: 8px 8px;
-}
-
-kbd {
-    display: inline-block;
-    font-size: 90%;
-    border: 1px solid config.$secondary-border;
-    border-radius: 2px;
-    padding: 2px 4px;
-    text-align: center;
-    font-family: config.$font-mono;
-    background-color: config.$secondary-bg;
-    background-image: linear-gradient(to bottom, config.$secondary-bg, color.adjust(config.$secondary-bg, $lightness: -5%));
 }
 
 .clamp-1 {
