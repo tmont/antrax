@@ -34,9 +34,6 @@ export const enableDraggableItems = (): void => {
         let sibling: DraggableReorderEvent['sibling'] = null;
         let order: DraggableReorderEvent['order'] = null;
         if (dropTarget) {
-            // const dropRect = dropTarget.getBoundingClientRect();
-            // const itemRect = dragState.item.getBoundingClientRect();
-
             if (dropTarget.nextElementSibling !== dragState.item) {
                 logger.debug(`inserting item after`, dropTarget);
                 dropTarget.insertAdjacentElement('afterend', dragState.item);
