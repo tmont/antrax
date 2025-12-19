@@ -130,6 +130,17 @@ const selectionMoreTmpl = `
     <li class="dropdown-item">
         <a href="#" data-shortcut="Redo" data-action="redo" class="dropdown-link"><i class="fa-solid fa-fw fa-reply fa-rotate-180 icon"></i>Redo</a>
     </li>
+    <li class="dropdown-item divider"></li>
+    <li class="dropdown-item">
+        <a href="#" data-shortcut="SelectAll" data-action="select-all" class="dropdown-link">
+            <i class="fa-solid fa-fw fa-border-none icon"></i>Select all
+        </a>
+        <a href="#" data-shortcut="DeSelectAll" data-action="de-select-all" class="dropdown-link">
+            <i class="fa-solid fa-fw fa-ban icon"></i>
+            De-select all
+        </a>
+    </li>
+    <li class="dropdown-item divider"></li>
     <li class="dropdown-item">
         <a href="#" data-shortcut="Rotate" data-action="rotate" class="dropdown-link"><i class="fa-solid fa-fw fa-rotate-left icon"></i>Rotate</a>
     </li>
@@ -377,13 +388,7 @@ export class Editor {
 
                 e.preventDefault();
 
-                this.logger.debug(`selecting entire active canvas`);
-                this.setDrawMode('select');
-                this.activeCanvas.setSelection({
-                    x: 0,
-                    y: 0,
-                    ...this.activeCanvas.getDimensions(),
-                });
+                this.selectAllOnActiveCanvas();
                 return true;
             })
             // must be registered after the modal closing Escape shortcut since that one takes precedence
@@ -1214,6 +1219,20 @@ export class Editor {
         this.project?.setUncoloredPixelBehavior();
     }
 
+    private selectAllOnActiveCanvas(): void {
+        if (!this.activeCanvas) {
+            return;
+        }
+
+        this.logger.debug(`selecting entire active canvas`);
+        this.setDrawMode('select');
+        this.activeCanvas.setSelection({
+            x: 0,
+            y: 0,
+            ...this.activeCanvas.getDimensions(),
+        });
+    }
+
     private deselectAll(): void {
         this.activeCanvas?.resetDrawContext();
         if (this.settings.drawMode === 'move') {
@@ -1579,12 +1598,16 @@ export class Editor {
         const syncMoreActions = (): void => {
             const $undo = findElement($moreContent, '[data-action="undo"]');
             const $redo = findElement($moreContent, '[data-action="redo"]');
+            const $selectAll = findElement($moreContent, '[data-action="select-all"]');
+            const $deSelectAll = findElement($moreContent, '[data-action="de-select-all"]');
             const $rotate = findElement($moreContent, '[data-action="rotate"]');
 
             const undoContext = this.undoContext[this.activeCanvas?.id || ''];
 
             $undo.classList.toggle('disabled', !undoContext || undoContext.current <= 0);
             $redo.classList.toggle('disabled', !undoContext || undoContext.current >= undoContext.stack.length - 1);
+            $selectAll.classList.toggle('disabled', !this.activeCanvas);
+            $deSelectAll.classList.toggle('disabled', !this.activeCanvas);
             $rotate.classList.toggle('disabled', !this.activeCanvas);
         };
 
@@ -1602,6 +1625,12 @@ export class Editor {
                     case 'redo':
                         this.applyCurrentCheckpoint(true);
                         syncMoreActions();
+                        break;
+                    case 'select-all':
+                        this.selectAllOnActiveCanvas();
+                        break;
+                    case 'de-select-all':
+                        this.deselectAll();
                         break;
                     case 'rotate':
                         this.activeCanvas?.rotatePixelData();
