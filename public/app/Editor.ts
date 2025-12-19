@@ -1449,6 +1449,10 @@ export class Editor {
                     return;
                 }
 
+                if (inFlight) {
+                    return;
+                }
+
                 let data: Blob;
                 inFlight = true;
 
