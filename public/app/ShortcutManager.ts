@@ -10,7 +10,10 @@ type KeyPunctuation =
     '`'  | '~' | '!' | '@' | '#' | '$' | '%' | '^' | '&'  | '*' | '(' | ')' |
     '-'  | '_' | '=' | '+' | '[' | '{' | ']' | '}' | '\\' | '|' | ':' | ';' |
     '\'' | '"' | ',' | '<' | '.' | '>' | '/' | '?';
-type KeyModifier = 'Shift' | 'Ctrl' | 'Alt' | 'Meta';
+type KeyModifier =
+    'Shift' | 'Ctrl' | 'Alt' | 'Meta' |
+    // mac-specific keys called out explicitly
+    'Command' | 'Option';
 type KeyFunction = 'F1' | 'F2' | 'F3' | 'F4' | 'F5' | 'F6' | 'F7' | 'F8' | 'F9' | 'F10' | 'F11' | 'F12';
 type KeyNamed =
     'Escape' | 'Tab' | 'CapsLock' | 'Space' |
@@ -27,13 +30,15 @@ type KeyChord1 = `${KeyModifier}+${Key}`;
 type KeyChord2 = `${KeyModifier}+${KeyModifier}+${Key}`;
 
 type KeyAny = Key | KeyModifier;
-export type KeyboardShortcut = Key | KeyChord1 | KeyChord2;
+export type KeyboardShortcut = KeyAny | KeyChord1 | KeyChord2;
 
-const modifierOrderMap: Record<KeyModifier, 1 | 2 | 3 | 4> = {
+const modifierOrderMap: Record<KeyModifier, number> = {
     Meta: 1,
     Ctrl: 2,
-    Shift: 3,
-    Alt: 4,
+    Command: 3,
+    Shift: 4,
+    Alt: 5,
+    Option: 6,
 };
 
 const namedKeyMap: Record<KeyNamed, 1> = {
@@ -55,7 +60,7 @@ const namedKeyMap: Record<KeyNamed, 1> = {
     Pause: 1,
     PrintScreen: 1,
     Space: 1,
-    Tab: 1
+    Tab: 1,
 };
 
 const alphaKeyMap: Record<KeyAlpha, 1> = {
@@ -176,6 +181,14 @@ type KeyboardShortcutsEventMap<T> = {
     match: [ { e: KeyboardEvent, shortcut: ShortcutInfo<T> } ];
 };
 
+export interface ShortcutManagerOptions {
+    /**
+     * On Mac platforms, automatically convert Ctrl -> Meta and use
+     * Command/Option text for getKeyText()
+     */
+    autoMac: boolean;
+}
+
 export class ShortcutManager<T extends string | null = null> extends EventEmitter<KeyboardShortcutsEventMap<T | null>> {
     private readonly shortcuts = new Map<ShortcutId, ShortcutInfo<T | null>[]>();
     private keyHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -183,10 +196,12 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
     private groupCount = 0;
     private registerCount = 0;
     private readonly globalPredicates: ShortcutPredicate[] = [];
+    private readonly autoMac: boolean;
 
-    public constructor() {
+    public constructor(options?: ShortcutManagerOptions) {
         super();
 
+        this.autoMac = typeof options?.autoMac === 'boolean' ? options.autoMac : true;
         this.logger = Logger.from(this);
     }
 
@@ -194,12 +209,32 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
         return 'ShortcutManager';
     }
 
-    private static parseKeys(shortcut: KeyboardShortcut): KeyAny[] {
+    public get useMacKeys(): boolean {
+        return this.autoMac && /mac/i.test(navigator.platform);
+    }
+
+    public parseKeys(shortcut: KeyboardShortcut): KeyAny[] {
         const keys = [
-            ...new Set(shortcut.split('+').map(key => key === '' ? '+' : key).filter(isValidKey)),
+            ...new Set(shortcut.split('+')
+                .map(key => {
+                    if (key === '') {
+                        return '+';
+                    }
+
+                    if (this.useMacKeys) {
+                        const ctrl: KeyAny = 'Ctrl';
+                        const cmd: KeyAny = 'Meta';
+                        if (key === ctrl) {
+                            key = cmd;
+                        }
+                    }
+
+                    return key;
+                })
+                .filter(isValidKey)),
         ];
 
-        this.sortKeys(keys);
+        ShortcutManager.sortKeys(keys);
 
         return keys;
     }
@@ -234,7 +269,7 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
         this.groupCount++;
 
         shortcuts.forEach((shortcut) => {
-            const keys = ShortcutManager.parseKeys(shortcut);
+            const keys = this.parseKeys(shortcut);
             const id = ShortcutManager.generateId(keys);
             let info = this.shortcuts.get(id);
             if (!info) {
@@ -252,8 +287,6 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
                 description,
                 insertOrder: ++this.registerCount,
             });
-
-            // this.shortcuts.set(id, info);
 
             this.logger.debug(`registered ${id}: ${description}`);
         });
@@ -446,13 +479,15 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
         return new Map(entries);
     }
 
-    public static getKeyText(key: KeyAny): string {
+    public getKeyText(key: KeyAny): string {
         switch (key) {
             case 'Escape': return 'Esc';
             case 'ArrowDown': return chars.arrowDown;
             case 'ArrowUp': return chars.arrowUp;
             case 'ArrowLeft': return chars.arrowLeft;
             case 'ArrowRight': return chars.arrowRight;
+            case 'Meta': return this.useMacKeys ? chars.command : chars.squarePlus;
+            case 'Alt': return this.useMacKeys ? chars.option : key;
             default: return key;
         }
     }

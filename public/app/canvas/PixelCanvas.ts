@@ -503,7 +503,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
             move: 1,
         };
 
-        const activatePixelAtCursor = (e: ClientCoordinates & Pick<KeyboardEvent, 'ctrlKey'>): void => {
+        const activatePixelAtCursor = (e: ClientCoordinates & Pick<KeyboardEvent, 'ctrlKey' | 'metaKey'>): void => {
             switch (this.drawContext.state) {
                 case 'drawing':
                 case 'selecting':
@@ -517,7 +517,8 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                     return;
             }
 
-            const { clientX, clientY, ctrlKey: erasing } = e;
+            const { clientX, clientY } = e;
+            const erasing = e.ctrlKey || e.metaKey; // use Ctrl/Command, no need to differentiate
             const { top: offsetTop, left: offsetLeft } = this.$el.getBoundingClientRect();
             let trueX = clientX + document.documentElement.scrollLeft - offsetLeft;
             let trueY = clientY + document.documentElement.scrollTop - offsetTop;
@@ -857,6 +858,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
             activatePixelAtCursor({
                 ...touchToCoordinates(e),
                 ctrlKey: false,
+                metaKey: false,
             });
         };
 
@@ -866,6 +868,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
             activatePixelAtCursor({
                 ...touchToCoordinates(e),
                 ctrlKey: false,
+                metaKey: false,
             });
 
             this.addEvent(this.$el.ownerDocument, 'touchmove', onTouchMove);

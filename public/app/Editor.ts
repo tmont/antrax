@@ -1673,7 +1673,7 @@ export class Editor {
                                 action: () => true,
                                 group: 0,
                                 id: '',
-                                keys: [ 'Shift' ],
+                                keys: this.shortcutManager.parseKeys('Shift'),
                                 predicates: [],
                                 mouse: [ 'mouse-scroll' ],
                             }],
@@ -1684,7 +1684,7 @@ export class Editor {
                                 action: () => true,
                                 group: 0,
                                 id: '',
-                                keys: [ 'Shift' ],
+                                keys: this.shortcutManager.parseKeys('Shift'),
                                 predicates: [],
                                 mouse: [ 'mouse-lmb', 'mouse-drag' ],
                             }],
@@ -1695,7 +1695,7 @@ export class Editor {
                                 action: () => true,
                                 group: 0,
                                 id: '',
-                                keys: [ 'Ctrl' ],
+                                keys: this.shortcutManager.parseKeys('Ctrl'),
                                 predicates: [],
                                 mouse: [ 'mouse-lmb' ],
                             }],
@@ -1707,7 +1707,7 @@ export class Editor {
                                     action: () => true,
                                     group: 0,
                                     id: '',
-                                    keys: [ 'Alt' ],
+                                    keys: this.shortcutManager.parseKeys('Alt'),
                                     predicates: [],
                                     mouse: [ 'mouse-lmb' ],
                                 },
@@ -1738,7 +1738,7 @@ export class Editor {
                             const $li = document.createElement('li');
                             for (let i = 0; i < shortcut.keys.length; i++) {
                                 const $kbd = document.createElement('kbd');
-                                $kbd.innerText = ShortcutManager.getKeyText(shortcut.keys[i]!);
+                                $kbd.innerText = this.shortcutManager.getKeyText(shortcut.keys[i]!);
                                 $li.append($kbd);
                                 if (i !== shortcut.keys.length - 1 || shortcut.mouse?.length) {
                                     $li.append(' + ');
