@@ -411,7 +411,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                             break;
                         }
 
-                        // see comment above for why this is necessary
+                        // see comment in project.showExportImagesModal() for why this is necessary
                         canvases.forEach(canvas => canvas.render());
 
                         let currentFrame = 0;
