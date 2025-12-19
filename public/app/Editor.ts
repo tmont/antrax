@@ -1220,13 +1220,15 @@ export class Editor {
         this.project?.setUncoloredPixelBehavior();
     }
 
-    private selectAllOnActiveCanvas(): void {
+    private selectAllOnActiveCanvas(setDrawMode = true): void {
         if (!this.activeCanvas) {
             return;
         }
 
         this.logger.debug(`selecting entire active canvas`);
-        this.setDrawMode('select');
+        if (setDrawMode) {
+            this.setDrawMode('select');
+        }
         this.activeCanvas.setSelection({
             x: 0,
             y: 0,
@@ -2123,13 +2125,27 @@ export class Editor {
 
     public flipActiveSelection(dir: 'horizontal' | 'vertical'): void {
         const canvas = this.activeCanvas;
-        const rect = canvas?.getCurrentSelection();
-        if (!canvas || !rect) {
+        let rect = canvas?.getCurrentSelection();
+        if (!canvas) {
+            return;
+        }
+
+        let deSelectAll = false;
+        if (!rect) {
+            this.selectAllOnActiveCanvas(false);
+            rect = canvas.getCurrentSelection();
+            deSelectAll = true;
+        }
+        if (!rect) {
+            this.logger.error(`failed to select all during flip, for some reason`);
             return;
         }
 
         this.logger.info(`flipping selected ${rect.width}${chars.times}${rect.height} pixels ${dir}ly`);
         canvas.flipCurrentSelection(dir);
+        if (deSelectAll) {
+            this.deselectAll();
+        }
     }
 
     private syncSelectionActions(canvas: PixelCanvas | null): void {
@@ -2140,9 +2156,9 @@ export class Editor {
         const disabled = !canvas || !isActiveCanvas || !isSelected;
 
         const { $copy, $crop, $delete, $more, $flipH, $flipV } = this.selectionButtons;
-        $copy.disabled = $crop.disabled = $delete.disabled = $flipV.disabled = disabled;
-        $more.disabled = !canvas;
-        $flipH.disabled = disabled || !canvas?.displayMode.supportsHorizontalFlip;
+        $copy.disabled = $crop.disabled = $delete.disabled = disabled;
+        $more.disabled = $flipV.disabled = !isActiveCanvas;
+        $flipH.disabled = !isActiveCanvas || !canvas?.displayMode.supportsHorizontalFlip;
         this.syncPasteSelectionAction();
         this.syncDrawModeButtons();
     }
