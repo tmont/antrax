@@ -31,40 +31,40 @@
                     <div class="canvas-sidebar">
                         <div class="has-selected-object hidden">
                             <div class="canvas-controls">
-                                <button type="button" class="btn btn-sm btn-primary active" data-mode="draw" title="Draw [D]">
+                                <button type="button" class="btn btn-sm btn-primary active" data-shortcut="DrawModeDraw" data-mode="draw" title="Draw">
                                     <i class="fa-solid fa-fw fa-paint-brush"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="erase" title="Erase [E]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeErase" data-mode="erase" title="Erase">
                                     <i class="fa-solid fa-fw fa-eraser"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="fill" title="Fill [F]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeFill" data-mode="fill" title="Fill">
                                     <i class="fa-solid fa-fw fa-fill"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="dropper" title="Eye-dropper [Y]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeDropper" data-mode="dropper" title="Eye-dropper">
                                     <i class="fa-solid fa-fw fa-eye-dropper"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="rect-filled" title="Filled rectangle [R]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeRectFilled" data-mode="rect-filled" title="Filled rectangle">
                                     <i class="fa-solid fa-fw fa-square"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="rect" title="Rectangle [Shift+R]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeRect" data-mode="rect" title="Rectangle">
                                     <i class="fa-regular fa-fw fa-square"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="ellipse-filled" title="Filled ellipse [C]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeEllipseFilled" data-mode="ellipse-filled" title="Filled ellipse">
                                     <i class="fa-solid fa-fw fa-circle"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="ellipse" title="Ellipse [Shift+C]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeEllipse" data-mode="ellipse" title="Ellipse">
                                     <i class="fa-regular fa-fw fa-circle"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="line" title="Line [L]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeLine" data-mode="line" title="Line">
                                     <i class="fa-solid fa-fw fa-slash"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="pan" title="Pan [H]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModePan" data-mode="pan" title="Pan">
                                     <i class="fa-regular fa-fw fa-hand"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="select" title="Select region [Z]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeSelect" data-mode="select" title="Select region">
                                     <i class="fa-solid fa-fw fa-arrow-pointer"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-mode="move" title="Move region [M]">
+                                <button type="button" class="btn btn-sm btn-tertiary" data-shortcut="DrawModeMove" data-mode="move" title="Move region">
                                     <i class="fa-solid fa-fw fa-up-down-left-right"></i>
                                 </button>
                             </div>
@@ -106,13 +106,13 @@
                     <div class="canvas-content">
                         <div class="canvas-gutter top">
                             <div class="gutter-list gutter-list-sm canvas-selection-controls">
-                                <button type="button" class="btn btn-sm btn-tertiary" data-action="copy" title="Copy selection [Ctrl+C]" autocomplete="off" disabled>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="copy" data-shortcut="SelectionCopy" title="Copy selection" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-copy"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="crop" title="Crop to selection" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-crop-simple"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-action="delete" title="Delete selection [Delete]" autocomplete="off" disabled>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="delete" data-shortcut="SelectionDelete" title="Delete selection" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-trash"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-v" title="Flip selection vertically" autocomplete="off" disabled>
@@ -121,7 +121,7 @@
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-h" title="Flip selection horizontally" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-arrows-left-right"></i>
                                 </button>
-                                <button type="button" class="btn btn-sm btn-tertiary" data-action="paste" title="Paste selection [Ctrl+V]" autocomplete="off" disabled>
+                                <button type="button" class="btn btn-sm btn-tertiary" data-action="paste" data-shortcut="SelectionPaste" title="Paste selection" autocomplete="off" disabled>
                                     <i class="fa-solid fa-fw fa-paste"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-tertiary" data-action="more" title="More actions" autocomplete="off" disabled>
@@ -242,7 +242,7 @@
                                             <p>
                                                 There are many shortcuts to make things easier and
                                                 more efficient. Press the keyboard button
-                                                <a class="keyboard-link" href="#"><i class="fa-solid fa-keyboard"></i></a>
+                                                <a class="keyboard-link" data-shortcut="Shortcuts" href="#"><i class="fa-solid fa-keyboard"></i></a>
                                                 to view them.
                                             </p>
                                             <p>
@@ -250,7 +250,7 @@
                                                 generic pixel art, it is optimized to make things easier when
                                                 creating graphics for the Atari 7800. Which can be quite confusing.
                                                 Press the help button
-                                                <a class="help-link" href="#"><i class="fa-solid fa-circle-question"></i></a>
+                                                <a class="help-link" data-shortcut="Help" href="#"><i class="fa-solid fa-circle-question"></i></a>
                                                 for more information about why things are the way they are.
                                             </p>
                                         </div>
@@ -264,13 +264,13 @@
                 <div class="canvas-gutter bottom">
                     <div class="app-links gutter-list">
                         <div class="link-list">
-                            <a class="help-link" href="#" title="Help!">
+                            <a class="help-link" href="#" title="Help!" data-shortcut="Help">
                                 <i class="fa-solid fa-circle-question"></i></a>
 
-                            <a class="keyboard-link" href="#" title="Application shortcuts">
+                            <a class="keyboard-link" href="#" title="Application shortcuts" data-shortcut="Shortcuts">
                                 <i class="fa-solid fa-keyboard"></i></a>
 
-                            <a class="changelog-link" href="#" title="Changelog">
+                            <a class="changelog-link" href="#" title="Changelog" data-shortcut="Changelog">
                                 <i class="fa-solid fa-list"></i></a>
                         </div>
                     </div>
@@ -294,9 +294,9 @@
                     <div class="divider"></div>
 
                     <div class="gutter-list">
-                        <div class="checkbox-container">
+                        <div class="checkbox-container" title="Toggle grid" data-shortcut="ToggleGrid">
                             <input type="checkbox" id="option-show-grid" autocomplete="off"/>
-                            <label for="option-show-grid" title="toggle grid"><ins>G</ins>rid</label>
+                            <label for="option-show-grid"><ins>G</ins>rid</label>
                         </div>
                         <div>
                             <label class="zoom-level-label">
@@ -304,17 +304,16 @@
                                 <span class="zoom-level-value">1x</span>
                             </label>
                         </div>
-                        <div class="checkbox-container">
+                        <div class="checkbox-container" title="Toggle transparent checkerboard pattern" data-shortcut="ToggleUncolored">
                             <input type="checkbox" id="option-uncolored-pixel-behavior" autocomplete="off" checked />
-                            <label for="option-uncolored-pixel-behavior"
-                                   title="toggle transparent checkerboard pattern">
+                            <label for="option-uncolored-pixel-behavior">
                                 <span class="color-swatch transparent-checkerboard" style="display: block"></span>
                             </label>
                         </div>
 
-                        <div class="checkbox-container">
+                        <div class="checkbox-container" title="Toggle Kangaroo mode" data-shortcut="ToggleKangaroo">
                             <input type="checkbox" id="option-kangaroo-mode" autocomplete="off" disabled />
-                            <label for="option-kangaroo-mode" title="toggle Kangaroo mode">&#x1f998;</label>
+                            <label for="option-kangaroo-mode">&#x1f998;</label>
                         </div>
                     </div>
 

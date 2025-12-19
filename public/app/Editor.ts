@@ -11,6 +11,7 @@ import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import { type ShortcutInfo, ShortcutManager } from './ShortcutManager.ts';
 import { type ClientCoordinates, touchToCoordinates } from './utils-event.ts';
+import { isValidShortcutName, type ShortcutCategory, type ShortcutName } from './utils-shortcuts.ts';
 import {
     getZoomIndex,
     isValidZoomLevel,
@@ -79,7 +80,7 @@ export interface EditorSerialized {
     paletteSetCollection: ColorPaletteSetCollectionSerialized;
 }
 
-type MetaLinkType = 'help' | 'shortcuts' | 'changelog';
+type MetaLinkType = 'Help' | 'Shortcuts' | 'Changelog';
 
 interface CanvasState {
     mousePosition: Coordinate;
@@ -124,13 +125,13 @@ const zoomFormTmpl = `
 const selectionMoreTmpl = `
 <ul class="list-unstyled dropdown-menu">
     <li class="dropdown-item">
-        <a href="#" data-action="undo" title="[Ctrl+Z]"><i class="fa-solid fa-fw fa-reply icon"></i>Undo</a>
+        <a href="#" data-shortcut="Undo" data-action="undo" class="dropdown-link"><i class="fa-solid fa-fw fa-reply icon"></i>Undo</a>
     </li>
     <li class="dropdown-item">
-        <a href="#" data-action="redo" title="[Ctrl+Shift+Z] or [Ctrl+Y]"><i class="fa-solid fa-fw fa-reply fa-rotate-180 icon"></i>Redo</a>
+        <a href="#" data-shortcut="Redo" data-action="redo" class="dropdown-link"><i class="fa-solid fa-fw fa-reply fa-rotate-180 icon"></i>Redo</a>
     </li>
     <li class="dropdown-item">
-        <a href="#" data-action="rotate" title="[Shift+G]"><i class="fa-solid fa-fw fa-rotate-left icon"></i>Rotate</a>
+        <a href="#" data-shortcut="Rotate" data-action="rotate" class="dropdown-link"><i class="fa-solid fa-fw fa-rotate-left icon"></i>Rotate</a>
     </li>
 </ul>
 `;
@@ -165,8 +166,6 @@ const defaultSettings: Readonly<EditorSettings> = {
     drawMode: 'draw',
 };
 
-type ShortcutCategory = 'Application' | 'Selection' | 'Draw mode' | 'Canvas';
-
 export class Editor {
     private project: Project | null = null;
     private readonly logger: Logger;
@@ -197,7 +196,7 @@ export class Editor {
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
-    private readonly shortcutManager: ShortcutManager<ShortcutCategory>;
+    private readonly shortcutManager: ShortcutManager<ShortcutCategory, ShortcutName>;
     private readonly canvasState: CanvasState = {
         panning: false,
         panningOrigin: {
@@ -293,85 +292,85 @@ export class Editor {
                 return true;
             })
 
-            .register('Canvas', 'Select next color', [ 'S', 'ArrowDown' ], notInInput, () => {
+            .register('NextColor', 'Canvas', 'Select next color', [ 'S', 'ArrowDown' ], notInInput, () => {
                 const activeCanvas = this.activeCanvas;
                 if (activeCanvas) {
                     this.setActiveColor(activeCanvas.getActiveColor() - 1);
                 }
                 return true;
             })
-            .register('Canvas', 'Select previous color', [ 'W', 'ArrowUp' ], notInInput, () => {
+            .register('PrevColor', 'Canvas', 'Select previous color', [ 'W', 'ArrowUp' ], notInInput, () => {
                 const activeCanvas = this.activeCanvas;
                 if (activeCanvas) {
                     this.setActiveColor(activeCanvas.getActiveColor() + 1);
                 }
                 return true;
             })
-            .register('Canvas', 'Undo last draw action for active object', 'Ctrl+Z', notInInput, () => {
+            .register('Undo', 'Canvas', 'Undo last draw action for active object', 'Ctrl+Z', notInInput, () => {
                 this.applyCurrentCheckpoint(false);
                 return true;
             })
-            .register('Canvas', 'Redo last draw action for active object', [ 'Ctrl+Shift+Z', 'Ctrl+Y' ], notInInput, () => {
+            .register('Redo', 'Canvas', 'Redo last draw action for active object', [ 'Ctrl+Shift+Z', 'Ctrl+Y' ], notInInput, () => {
                 this.applyCurrentCheckpoint(true);
                 return true;
             })
-            .register('Canvas', `Rotate active object 90${chars.degree} counter-clockwise`, 'Shift+G', notInInput, () => {
+            .register('Rotate', 'Canvas', `Rotate active object 90${chars.degree} counter-clockwise`, 'Shift+G', notInInput, () => {
                 this.activeCanvas?.rotatePixelData();
                 return true;
             })
 
-            .register('Draw mode', 'Draw', 'D', notInInput, () => {
+            .register('DrawModeDraw', 'Draw mode', 'Draw', 'D', notInInput, () => {
                 this.setDrawMode('draw');
                 return true;
             })
-            .register('Draw mode', 'Erase', 'E', notInInput, () => {
+            .register('DrawModeErase', 'Draw mode', 'Erase', 'E', notInInput, () => {
                 this.setDrawMode('erase');
                 return true;
             })
-            .register('Draw mode', 'Fill', 'F', notInInput, () => {
+            .register('DrawModeFill', 'Draw mode', 'Fill', 'F', notInInput, () => {
                 this.setDrawMode('fill');
                 return true;
             })
-            .register('Draw mode', 'Eye-dropper (select color)', 'Y', notInInput, () => {
+            .register('DrawModeDropper', 'Draw mode', 'Eye-dropper (select color)', 'Y', notInInput, () => {
                 this.setDrawMode('dropper');
                 return true;
             })
-            .register('Draw mode', 'Filled rectangle', 'R', notInInput, () => {
+            .register('DrawModeRectFilled', 'Draw mode', 'Filled rectangle', 'R', notInInput, () => {
                 this.setDrawMode('rect-filled');
                 return true;
             })
-            .register('Draw mode', 'Rectangle', 'Shift+R', notInInput, () => {
+            .register('DrawModeRect', 'Draw mode', 'Rectangle', 'Shift+R', notInInput, () => {
                 this.setDrawMode('rect');
                 return true;
             })
-            .register('Draw mode', 'Filled ellipse', 'C', notInInput, () => {
+            .register('DrawModeEllipseFilled', 'Draw mode', 'Filled ellipse', 'C', notInInput, () => {
                 this.setDrawMode('ellipse-filled');
                 return true;
             })
-            .register('Draw mode', 'Ellipse', 'Shift+C', notInInput, () => {
+            .register('DrawModeEllipse', 'Draw mode', 'Ellipse', 'Shift+C', notInInput, () => {
                 this.setDrawMode('ellipse');
                 return true;
             })
-            .register('Draw mode', 'Line', 'L', notInInput, () => {
+            .register('DrawModeLine', 'Draw mode', 'Line', 'L', notInInput, () => {
                 this.setDrawMode('line');
                 return true;
             })
-            .register('Draw mode', 'Pan', 'H', notInInput, () => {
+            .register('DrawModePan', 'Draw mode', 'Pan', 'H', notInInput, () => {
                 this.setDrawMode('pan');
                 return true;
             })
-            .register('Draw mode', 'Select', 'Z', notInInput, () => {
+            .register('DrawModeSelect', 'Draw mode', 'Select', 'Z', notInInput, () => {
                 this.setDrawMode('select');
                 return true;
             })
-            .register('Draw mode', 'Move', 'M', notInInput, () => {
+            .register('DrawModeMove', 'Draw mode', 'Move', 'M', notInInput, () => {
                 if (this.activeCanvas?.getCurrentSelection()) {
                     this.setDrawMode('move');
                 }
                 return true;
             })
 
-            .register('Selection', 'Select all', 'Ctrl+A', notInInput, (e) => {
+            .register('SelectAll', 'Selection', 'Select all', 'Ctrl+A', notInInput, (e) => {
                 if (!this.activeCanvas) {
                     return true;
                 }
@@ -389,7 +388,7 @@ export class Editor {
             })
             // must be registered after the modal closing Escape shortcut since that one takes precedence
             // and doesn't propagate in certain cases
-            .register('Selection', 'De-select all', [ 'Ctrl+Shift+A', 'Escape' ], notInInput, (e) => {
+            .register('DeSelectAll', 'Selection', 'De-select all', [ 'Ctrl+Shift+A', 'Escape' ], notInInput, (e) => {
                 // prevent default browser behavior for this case, on firefox Ctrl+Shift+A opens up the theme manager
                 e.preventDefault();
 
@@ -401,18 +400,18 @@ export class Editor {
                 this.deselectAll();
                 return true;
             })
-            .register('Selection', 'Copy selected pixels', 'Ctrl+C', notInInput, (e) => {
+            .register('SelectionCopy', 'Selection', 'Copy selected pixels', 'Ctrl+C', notInInput, (e) => {
                 if (this.copyActiveCanvasSelection()) {
                     e.preventDefault();
                 }
 
                 return true;
             })
-            .register('Selection', 'Erase selected pixels', 'Delete', notInInput, () => {
+            .register('SelectionDelete', 'Selection', 'Erase selected pixels', 'Delete', notInInput, () => {
                 this.eraseActiveSelection();
                 return true;
             })
-            .register('Selection', 'Paste copied pixels', 'Ctrl+V', notInInput, (e) => {
+            .register('SelectionPaste', 'Selection', 'Paste copied pixels', 'Ctrl+V', notInInput, (e) => {
                 if (this.pasteCopyBuffer()) {
                     e.preventDefault();
                 }
@@ -420,9 +419,9 @@ export class Editor {
                 return true;
             })
 
-            .register('Application', 'Increase zoom level', [ '=', '+' ], notInInput, this.incrementZoomLevel.bind(this, 1))
-            .register('Application', 'Decrease zoom level', [ '-', '_' ], notInInput, this.incrementZoomLevel.bind(this, -1))
-            .register('Application', 'Set zoom level to 1x', [ 'Shift+0' ], notInInput, () => {
+            .register('ZoomIn', 'Application', 'Increase zoom level', [ '=', '+' ], notInInput, this.incrementZoomLevel.bind(this, 1))
+            .register('ZoomOut', 'Application', 'Decrease zoom level', [ '-', '_' ], notInInput, this.incrementZoomLevel.bind(this, -1))
+            .register('ZoomDefault', 'Application', 'Set zoom level to 1x', [ 'Shift+0' ], notInInput, () => {
                 const canvas = this.activeCanvas;
                 const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
 
@@ -438,13 +437,13 @@ export class Editor {
                 }
                 return true;
             })
-            .register('Application', 'Toggle grid', 'G', notInInput, () => {
+            .register('ToggleGrid', 'Application', 'Toggle grid', 'G', notInInput, () => {
                 this.settings.showGrid = !this.settings.showGrid;
                 this.project?.setShowGrid();
                 this.$gridInput.checked = this.settings.showGrid;
                 return true;
             })
-            .register('Application', 'Toggle transparent checkerboard', 'T', notInInput, () => {
+            .register('ToggleUncolored', 'Application', 'Toggle transparent checkerboard', 'T', notInInput, () => {
                 // cannot toggle transparency when in Kangaroo mode
                 if (this.settings.kangarooMode) {
                     return true;
@@ -456,27 +455,24 @@ export class Editor {
                 this.onUncoloredPixelBehaviorChanged();
                 return true;
             })
-            .register('Application', 'Toggle Kangaroo mode', 'K', notInInput, () => {
+            .register('ToggleKangaroo', 'Application', 'Toggle Kangaroo mode', 'K', notInInput, () => {
                 if (this.activeCanvas?.supportsKangarooMode()) {
                     this.settings.kangarooMode = !this.settings.kangarooMode;
                     this.onKangarooModeChanged();
                 }
                 return true;
             })
-            .register('Application', 'Export active object as ASM', 'Shift+X', notInInput, () => {
+            .register('ExportASM', 'Application', 'Export active object as ASM', 'Shift+X', notInInput, () => {
                 this.project?.showExportImagesModal();
                 return true;
             })
-            .register('Application', 'Export active object as image', 'X', notInInput, () => {
+            .register('ExportImage', 'Application', 'Export active object as image', 'X', notInInput, () => {
                 this.project?.showExportASMModal();
                 return true;
             })
-            .register('Application', 'Show help', [ 'F1', '?' ], notInInput, this.showMetaModal.bind(this, ('help')))
-            .register('Application', 'Show shortcuts', [ 'Ctrl+?' ], notInInput, this.showMetaModal.bind(this, ('shortcuts')))
-            .register('Application', 'Show changelog', [ 'Alt+?' ], notInInput, this.showMetaModal.bind(this, ('changelog')))
-
-
-
+            .register('Help', 'Application', 'Show help', [ 'F1', '?' ], notInInput, this.showMetaModal.bind(this, ('Help')))
+            .register('Shortcuts', 'Application', 'Show shortcuts', [ 'Ctrl+?' ], notInInput, this.showMetaModal.bind(this, ('Shortcuts')))
+            .register('Changelog', 'Application', 'Show changelog', [ 'Alt+?' ], notInInput, this.showMetaModal.bind(this, ('Changelog')))
             ;
 
         this.shortcutManager.enable();
@@ -1460,13 +1456,13 @@ export class Editor {
 
         type LinkContent = [ string, MetaLinkType ];
         const metaLinks: LinkContent[] = [
-            [ '.keyboard-link', 'shortcuts' ],
-            [ '.help-link', 'help'  ],
-            [ '.changelog-link', 'changelog' ],
+            [ '.keyboard-link', 'Shortcuts' ],
+            [ '.help-link', 'Help'  ],
+            [ '.changelog-link', 'Changelog' ],
         ];
 
         metaLinks.forEach(([ selector, type ]) => {
-            this.$el.querySelectorAll(`a${selector}`).forEach(($anchor) => {
+            this.$el.querySelectorAll<HTMLAnchorElement>(`a${selector}`).forEach(($anchor) => {
                 $anchor.addEventListener('click', (e) => {
                     e.preventDefault();
                     this.showMetaModal(type);
@@ -1573,6 +1569,8 @@ export class Editor {
         this.selectionButtons.$paste.addEventListener('click', () => this.pasteCopyBuffer());
 
         const $moreContent = parseTemplate(selectionMoreTmpl);
+        this.addShortcutTextToAll($moreContent);
+
         const morePopover = new Popover({
             dropdown: true,
             content: $moreContent,
@@ -1624,18 +1622,68 @@ export class Editor {
         });
 
         this.updateZoomLevelUI();
+        this.addShortcutTextToAll(this.$el);
+
         this.initialized = true;
+    }
+
+    private addShortcutTextToAll($container: HTMLElement): void {
+        $container.querySelectorAll('[data-shortcut]').forEach(($el) => {
+            const name = $el.getAttribute('data-shortcut');
+            if (!name || !isValidShortcutName(name)) {
+                this.logger.error(`element has invalid data-shortcut value "${name}"`, $el);
+                return;
+            }
+
+            this.addShortcutText($el, name);
+        });
+    }
+
+    /**
+     * Adds shortcut text to title attribute and appends it to dropdown items if applicable
+     */
+    private addShortcutText($item: Element | null, shortcut: ShortcutName): void {
+        if (!$item) {
+            return;
+        }
+
+        const undoShortcut = this.shortcutManager.getShortcutsByName(shortcut);
+        const text = undoShortcut
+            .map(shortcut => shortcut.keys.map(key => this.shortcutManager.getKeyText(key)).join('+'))
+            .join(', ');
+
+        if (!text) {
+            return;
+        }
+
+        let title = $item.getAttribute('title') || '';
+        const titleText = `[${text}]`;
+        if (!title.endsWith(titleText)) {
+            title += (title ? ' ' : '') + titleText;
+        }
+
+        $item.setAttribute('title', title);
+
+        const className = 'shortcut-text';
+        if ($item.querySelector(`.${className}`) || !$item.classList.contains('dropdown-link')) {
+            return;
+        }
+
+        const $span = document.createElement('span');
+        $span.classList.add(className);
+        $span.append(text);
+        $item.append($span);
     }
 
     private showMetaModal(type: MetaLinkType): boolean {
         let $content: HTMLElement | DocumentFragment;
         let title: string;
         switch (type) {
-            case 'changelog':
+            case 'Changelog':
                 title = 'Changelog';
                 $content = findTemplateContent(document, '#modal-content-changelog');
                 break;
-            case 'shortcuts': {
+            case 'Shortcuts': {
                 title = 'Mouse and keyboard shortcuts';
                 $content = parseTemplate(`<div class="shortcuts-container"></div>`);
                 const $sectionTmpl = parseTemplate(`<section><header></header><table></table></section>`);
@@ -1649,7 +1697,7 @@ export class Editor {
                     const $table = findElement($section, 'table');
 
                     type MouseInteraction = 'mouse-scroll' | 'mouse-lmb' | 'mouse-drag' | 'mouse-mmb';
-                    type MouseShortcut = Array<ShortcutInfo<any> & { mouse?: MouseInteraction[] }>[];
+                    type MouseShortcut = Array<ShortcutInfo<any, any> & { mouse?: MouseInteraction[] }>[];
                     const groupedValues: MouseShortcut = Array.from(grouped.values());
 
                     if (category === 'Canvas') {
@@ -1657,6 +1705,7 @@ export class Editor {
                         groupedValues.unshift(
                             [{
                                 insertOrder: 0,
+                                name: null,
                                 description: 'Select adjacent color',
                                 category,
                                 action: () => true,
@@ -1668,6 +1717,7 @@ export class Editor {
                             }],
                             [{
                                 insertOrder: 0,
+                                name: null,
                                 description: 'Zoom in/out',
                                 category,
                                 action: () => true,
@@ -1679,6 +1729,7 @@ export class Editor {
                             }],
                             [{
                                 insertOrder: 0,
+                                name: null,
                                 description: 'Pan canvas',
                                 category,
                                 action: () => true,
@@ -1690,6 +1741,7 @@ export class Editor {
                             }],
                             [{
                                 insertOrder: 0,
+                                name: null,
                                 description: 'Erase pixel',
                                 category,
                                 action: () => true,
@@ -1702,6 +1754,7 @@ export class Editor {
                             [
                                 {
                                     insertOrder: 0,
+                                    name: null,
                                     description: 'Select color at pixel',
                                     category,
                                     action: () => true,
@@ -1713,6 +1766,7 @@ export class Editor {
                                 },
                                 {
                                     insertOrder: 0,
+                                    name: null,
                                     description: 'Select color at pixel',
                                     category,
                                     action: () => true,
@@ -1776,7 +1830,7 @@ export class Editor {
                 }
                 break;
             }
-            case 'help':
+            case 'Help':
                 title = 'Help!';
                 $content = parseTemplate(`<p>I need somebody! Not just anybody!</p>`);
                 break;
@@ -1896,6 +1950,8 @@ export class Editor {
 
         this.logger.debug(`applying checkpoint[${undoContext.current}] to canvas ${canvas.id}`);
         this.project?.applyCheckpoint(canvas, checkpoint);
+
+        // TODO sync moreSelectionActions
     }
 
     private emptyCopyBuffer(): void {

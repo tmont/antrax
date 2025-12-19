@@ -154,9 +154,10 @@ type ShortcutPredicate = (e: KeyboardEvent) => boolean;
 type ShortcutAction = ShortcutPredicate;
 
 type ShortcutId = string;
-export interface ShortcutInfo<T> {
+export interface ShortcutInfo<TCat, TName> {
     id: ShortcutId;
-    category: T;
+    category: TCat;
+    name: TName;
     description: string | null;
     group: number;
     keys: KeyAny[];
@@ -177,8 +178,8 @@ const isNumericKey = (key: KeyAny): key is KeyNumeric => !!numericKeyMap[key as 
 const isIgnoredShiftKey = (key: string): key is KeyIgnoreShift =>
     isValidKey(key) && !isNumericKey(key) && !isAlphaKey(key) && !isModifier(key) && !isNamedKey(key) && !isFunctionKey(key);
 
-type KeyboardShortcutsEventMap<T> = {
-    match: [ { e: KeyboardEvent, shortcut: ShortcutInfo<T> } ];
+type KeyboardShortcutsEventMap<TCat, TName> = {
+    match: [ { e: KeyboardEvent, shortcut: ShortcutInfo<TCat, TName> } ];
 };
 
 export interface ShortcutManagerOptions {
@@ -189,8 +190,10 @@ export interface ShortcutManagerOptions {
     autoMac: boolean;
 }
 
-export class ShortcutManager<T extends string | null = null> extends EventEmitter<KeyboardShortcutsEventMap<T | null>> {
-    private readonly shortcuts = new Map<ShortcutId, ShortcutInfo<T | null>[]>();
+export class ShortcutManager<TCat extends string | null = null, TName extends string | null = null>
+    extends EventEmitter<KeyboardShortcutsEventMap<TCat | null, TName | null>> {
+    private readonly shortcuts = new Map<ShortcutId, ShortcutInfo<TCat | null, TName | null>[]>();
+    private readonly shortcutsByName = new Map<string | null, ShortcutInfo<TCat | null, TName | null>[]>();
     private keyHandler: ((e: KeyboardEvent) => void) | null = null;
     private readonly logger: Logger;
     private groupCount = 0;
@@ -243,7 +246,7 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
         shortcut: KeyboardShortcut | KeyboardShortcut[],
         ...actions: ShortcutAction[]
     ): this {
-        return this.register(null, null, shortcut, ...actions);
+        return this.register(null, null, null, shortcut, ...actions);
     }
 
     public registerGlobalPredicate(predicate: ShortcutPredicate): this {
@@ -252,8 +255,9 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
     }
 
     public register(
-        category: T | null,
-        description: string | null,
+        name: TName | null,
+        category: TCat | null,
+        description: ShortcutInfo<TCat, TName>['description'],
         shortcut: KeyboardShortcut | KeyboardShortcut[],
         ...actions: ShortcutAction[]
     ): this {
@@ -271,22 +275,32 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
         shortcuts.forEach((shortcut) => {
             const keys = this.parseKeys(shortcut);
             const id = ShortcutManager.generateId(keys);
-            let info = this.shortcuts.get(id);
-            if (!info) {
-                info = [];
-                this.shortcuts.set(id, info);
+            let shortcuts = this.shortcuts.get(id);
+            if (!shortcuts) {
+                shortcuts = [];
+                this.shortcuts.set(id, shortcuts);
             }
 
-            info.push({
+            let shortcutsByName = this.shortcutsByName.get(name);
+            if (!shortcutsByName) {
+                shortcutsByName = [];
+                this.shortcutsByName.set(name, shortcutsByName);
+            }
+
+            const shortcutInfo: ShortcutInfo<TCat | null, TName | null> = {
                 id,
                 keys,
                 group: this.groupCount,
                 predicates,
                 action,
                 category,
+                name,
                 description,
                 insertOrder: ++this.registerCount,
-            });
+            };
+
+            shortcuts.push(shortcutInfo);
+            shortcutsByName.push(shortcutInfo);
 
             this.logger.debug(`registered ${id}: ${description}`);
         });
@@ -348,7 +362,7 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
         return keys.join('+');
     }
 
-    public getMatches(e: KeyboardEvent): ShortcutInfo<T | null>[] {
+    public getMatches(e: KeyboardEvent): ShortcutInfo<TCat | null, TName | null>[] {
         const keys: KeyAny[] = [];
 
         let key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
@@ -432,8 +446,12 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
         }
     }
 
-    public getShortcutsByCategory(): Map<T, Map<number, ShortcutInfo<T | null>[]>> {
-        const map = new Map<T, Map<number, ShortcutInfo<T | null>[]>>();
+    public getShortcutsByName(name: string): ShortcutInfo<TCat | null, TName | null>[] {
+        return this.shortcutsByName.get(name) || [];
+    }
+
+    public getShortcutsByCategory(): Map<TCat, Map<number, ShortcutInfo<TCat | null, TName | null>[]>> {
+        const map = new Map<TCat, Map<number, ShortcutInfo<TCat | null, TName | null>[]>>();
 
         for (const shortcuts of this.shortcuts.values()) {
             for (const shortcut of shortcuts) {
@@ -458,7 +476,7 @@ export class ShortcutManager<T extends string | null = null> extends EventEmitte
 
         const entries = Array.from(map.entries());
 
-        const getMin = (x: ShortcutInfo<any>[]): number => {
+        const getMin = (x: ShortcutInfo<any, any>[]): number => {
             return x.reduce((min, shortcut) => Math.min(min, shortcut.insertOrder), Infinity);
         };
 

@@ -37,6 +37,14 @@
                 color: config.$accent-color;
                 background-color: config.$accent-bg;
             }
+
+            .shortcut-text {
+                flex: 1;
+                text-align: end;
+                font-size: 75%;
+                color: config.$muted-color;
+                margin-left: config.$gutter-quarter;
+            }
         }
     }
 }
