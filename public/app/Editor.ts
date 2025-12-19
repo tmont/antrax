@@ -10,6 +10,7 @@ import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './ca
 import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import { type ShortcutInfo, ShortcutManager } from './ShortcutManager.ts';
+import { type ClientCoordinates, touchToCoordinates } from './utils-event.ts';
 import {
     getZoomIndex,
     isValidZoomLevel,
@@ -353,6 +354,10 @@ export class Editor {
             })
             .register('Draw mode', 'Line', 'L', notInInput, () => {
                 this.setDrawMode('line');
+                return true;
+            })
+            .register('Draw mode', 'Pan', 'H', notInInput, () => {
+                this.setDrawMode('pan');
                 return true;
             })
             .register('Draw mode', 'Select', 'Z', notInInput, () => {
@@ -1289,8 +1294,7 @@ export class Editor {
             canvasContainer.classList.remove('panning-start');
         });
 
-        // handle the popover hiding stack
-        document.addEventListener('mousedown', (e) => {
+        const hidePopover = (e: Event): void => {
             if (!(e.target instanceof Node)) {
                 return;
             }
@@ -1298,13 +1302,13 @@ export class Editor {
             if (!Popover.topMostContains(e.target)) {
                 Popover.hideTopMost();
             }
-        });
+        };
 
-        canvasContainer.addEventListener('mousedown', (e) => {
-            if (!e.shiftKey || !isLeftMouseButton(e)) {
-                return;
-            }
+        // handle the popover hiding stack
+        document.addEventListener('mousedown', hidePopover);
+        document.addEventListener('touchstart', hidePopover);
 
+        const startPanning = (e: Event, coordinates: ClientCoordinates): void => {
             e.preventDefault();
             e.stopPropagation();
 
@@ -1312,14 +1316,37 @@ export class Editor {
             canvasContainer.classList.add('panning');
 
             this.canvasState.panning = true;
-            this.canvasState.panningOrigin = { x: e.clientX, y: e.clientY };
+            this.canvasState.panningOrigin = { x: coordinates.clientX, y: coordinates.clientY };
+        };
+
+        canvasContainer.addEventListener('mousedown', (e) => {
+            if (!isLeftMouseButton(e)) {
+                return;
+            }
+
+            if (this.settings.drawMode !== 'pan' && !e.shiftKey) {
+                return;
+            }
+
+            startPanning(e, e);
+        });
+        canvasContainer.addEventListener('touchstart', (e) => {
+            if (this.settings.drawMode !== 'pan') {
+                return;
+            }
+
+            startPanning(e, touchToCoordinates(e));
         });
 
-        document.addEventListener('mousemove', (e) => {
-            this.canvasState.mousePosition.x = e.clientX;
-            this.canvasState.mousePosition.y = e.clientY;
+        const onMouseMove = (e: Event, coordinates: ClientCoordinates): void => {
+            const { clientX, clientY } = coordinates;
+            this.canvasState.mousePosition.x = clientX;
+            this.canvasState.mousePosition.y = clientY;
 
             if (!this.canvasState.panning) {
+                if (this.settings.drawMode === 'pan') {
+                    canvasContainer.classList.toggle('panning-start', true);
+                }
                 return;
             }
 
@@ -1327,8 +1354,6 @@ export class Editor {
             e.stopPropagation();
 
             canvasContainer.classList.remove('panning-start');
-
-            const { clientX, clientY } = e;
 
             const deltaX = clientX - this.canvasState.panningOrigin.x;
             const deltaY = clientY - this.canvasState.panningOrigin.y;
@@ -1346,12 +1371,22 @@ export class Editor {
             this.$canvasArea.style.top = coordinate.y + 'px';
             this.$canvasArea.style.left = coordinate.x + 'px';
             this.syncCanvasLocation(coordinate);
+        };
+
+        document.addEventListener('mousemove', (e) => {
+            onMouseMove(e, e);
+        });
+        document.addEventListener('touchmove', (e) => {
+            onMouseMove(e, touchToCoordinates(e));
         });
 
-        document.addEventListener('mouseup', () => {
+        const stopPanning = (): void => {
             this.canvasState.panning = false;
             canvasContainer.classList.remove('panning-start', 'panning');
-        });
+        };
+
+        document.addEventListener('mouseup', stopPanning);
+        document.addEventListener('touchend', stopPanning);
 
         // gutter stuff
         this.$gridInput.addEventListener('change', () => {

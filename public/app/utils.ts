@@ -118,10 +118,10 @@ export const isLeftMouseButton = (e: MouseEvent): boolean => e.button === 0;
 export type DrawMode =
     'draw' | 'erase' | 'fill' | 'dropper' |
     'rect' | 'rect-filled' | 'ellipse' | 'ellipse-filled' |
-    'line' | 'select' | 'move';
+    'line' | 'pan' | 'select' | 'move';
 const drawModeMap: Record<DrawMode, 1> = {
     ellipse: 1, 'ellipse-filled': 1, draw: 1, erase: 1, dropper: 1, fill: 1, line: 1, rect: 1, 'rect-filled': 1,
-    select: 1, move: 1,
+    pan: 1, select: 1, move: 1,
 };
 export const isDrawMode = (mode: unknown): mode is DrawMode =>
     typeof mode === 'string' && !!drawModeMap[mode as unknown as DrawMode];
@@ -248,7 +248,4 @@ export interface LoadedFile {
 
 export const clamp = (min: number, max: number, value: number): number => Math.max(min, Math.min(max, value));
 
-export interface ClientCoordinates {
-    clientX: number;
-    clientY: number;
-}
+

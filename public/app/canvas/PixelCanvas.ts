@@ -10,11 +10,11 @@ import {
     type MultiSelectItemSingle
 } from '../MultiSelect.ts';
 import { ObjectGroup } from '../ObjectGroup.ts';
+import { type ClientCoordinates, touchToCoordinates } from '../utils-event.ts';
 import { toPascalCase } from '../utils-string.ts';
 import {
     chars,
     clamp,
-    type ClientCoordinates,
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type Coordinate,
@@ -827,6 +827,10 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                     break;
                 }
 
+                case 'pan':
+                    // nothing gets drawn in "pan" mode, it's all handled by the Editor
+                    break;
+
                 default:
                     nope(drawMode);
                     throw new Error(`Unknow drawMode "${drawMode}"`);
@@ -850,29 +854,17 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         };
 
         const onTouchMove = (e: TouchEvent): void => {
-            const touch = e.touches.item(0);
-            if (!touch) {
-                return;
-            }
-
             activatePixelAtCursor({
-                clientX: touch.clientX,
-                clientY: touch.clientY,
+                ...touchToCoordinates(e),
                 ctrlKey: false,
             });
         };
 
         const onTouchStart = (e: TouchEvent): void => {
-            const touch = e.touches.item(0);
-            if (!touch) {
-                return;
-            }
-
             startDrawing();
 
             activatePixelAtCursor({
-                clientX: touch.clientX,
-                clientY: touch.clientY,
+                ...touchToCoordinates(e),
                 ctrlKey: false,
             });
 
