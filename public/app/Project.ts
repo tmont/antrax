@@ -14,6 +14,15 @@ import { ObjectGroup, type ObjectGroupSerialized } from './ObjectGroup.ts';
 import { ObjectGroupItem } from './ObjectGroupItem.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingEvent } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
+import {
+    findCanvas,
+    findElement,
+    findInput,
+    findOrDie,
+    findSelect,
+    findTemplateContent,
+    parseTemplate
+} from './utils-dom.ts';
 import { isValidZoomLevel, zoomLevelLabel } from './utils-zoom.ts';
 import {
     type AssemblyNumberFormatRadix,
@@ -27,17 +36,10 @@ import {
     type DisplayModeColorIndex,
     type DisplayModeName,
     type ExportImageOptions,
-    findCanvas,
-    findElement,
-    findInput,
-    findOrDie,
-    findSelect,
-    findTemplateContent,
     formatAssemblyNumber,
     get2dContext,
     hasAddressLabel,
     type LoadedFile,
-    parseTemplate,
     type PixelCanvasDrawStateContext,
     type PixelInfo,
     zeroPad

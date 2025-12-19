@@ -10,7 +10,7 @@ import {
     type MultiSelectItemSingle
 } from '../MultiSelect.ts';
 import { ObjectGroup } from '../ObjectGroup.ts';
-import { type ClientCoordinates, touchToCoordinates } from '../utils-event.ts';
+import { type ClientCoordinates, isLeftMouseButton, touchToCoordinates } from '../utils-event.ts';
 import { toPascalCase } from '../utils-string.ts';
 import {
     chars,
@@ -27,7 +27,6 @@ import {
     formatAssemblyNumber,
     generateId,
     get2dContext,
-    isLeftMouseButton,
     isPaletteIndex,
     type LocatedPixel,
     nope,

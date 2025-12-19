@@ -2,7 +2,8 @@ import { type Atari7800Color, colors } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Popover, type PopoverEventMap } from './Popover.ts';
-import { findOrDie, parseTemplate, zeroPad } from './utils.ts';
+import { findOrDie, parseTemplate } from './utils-dom.ts';
+import { zeroPad } from './utils.ts';
 
 const tmpl = `<div class="color-picker"><form></form></div>`;
 

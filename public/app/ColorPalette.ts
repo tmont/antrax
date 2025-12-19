@@ -2,7 +2,8 @@ import { ColorPicker } from './ColorPicker.ts';
 import { type Atari7800Color, colors, type ColorSerialized, colorToJson, getColorObject } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
-import { type ColorIndex, findElement, generateId, isPaletteColorIndex, parseTemplate } from './utils.ts';
+import { findElement, parseTemplate } from './utils-dom.ts';
+import { type ColorIndex, generateId, isPaletteColorIndex } from './utils.ts';
 
 export interface ColorPaletteOptions {
     id?: ColorPalette['id'];

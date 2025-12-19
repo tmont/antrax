@@ -9,16 +9,18 @@ import { ObjectGroupItem, type ObjectGroupItemOptions, type ObjectGroupItemSeria
 import { PixelCanvas } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
-    chars,
-    clamp,
     findCanvas,
     findElement,
     findInput,
     findTemplateContent,
+    parseTemplate,
+    setTextAndTitle
+} from './utils-dom.ts';
+import {
+    chars,
+    clamp,
     generateId,
     get2dContext,
-    parseTemplate,
-    setTextAndTitle,
     type SiblingInsertOrder
 } from './utils.ts';
 

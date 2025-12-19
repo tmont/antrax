@@ -4,16 +4,15 @@ import { type Atari7800Color, colors, type ColorSerialized, colorToJson } from '
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
+import { findElement, parseTemplate } from './utils-dom.ts';
 import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type ColorIndex,
     type ColorPaletteSetStats,
     type DisplayModeColorValue,
-    findElement,
     formatAssemblyNumber,
     generateId,
-    parseTemplate,
     type StatsReceiver
 } from './utils.ts';
 

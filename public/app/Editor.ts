@@ -10,7 +10,16 @@ import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './ca
 import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
 import { type ShortcutInfo, ShortcutManager } from './ShortcutManager.ts';
-import { type ClientCoordinates, touchToCoordinates } from './utils-event.ts';
+import {
+    findButton,
+    findElement,
+    findInput,
+    findSelect,
+    findTemplateContent,
+    parseTemplate,
+    setTextAndTitle
+} from './utils-dom.ts';
+import { type ClientCoordinates, isLeftMouseButton, touchToCoordinates } from './utils-event.ts';
 import { isValidShortcutName, type ShortcutCategory, type ShortcutName } from './utils-shortcuts.ts';
 import {
     getZoomIndex,
@@ -31,21 +40,13 @@ import {
     type DisplayModeColorValue,
     type DisplayModeName,
     type DrawMode,
-    findButton,
-    findElement,
-    findInput,
-    findSelect,
-    findTemplateContent,
     getColorValueCombinedLabel,
     hasMessage,
     isDrawMode,
-    isLeftMouseButton,
     type LoadedFile,
     nope,
-    parseTemplate,
     type PixelInfo,
     type Rect,
-    setTextAndTitle
 } from './utils.ts';
 
 export interface CopiedCanvasData {

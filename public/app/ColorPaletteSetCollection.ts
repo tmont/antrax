@@ -4,12 +4,10 @@ import type { Atari7800Color } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Popover } from './Popover.ts';
+import { findElement, findInput, parseTemplate } from './utils-dom.ts';
 import {
     type ColorIndex,
     type ColorPaletteSetCollectionStats,
-    findElement,
-    findInput,
-    parseTemplate,
     type StatsReceiver
 } from './utils.ts';
 

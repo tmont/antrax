@@ -1,6 +1,6 @@
 import { Logger } from './Logger.ts';
 import { Popover } from './Popover.ts';
-import { findElement, parseTemplate } from './utils.ts';
+import { findElement, parseTemplate } from './utils-dom.ts';
 
 let $copyError: HTMLElement | null = null;
 export const getCopyErrorTmpl = (): HTMLElement => {

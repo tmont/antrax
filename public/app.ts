@@ -1,7 +1,7 @@
 import { ColorPaletteSet } from './app/ColorPaletteSet.ts';
 import { Editor } from './app/Editor.ts';
 import { enableDraggableItems } from './app/draggable.ts';
-import { findElement } from './app/utils.ts';
+import { findElement } from './app/utils-dom.ts';
 
 const contentHeader = findElement(document, '.content-header');
 

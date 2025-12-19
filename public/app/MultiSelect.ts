@@ -1,7 +1,8 @@
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Popover } from './Popover.ts';
-import { chars, findElement, parseTemplate } from './utils.ts';
+import { findElement, parseTemplate } from './utils-dom.ts';
+import { chars } from './utils.ts';
 
 const tmpl = `
 <div class="multiselect">

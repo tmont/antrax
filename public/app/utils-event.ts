@@ -3,14 +3,6 @@ export interface ClientCoordinates {
     clientY: number;
 }
 
-export const touchToCoordinates = (e: TouchEvent): ClientCoordinates => {
-    const touch = e.touches.item(0);
-    if (!touch) {
-        return {
-            clientX: 0,
-            clientY: 0,
-        };
-    }
+export const touchToCoordinates = (e: TouchEvent): ClientCoordinates => e.touches.item(0) || { clientX: 0, clientY: 0 };
 
-    return touch;
-};
+export const isLeftMouseButton = (e: MouseEvent): boolean => e.button === 0;

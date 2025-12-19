@@ -1,6 +1,6 @@
 import { type DraggableReorderEvent, GlobalEvents } from './GlobalEvents.ts';
 import { Logger } from './Logger.ts';
-import type { ClientCoordinates } from './utils.ts';
+import type { ClientCoordinates } from './utils-event.ts';
 
 export interface DragState {
     type: string;

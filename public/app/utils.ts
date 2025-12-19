@@ -61,38 +61,6 @@ export type PixelInfoSerialized = PixelInfo;
 export const getColorValueCombinedLabel = (value: DisplayModeColorValue): string =>
     value.colors.map(x => x.label).join('+');
 
-const parser = new DOMParser();
-export const parseTemplate = (html: string): HTMLElement => {
-    const el = parser.parseFromString(html, 'text/html').body.firstChild;
-    if (!(el instanceof HTMLElement)) {
-        throw new Error('Failed to parse HTML template');
-    }
-
-    return el;
-};
-
-export const findOrDie = <T>(ancestor: ParentNode, selector: string, predicate: (node: unknown) => node is T): T => {
-    const child = ancestor.querySelector(selector);
-    if (!predicate(child)) {
-        throw new Error(`Unable to find ${selector}`);
-    }
-
-    return child;
-};
-
-export const findElement = (ancestor: ParentNode, selector: string): HTMLElement =>
-    findOrDie(ancestor, selector, node => node instanceof HTMLElement);
-export const findInput = (ancestor: ParentNode, selector: string): HTMLInputElement =>
-    findOrDie(ancestor, selector, node => node instanceof HTMLInputElement);
-export const findSelect = (ancestor: ParentNode, selector: string): HTMLSelectElement =>
-    findOrDie(ancestor, selector, node => node instanceof HTMLSelectElement);
-export const findCanvas = (ancestor: ParentNode, selector: string): HTMLCanvasElement =>
-    findOrDie(ancestor, selector, node => node instanceof HTMLCanvasElement);
-export const findButton = (ancestor: ParentNode, selector: string): HTMLButtonElement =>
-    findOrDie(ancestor, selector, node => node instanceof HTMLButtonElement);
-export const findTemplateContent = (ancestor: ParentNode, selector: string): DocumentFragment =>
-    findOrDie(ancestor, selector, node => node instanceof HTMLTemplateElement).content;
-
 export type AssemblyNumberFormatRadix = 2 | 10 | 16;
 export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatRadix): string => {
     value = isNaN(value) ? 0 : value;
@@ -112,8 +80,6 @@ export const formatAssemblyNumber = (value: number, radix: AssemblyNumberFormatR
 };
 
 export const zeroPad = (x: string, len: number): string => x.padStart(len, '0');
-
-export const isLeftMouseButton = (e: MouseEvent): boolean => e.button === 0;
 
 export type DrawMode =
     'draw' | 'erase' | 'fill' | 'dropper' |
@@ -167,9 +133,8 @@ export interface CodeGenerationOptionsOffset extends CodeGenerationOptionsBase {
 
 export type CodeGenerationOptions = CodeGenerationOptionsLabel | CodeGenerationOptionsOffset;
 
-export const hasAddressLabel = (options: CodeGenerationOptions): options is CodeGenerationOptionsLabel => {
-    return !!((options as CodeGenerationOptionsLabel).addressLabel || '').trim();
-};
+export const hasAddressLabel = (options: CodeGenerationOptions): options is CodeGenerationOptionsLabel =>
+    !!((options as CodeGenerationOptionsLabel).addressLabel || '').trim();
 
 export interface ExportImageOptions {
     backgroundColor: string;
@@ -225,11 +190,6 @@ export const chars = {
     oneEighth: String.fromCharCode(0x215b),
 } as const;
 
-export const setTextAndTitle = ($el: HTMLElement, text: string): void => {
-    $el.innerText = text;
-    $el.setAttribute('title', text);
-};
-
 export interface ColorPaletteSetCollectionStats {
     paletteSetStats: Map<ColorPaletteSet, ColorPaletteSetStats>;
 }
@@ -250,5 +210,3 @@ export interface LoadedFile {
 }
 
 export const clamp = (min: number, max: number, value: number): number => Math.max(min, Math.min(max, value));
-
-

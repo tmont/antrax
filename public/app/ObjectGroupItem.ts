@@ -9,15 +9,16 @@ import type { ObjectGroup } from './ObjectGroup.ts';
 import { PixelCanvas, type PixelCanvasSerialized } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import {
-    chars,
     findCanvas,
     findElement,
-    findInput,
-    findOrDie,
+    findInput, findOrDie,
     findTemplateContent,
-    hasMessage,
     parseTemplate,
     setTextAndTitle
+} from './utils-dom.ts';
+import {
+    chars,
+    hasMessage,
 } from './utils.ts';
 
 const objectItemTmpl = `

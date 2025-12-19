@@ -1,6 +1,7 @@
 import { EventEmitter } from './EventEmitter.ts';
 import { Popover } from './Popover.ts';
-import { findElement, nope, parseTemplate } from './utils.ts';
+import { findElement, parseTemplate } from './utils-dom.ts';
+import { nope } from './utils.ts';
 
 export interface ModalActionObjectBase {
     id: string;
