@@ -64,11 +64,11 @@ export const getColorValueCombinedLabel = (value: DisplayModeColorValue): string
 const parser = new DOMParser();
 export const parseTemplate = (html: string): HTMLElement => {
     const el = parser.parseFromString(html, 'text/html').body.firstChild;
-    if (!el) {
+    if (!(el instanceof HTMLElement)) {
         throw new Error('Failed to parse HTML template');
     }
 
-    return el as HTMLElement;
+    return el;
 };
 
 export const findOrDie = <T>(ancestor: ParentNode, selector: string, predicate: (node: unknown) => node is T): T => {
@@ -209,7 +209,10 @@ export interface PixelCanvasDrawStateContext {
 }
 
 export const chars = {
-    rightArrow: String.fromCharCode(0x2192),
+    arrowDown: String.fromCharCode(0x2193),
+    arrowLeft: String.fromCharCode(0x2190),
+    arrowRight: String.fromCharCode(0x2192),
+    arrowUp: String.fromCharCode(0x2191),
     degree: String.fromCharCode(0xb0),
     ellipsis: String.fromCharCode(0x2026),
     times: String.fromCharCode(0xd7),

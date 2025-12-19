@@ -512,7 +512,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.groups.splice(newIndex, 0, currentGroup);
 
             this.logger.info('new group order:',
-                this.groups.map(group => group.getName()).join(` ${chars.rightArrow} `));
+                this.groups.map(group => group.getName()).join(` ${chars.arrowRight} `));
         });
 
         this.$mountEl.appendChild(this.$el);
@@ -881,7 +881,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
                 .map(obj => obj.canvases);
 
             this.logger.debug('grouped canvas order:',
-                groupedCanvases.map(a => a.map(c => c.getName()).join(` ${chars.rightArrow} `)).join(` ${chars.rightArrow} `));
+                groupedCanvases.map(a => a.map(c => c.getName()).join(` ${chars.arrowRight} `)).join(` ${chars.arrowRight} `));
 
             const getScaled = (dimension: keyof Dimensions, canvas: PixelCanvas): number => {
                 if (options.pixelSize === 'default') {

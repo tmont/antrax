@@ -9,6 +9,7 @@ import { ObjectGroup } from './ObjectGroup.ts';
 import { type CanvasOptions, PixelCanvas, type PixelDrawingBehavior } from './canvas/PixelCanvas.ts';
 import { Popover } from './Popover.ts';
 import { Project, type ProjectSerialized } from './Project.ts';
+import { type ShortcutInfo, ShortcutManager } from './ShortcutManager.ts';
 import {
     getZoomIndex,
     isValidZoomLevel,
@@ -75,6 +76,14 @@ export interface EditorSerialized {
     settings: EditorSettingsSerialized;
     project: ProjectSerialized | null;
     paletteSetCollection: ColorPaletteSetCollectionSerialized;
+}
+
+type MetaLinkType = 'help' | 'shortcuts' | 'changelog';
+
+interface CanvasState {
+    mousePosition: Coordinate;
+    panning: boolean;
+    panningOrigin: Coordinate;
 }
 
 const colorItemTmpl = `
@@ -155,6 +164,8 @@ const defaultSettings: Readonly<EditorSettings> = {
     drawMode: 'draw',
 };
 
+type ShortcutCategory = 'Application' | 'Selection' | 'Draw mode' | 'Canvas';
+
 export class Editor {
     private project: Project | null = null;
     private readonly logger: Logger;
@@ -185,6 +196,18 @@ export class Editor {
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
+    private readonly shortcutManager: ShortcutManager<ShortcutCategory>;
+    private readonly canvasState: CanvasState = {
+        panning: false,
+        panningOrigin: {
+            x: 0,
+            y: 0,
+        },
+        mousePosition: {
+            x: 0,
+            y: 0,
+        },
+    };
 
     public get name(): string {
         return 'Editor';
@@ -234,7 +257,224 @@ export class Editor {
             activePaletteSet: null, // will be set once a canvas is activated
         });
 
+        this.shortcutManager = new ShortcutManager();
         this.setPaletteSets(this.paletteSets);
+    }
+
+    private configureShortcuts(): void {
+        const ignoredInputs: Record<string, 1> = {
+            text: 1,
+            number: 1,
+        };
+        const notInInput = (e: KeyboardEvent): boolean => {
+            const isInput = e.target instanceof HTMLInputElement;
+            const isTextarea = e.target instanceof HTMLTextAreaElement;
+
+            return (!isInput && !isTextarea) || (isInput && !ignoredInputs[e.target.type]);
+        };
+
+        this.shortcutManager
+            .registerGlobalPredicate(() => !this.canvasState.panning)
+
+            .registerBare('Escape', () => {
+                if (Popover.hideTopMost()) {
+                    this.logger.debug('hid topmost popover');
+                    return false;
+                }
+
+                if (Modal.current) {
+                    this.logger.debug('destroying current modal');
+                    Modal.current.destroy();
+                    return false;
+                }
+
+                // allow other Escape shortcuts to do stuff
+                return true;
+            })
+
+            .register('Canvas', 'Select next color', [ 'S', 'ArrowDown' ], notInInput, () => {
+                const activeCanvas = this.activeCanvas;
+                if (activeCanvas) {
+                    this.setActiveColor(activeCanvas.getActiveColor() - 1);
+                }
+                return true;
+            })
+            .register('Canvas', 'Select previous color', [ 'W', 'ArrowUp' ], notInInput, () => {
+                const activeCanvas = this.activeCanvas;
+                if (activeCanvas) {
+                    this.setActiveColor(activeCanvas.getActiveColor() + 1);
+                }
+                return true;
+            })
+            .register('Canvas', 'Undo last draw action for active object', 'Ctrl+Z', notInInput, () => {
+                this.applyCurrentCheckpoint(false);
+                return true;
+            })
+            .register('Canvas', 'Redo last draw action for active object', [ 'Ctrl+Shift+Z', 'Ctrl+Y' ], notInInput, () => {
+                this.applyCurrentCheckpoint(true);
+                return true;
+            })
+            .register('Canvas', `Rotate active object 90${chars.degree} counter-clockwise`, 'Shift+G', notInInput, () => {
+                this.activeCanvas?.rotatePixelData();
+                return true;
+            })
+
+            .register('Draw mode', 'Draw', 'D', notInInput, () => {
+                this.setDrawMode('draw');
+                return true;
+            })
+            .register('Draw mode', 'Erase', 'E', notInInput, () => {
+                this.setDrawMode('erase');
+                return true;
+            })
+            .register('Draw mode', 'Fill', 'F', notInInput, () => {
+                this.setDrawMode('fill');
+                return true;
+            })
+            .register('Draw mode', 'Eye-dropper (select color)', 'Y', notInInput, () => {
+                this.setDrawMode('dropper');
+                return true;
+            })
+            .register('Draw mode', 'Filled rectangle', 'R', notInInput, () => {
+                this.setDrawMode('rect-filled');
+                return true;
+            })
+            .register('Draw mode', 'Rectangle', 'Shift+R', notInInput, () => {
+                this.setDrawMode('rect');
+                return true;
+            })
+            .register('Draw mode', 'Filled ellipse', 'C', notInInput, () => {
+                this.setDrawMode('ellipse-filled');
+                return true;
+            })
+            .register('Draw mode', 'Ellipse', 'Shift+C', notInInput, () => {
+                this.setDrawMode('ellipse');
+                return true;
+            })
+            .register('Draw mode', 'Line', 'L', notInInput, () => {
+                this.setDrawMode('line');
+                return true;
+            })
+            .register('Draw mode', 'Select', 'Z', notInInput, () => {
+                this.setDrawMode('select');
+                return true;
+            })
+            .register('Draw mode', 'Move', 'M', notInInput, () => {
+                if (this.activeCanvas?.getCurrentSelection()) {
+                    this.setDrawMode('move');
+                }
+                return true;
+            })
+
+            .register('Selection', 'Select all', 'Ctrl+A', notInInput, (e) => {
+                if (!this.activeCanvas) {
+                    return true;
+                }
+
+                e.preventDefault();
+
+                this.logger.debug(`selecting entire active canvas`);
+                this.setDrawMode('select');
+                this.activeCanvas.setSelection({
+                    x: 0,
+                    y: 0,
+                    ...this.activeCanvas.getDimensions(),
+                });
+                return true;
+            })
+            // must be registered after the modal closing Escape shortcut since that one takes precedence
+            // and doesn't propagate in certain cases
+            .register('Selection', 'De-select all', [ 'Ctrl+Shift+A', 'Escape' ], notInInput, (e) => {
+                // prevent default browser behavior for this case, on firefox Ctrl+Shift+A opens up the theme manager
+                e.preventDefault();
+
+                if (!this.activeCanvas) {
+                    return true;
+                }
+
+                this.logger.debug(`deselecting due to keyboard shortcut`);
+                this.deselectAll();
+                return true;
+            })
+            .register('Selection', 'Copy selected pixels', 'Ctrl+C', notInInput, (e) => {
+                if (this.copyActiveCanvasSelection()) {
+                    e.preventDefault();
+                }
+
+                return true;
+            })
+            .register('Selection', 'Erase selected pixels', 'Delete', notInInput, () => {
+                this.eraseActiveSelection();
+                return true;
+            })
+            .register('Selection', 'Paste copied pixels', 'Ctrl+V', notInInput, (e) => {
+                if (this.pasteCopyBuffer()) {
+                    e.preventDefault();
+                }
+
+                return true;
+            })
+
+            .register('Application', 'Increase zoom level', [ '=', '+' ], notInInput, this.incrementZoomLevel.bind(this, 1))
+            .register('Application', 'Decrease zoom level', [ '-', '_' ], notInInput, this.incrementZoomLevel.bind(this, -1))
+            .register('Application', 'Set zoom level to 1x', [ 'Shift+0' ], notInInput, () => {
+                const canvas = this.activeCanvas;
+                const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
+
+                this.setAndClampZoomIndex(getZoomIndex(1));
+                if (canvas) {
+                    this.adjustCanvasPositionRelativeToCursor(
+                        canvas,
+                        this.canvasState.mousePosition.x,
+                        this.canvasState.mousePosition.y,
+                        width,
+                        height,
+                    );
+                }
+                return true;
+            })
+            .register('Application', 'Toggle grid', 'G', notInInput, () => {
+                this.settings.showGrid = !this.settings.showGrid;
+                this.project?.setShowGrid();
+                this.$gridInput.checked = this.settings.showGrid;
+                return true;
+            })
+            .register('Application', 'Toggle transparent checkerboard', 'T', notInInput, () => {
+                // cannot toggle transparency when in Kangaroo mode
+                if (this.settings.kangarooMode) {
+                    return true;
+                }
+
+                this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'color0' ?
+                    'background' :
+                    'color0';
+                this.onUncoloredPixelBehaviorChanged();
+                return true;
+            })
+            .register('Application', 'Toggle Kangaroo mode', 'K', notInInput, () => {
+                if (this.activeCanvas?.supportsKangarooMode()) {
+                    this.settings.kangarooMode = !this.settings.kangarooMode;
+                    this.onKangarooModeChanged();
+                }
+                return true;
+            })
+            .register('Application', 'Export active object as ASM', 'Shift+X', notInInput, () => {
+                this.project?.showExportImagesModal();
+                return true;
+            })
+            .register('Application', 'Export active object as image', 'X', notInInput, () => {
+                this.project?.showExportASMModal();
+                return true;
+            })
+            .register('Application', 'Show help', [ 'F1', '?' ], notInInput, this.showMetaModal.bind(this, ('help')))
+            .register('Application', 'Show shortcuts', [ 'Ctrl+?' ], notInInput, this.showMetaModal.bind(this, ('shortcuts')))
+            .register('Application', 'Show changelog', [ 'Alt+?' ], notInInput, this.showMetaModal.bind(this, ('changelog')))
+
+
+
+            ;
+
+        this.shortcutManager.enable();
     }
 
     private get activeCanvas(): PixelCanvas | null {
@@ -902,6 +1142,30 @@ export class Editor {
         });
     }
 
+    private incrementZoomLevel(dir: -1 | 1): boolean {
+        const canvas = this.activeCanvas;
+        const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || {
+            width: 0,
+            height: 0
+        };
+
+        const currentZoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
+            getZoomIndex(this.settings.zoomLevel) :
+            zoomLevelIndexDefault;
+        this.setAndClampZoomIndex(currentZoomIndex + dir);
+
+        if (canvas) {
+            this.adjustCanvasPositionRelativeToCursor(
+                canvas,
+                this.canvasState.mousePosition.x,
+                this.canvasState.mousePosition.y,
+                oldWidth,
+                oldHeight,
+            );
+        }
+        return true;
+    }
+
     public updateZoomLevelUI(): void {
         this.$zoomValue.innerText = (
             isValidZoomLevel(this.settings.zoomLevel) ?
@@ -965,6 +1229,7 @@ export class Editor {
             throw new Error(`cannot be initialized without a project, maybe...`);
         }
 
+        this.configureShortcuts();
         this.paletteSets.init();
         this.project.init();
 
@@ -974,75 +1239,6 @@ export class Editor {
         });
 
         const canvasContainer = findElement(this.$el, '.canvas-container');
-        let panning = false;
-        let panningOrigin = { x: 0, y: 0 };
-
-        // need to keep track of this when zooming by key press instead of mousewheel
-        const currentMouseCoords = {
-            x: 0,
-            y: 0,
-        };
-
-        const adjustCanvasPositionRelativeToCursor = (
-            canvas: PixelCanvas,
-            clientX: number,
-            clientY: number,
-            oldWidth: number,
-            oldHeight: number,
-        ): void => {
-            // shift canvas so that the pixel you're hovering over remains under your cursor even
-            // at the new canvas size. if the cursor is not over the canvas, maintain the exact
-            // distance from the nearest edge.
-
-            const parent = this.$canvasArea.offsetParent;
-            if (!parent) {
-                return;
-            }
-
-            const canvasRect = canvas.getHTMLRect();
-            const { top: containerTop, left: containerLeft } = parent.getBoundingClientRect();
-
-            const clientXRelative = clientX - containerLeft;
-            const clientYRelative = clientY - containerTop;
-
-            const computedStyle = window.getComputedStyle(this.$canvasArea);
-            const canvasLeft = parseInt(computedStyle.getPropertyValue('left'));
-            const canvasTop = parseInt(computedStyle.getPropertyValue('top'));
-
-            let deltaX: number;
-            let deltaY: number;
-            if (clientX < canvasRect.x) {
-                // maintain x position with left edge of canvas
-                deltaX = 0;
-            } else if (clientX > canvasRect.x + oldWidth) {
-                // maintain x position with right edge of canvas
-                deltaX = canvasRect.width - oldWidth;
-            } else {
-                const distanceFromTopLeftX = clientXRelative - canvasLeft;
-                const ratioX = distanceFromTopLeftX / oldWidth;
-                deltaX = (ratioX * canvasRect.width) - distanceFromTopLeftX;
-            }
-
-            if (clientY < canvasRect.y) {
-                // maintain y position with top edge of canvas
-                deltaY = 0;
-            } else if (clientY > canvasRect.y + oldHeight) {
-                // maintain y position with bottom edge of canvas
-                deltaY = canvasRect.height - oldHeight;
-            } else {
-                const distanceFromTopLeftY = clientYRelative - canvasTop;
-                const ratioY = distanceFromTopLeftY / oldHeight;
-                deltaY = (ratioY * canvasRect.height) - distanceFromTopLeftY;
-            }
-
-            const coordinate: Coordinate = {
-                x: canvasLeft - deltaX,
-                y: canvasTop - deltaY,
-            };
-            this.$canvasArea.style.left = coordinate.x + 'px';
-            this.$canvasArea.style.top = coordinate.y + 'px';
-            this.syncCanvasLocation(coordinate);
-        };
 
         let lastWheelEvent = 0;
         canvasContainer.addEventListener('wheel', (e) => {
@@ -1070,7 +1266,7 @@ export class Editor {
                 this.setAndClampZoomIndex(currentZoomIndex + dir);
 
                 if (canvas) {
-                    adjustCanvasPositionRelativeToCursor(canvas, e.clientX, e.clientY, oldWidth, oldHeight);
+                    this.adjustCanvasPositionRelativeToCursor(canvas, e.clientX, e.clientY, oldWidth, oldHeight);
                 }
 
                 return;
@@ -1083,220 +1279,9 @@ export class Editor {
             }
         });
 
-        const ignoredInputs: Record<string, 1> = {
-            text: 1,
-            number: 1,
-        };
-
         document.addEventListener('keydown', (e) => {
-            if (panning) {
-                return;
-            }
-
-            // we want ESC to hide popovers even if an input is focused
-            if (e.key === 'Escape') {
-                // popovers take precedence over modals, because some modals open popovers
-                if (Popover.hideTopMost()) {
-                    return;
-                }
-
-                if (Modal.current) {
-                    Modal.current.destroy();
-                    return;
-                }
-            }
-
-            if (
-                (e.target instanceof HTMLInputElement && ignoredInputs[e.target.type]) ||
-                e.target instanceof HTMLTextAreaElement
-            ) {
-                return;
-            }
-
-            if (e.ctrlKey && e.key.toLowerCase() === 'c') {
-                if (this.copyActiveCanvasSelection()) {
-                    e.preventDefault();
-                }
-                return;
-            }
-
-            if (e.ctrlKey && e.key.toLowerCase() === 'v') {
-                if (this.pasteCopyBuffer()) {
-                    e.preventDefault();
-                }
-                return;
-            }
-
-            if (e.ctrlKey && e.key.toLowerCase() === 'a') {
-                if (!this.activeCanvas) {
-                    return;
-                }
-
-                e.preventDefault();
-
-                if (e.shiftKey) {
-                    this.logger.debug(`deselecting due to Ctrl+Shift+A`);
-                    this.deselectAll();
-                    return;
-                }
-
-                this.logger.debug(`selecting entire active canvas`);
-                this.setDrawMode('select');
-                this.activeCanvas.setSelection({
-                    x: 0,
-                    y: 0,
-                    ...this.activeCanvas.getDimensions(),
-                });
-                return;
-            }
-
-            if (e.shiftKey || e.key === 'Shift') {
+            if (!this.canvasState.panning && e.shiftKey) {
                 canvasContainer.classList.add('panning-start');
-            }
-
-            if (e.ctrlKey && e.key.toLowerCase() === 'z') {
-                this.applyCurrentCheckpoint(e.shiftKey);
-                return;
-            }
-            if (e.ctrlKey && e.key.toLowerCase() === 'y') {
-                this.applyCurrentCheckpoint(true);
-                return;
-            }
-
-            if (e.ctrlKey) {
-                // let default behavior of browser propagate (e.g. Ctrl+C, Ctrl+W, etc.)
-                return;
-            }
-
-            if (e.key === 'Escape') {
-                this.logger.debug(`deselecting due to ESC`);
-                this.deselectAll();
-                return;
-            }
-
-            if (e.key === 'Delete') {
-                this.eraseActiveSelection();
-                return;
-            }
-
-            if (e.shiftKey && (e.code === 'Numpad0' || e.code === 'Digit0')) {
-                const canvas = this.activeCanvas;
-                const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
-
-                this.setAndClampZoomIndex(getZoomIndex(1));
-                if (canvas) {
-                    adjustCanvasPositionRelativeToCursor(canvas, currentMouseCoords.x, currentMouseCoords.y, width, height);
-                }
-                return;
-            }
-
-            if (e.shiftKey && e.key.toLocaleLowerCase() === 'g') {
-                this.activeCanvas?.rotatePixelData();
-                return;
-            }
-
-            if (e.key.toLowerCase() === 'w' || e.key.toLowerCase() === 's' || e.code === 'ArrowUp' || e.code === 'ArrowDown') {
-                // select prev/next color
-                const activeCanvas = this.activeCanvas;
-                if (activeCanvas) {
-                    const dir = e.key.toLowerCase() === 'w' || e.code === 'ArrowUp' ? -1 : 1;
-                    this.setActiveColor(activeCanvas.getActiveColor() + dir);
-                }
-                return;
-            }
-
-            if (e.key.toLowerCase() === 'g') {
-                this.settings.showGrid = !this.settings.showGrid;
-                this.project?.setShowGrid();
-                this.$gridInput.checked = this.settings.showGrid;
-                return;
-            }
-
-            if (e.key.toLowerCase() === 'c') {
-                this.setDrawMode(e.shiftKey ? 'ellipse' : 'ellipse-filled');
-                return;
-            }
-            if (e.key.toLowerCase() === 'd') {
-                this.setDrawMode('draw');
-                return;
-            }
-            if (e.key.toLowerCase() === 'e') {
-                this.setDrawMode('erase');
-                return;
-            }
-            if (e.key.toLowerCase() === 'f') {
-                this.setDrawMode('fill');
-                return;
-            }
-            if (e.key.toLowerCase() === 'r') {
-                this.setDrawMode(e.shiftKey ? 'rect' : 'rect-filled');
-                return;
-            }
-            if (e.key.toLowerCase() === 'y') {
-                this.setDrawMode('dropper');
-                return;
-            }
-            if (e.key.toLowerCase() === 'l') {
-                this.setDrawMode('line');
-                return;
-            }
-            if (e.key.toLowerCase() === 'z') {
-                this.setDrawMode('select');
-                return;
-            }
-            if (e.key.toLowerCase() === 'm') {
-                if (this.activeCanvas?.getCurrentSelection()) {
-                    this.setDrawMode('move');
-                }
-                return;
-            }
-
-            if (e.key.toLowerCase() === 't') {
-                // cannot toggle transparency when in Kangaroo mode
-                if (this.settings.kangarooMode) {
-                    return;
-                }
-
-                this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'color0' ?
-                    'background' :
-                    'color0';
-                this.onUncoloredPixelBehaviorChanged();
-                return;
-            }
-
-            if (e.key.toLowerCase() === 'k') {
-                if (this.activeCanvas?.supportsKangarooMode()) {
-                    this.settings.kangarooMode = !this.settings.kangarooMode;
-                    this.onKangarooModeChanged();
-                }
-                return;
-            }
-
-            if (e.key.toLowerCase() === 'x') {
-                if (e.shiftKey) {
-                    this.project?.showExportImagesModal();
-                } else {
-                    this.project?.showExportASMModal();
-                }
-                return;
-            }
-
-            if (e.key === '-' || e.key === '=' || e.key === '_' || e.key === '+') {
-                const dir = e.key === '-' || e.key === '_' ? -1 : 1;
-                const canvas = this.activeCanvas;
-                const { width: oldWidth, height: oldHeight } = canvas?.getHTMLRect() || {
-                    width: 0,
-                    height: 0
-                };
-
-                const currentZoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
-                    getZoomIndex(this.settings.zoomLevel) :
-                    zoomLevelIndexDefault;
-                this.setAndClampZoomIndex(currentZoomIndex + dir);
-
-                if (canvas) {
-                    adjustCanvasPositionRelativeToCursor(canvas, currentMouseCoords.x, currentMouseCoords.y, oldWidth, oldHeight);
-                }
             }
         });
 
@@ -1326,15 +1311,15 @@ export class Editor {
             canvasContainer.classList.remove('panning-start');
             canvasContainer.classList.add('panning');
 
-            panning = true;
-            panningOrigin = { x: e.clientX, y: e.clientY };
+            this.canvasState.panning = true;
+            this.canvasState.panningOrigin = { x: e.clientX, y: e.clientY };
         });
 
         document.addEventListener('mousemove', (e) => {
-            currentMouseCoords.x = e.clientX;
-            currentMouseCoords.y = e.clientY;
+            this.canvasState.mousePosition.x = e.clientX;
+            this.canvasState.mousePosition.y = e.clientY;
 
-            if (!panning) {
+            if (!this.canvasState.panning) {
                 return;
             }
 
@@ -1345,14 +1330,14 @@ export class Editor {
 
             const { clientX, clientY } = e;
 
-            const deltaX = clientX - panningOrigin.x;
-            const deltaY = clientY - panningOrigin.y;
+            const deltaX = clientX - this.canvasState.panningOrigin.x;
+            const deltaY = clientY - this.canvasState.panningOrigin.y;
 
             const computedStyle = window.getComputedStyle(this.$canvasArea);
             const currentX = parseInt(computedStyle.getPropertyValue('left'));
             const currentY = parseInt(computedStyle.getPropertyValue('top'));
 
-            panningOrigin = { x: clientX, y: clientY };
+            this.canvasState.panningOrigin = { x: clientX, y: clientY };
 
             const coordinate: Coordinate = {
                 x: currentX + deltaX,
@@ -1364,7 +1349,7 @@ export class Editor {
         });
 
         document.addEventListener('mouseup', () => {
-            panning = false;
+            this.canvasState.panning = false;
             canvasContainer.classList.remove('panning-start', 'panning');
         });
 
@@ -1438,31 +1423,18 @@ export class Editor {
             });
         });
 
-        const $kbdContent = findTemplateContent(document, '#modal-content-keyboard-shortcuts');
-        const $changelogContent = findTemplateContent(document, '#modal-content-changelog');
-
-        type LinkContent = [ string, string, DocumentFragment | HTMLElement ];
-
+        type LinkContent = [ string, MetaLinkType ];
         const metaLinks: LinkContent[] = [
-            [ 'Keyboard and mouse shortcuts', '.keyboard-link', $kbdContent ],
-            [ 'Help!', '.help-link', parseTemplate(`<p>I need somebody! Not just anybody!</p>`) ],
-            [ 'Changelog', '.changelog-link', $changelogContent ],
+            [ '.keyboard-link', 'shortcuts' ],
+            [ '.help-link', 'help'  ],
+            [ '.changelog-link', 'changelog' ],
         ];
 
-        metaLinks.forEach(([ title, selector, $content ]) => {
+        metaLinks.forEach(([ selector, type ]) => {
             this.$el.querySelectorAll(`a${selector}`).forEach(($anchor) => {
                 $anchor.addEventListener('click', (e) => {
                     e.preventDefault();
-
-                    const modal = Modal.create({
-                        contentHtml: $content.cloneNode(true),
-                        actions: 'close',
-                        title,
-                        type: 'default',
-                    });
-
-                    modal.on('action', () =>  modal.destroy());
-                    modal.show();
+                    this.showMetaModal(type);
                 });
             });
         });
@@ -1615,6 +1587,238 @@ export class Editor {
         this.updateZoomLevelUI();
         this.initialized = true;
     }
+
+    private showMetaModal(type: MetaLinkType): boolean {
+        let $content: HTMLElement | DocumentFragment;
+        let title: string;
+        switch (type) {
+            case 'changelog':
+                title = 'Changelog';
+                $content = findTemplateContent(document, '#modal-content-changelog');
+                break;
+            case 'shortcuts': {
+                title = 'Mouse and keyboard shortcuts';
+                $content = parseTemplate(`<div class="shortcuts-container"></div>`);
+                const $sectionTmpl = parseTemplate(`<section><header></header><table></table></section>`);
+                for (const [ category, grouped ] of this.shortcutManager.getShortcutsByCategory()) {
+                    const $section = $sectionTmpl.cloneNode(true) as typeof $sectionTmpl;
+                    $section.setAttribute('data-category', category);
+
+                    findElement($section, 'header').innerText = category === 'Canvas' ?
+                        'Canvas interactions' :
+                        category + ' shortcuts';
+                    const $table = findElement($section, 'table');
+
+                    type MouseInteraction = 'mouse-scroll' | 'mouse-lmb' | 'mouse-drag' | 'mouse-mmb';
+                    type MouseShortcut = Array<ShortcutInfo<any> & { mouse?: MouseInteraction[] }>[];
+                    const groupedValues: MouseShortcut = Array.from(grouped.values());
+
+                    if (category === 'Canvas') {
+                        // add mouse interactions
+                        groupedValues.unshift(
+                            [{
+                                insertOrder: 0,
+                                description: 'Select adjacent color',
+                                category,
+                                action: () => true,
+                                group: 0,
+                                id: '',
+                                keys: [],
+                                predicates: [],
+                                mouse: [ 'mouse-scroll' ],
+                            }],
+                            [{
+                                insertOrder: 0,
+                                description: 'Zoom in/out',
+                                category,
+                                action: () => true,
+                                group: 0,
+                                id: '',
+                                keys: [ 'Shift' ],
+                                predicates: [],
+                                mouse: [ 'mouse-scroll' ],
+                            }],
+                            [{
+                                insertOrder: 0,
+                                description: 'Pan canvas',
+                                category,
+                                action: () => true,
+                                group: 0,
+                                id: '',
+                                keys: [ 'Shift' ],
+                                predicates: [],
+                                mouse: [ 'mouse-lmb', 'mouse-drag' ],
+                            }],
+                            [{
+                                insertOrder: 0,
+                                description: 'Erase pixel',
+                                category,
+                                action: () => true,
+                                group: 0,
+                                id: '',
+                                keys: [ 'Ctrl' ],
+                                predicates: [],
+                                mouse: [ 'mouse-lmb' ],
+                            }],
+                            [
+                                {
+                                    insertOrder: 0,
+                                    description: 'Select color at pixel',
+                                    category,
+                                    action: () => true,
+                                    group: 0,
+                                    id: '',
+                                    keys: [ 'Alt' ],
+                                    predicates: [],
+                                    mouse: [ 'mouse-lmb' ],
+                                },
+                                {
+                                    insertOrder: 0,
+                                    description: 'Select color at pixel',
+                                    category,
+                                    action: () => true,
+                                    group: 0,
+                                    id: '',
+                                    keys: [],
+                                    predicates: [],
+                                    mouse: [ 'mouse-mmb' ],
+                                },
+                            ],
+                        );
+                    }
+
+                    for (const shortcuts of groupedValues) {
+                        const $row = document.createElement('tr');
+                        const $shortcutCell = $row.insertCell(0);
+                        const $descCell = $row.insertCell(1);
+                        const $list = parseTemplate(`<ul class="kbd-command-list"></ul>`);
+
+                        let desc = '';
+                        for (const shortcut of shortcuts) {
+                            desc = desc || shortcut.description || '';
+                            const $li = document.createElement('li');
+                            for (let i = 0; i < shortcut.keys.length; i++) {
+                                const $kbd = document.createElement('kbd');
+                                $kbd.innerText = ShortcutManager.getKeyText(shortcut.keys[i]!);
+                                $li.append($kbd);
+                                if (i !== shortcut.keys.length - 1 || shortcut.mouse?.length) {
+                                    $li.append(' + ');
+                                }
+                            }
+
+                            const mouse = shortcut.mouse || [];
+                            for (let i = 0; i < mouse.length; i++) {
+                                const action = mouse[i]!;
+                                if (action === 'mouse-drag') {
+                                    $li.append('drag');
+                                } else if (action === 'mouse-mmb') {
+                                    $li.append('Middle click');
+                                } else {
+                                    const $i = parseTemplate(
+                                        `<i class="icon icon-svg"><svg><use href="#svg-${action}" /></svg><i></i>`
+                                    );
+                                    $li.append($i);
+                                }
+
+                                if (i !== mouse.length - 1) {
+                                    $li.append(' + ');
+                                }
+                            }
+
+                            $list.append($li);
+                        }
+
+                        $shortcutCell.append($list);
+                        $descCell.innerText = desc;
+                        $table.append($row);
+                    }
+
+                    $content.append($section);
+                }
+                break;
+            }
+            case 'help':
+                title = 'Help!';
+                $content = parseTemplate(`<p>I need somebody! Not just anybody!</p>`);
+                break;
+            default:
+                nope(type);
+                return false;
+        }
+
+        const modal = Modal.create({
+            contentHtml: $content.cloneNode(true),
+            actions: 'close',
+            title,
+            type: 'default',
+        });
+
+        modal.on('action', () => modal.destroy());
+        modal.show();
+
+        return true;
+    }
+
+    private adjustCanvasPositionRelativeToCursor(
+        canvas: PixelCanvas,
+        clientX: number,
+        clientY: number,
+        oldWidth: number,
+        oldHeight: number,
+    ): void {
+        // shift canvas so that the pixel you're hovering over remains under your cursor even
+        // at the new canvas size. if the cursor is not over the canvas, maintain the exact
+        // distance from the nearest edge.
+
+        const parent = this.$canvasArea.offsetParent;
+        if (!parent) {
+            return;
+        }
+
+        const canvasRect = canvas.getHTMLRect();
+        const { top: containerTop, left: containerLeft } = parent.getBoundingClientRect();
+
+        const clientXRelative = clientX - containerLeft;
+        const clientYRelative = clientY - containerTop;
+
+        const computedStyle = window.getComputedStyle(this.$canvasArea);
+        const canvasLeft = parseInt(computedStyle.getPropertyValue('left'));
+        const canvasTop = parseInt(computedStyle.getPropertyValue('top'));
+
+        let deltaX: number;
+        let deltaY: number;
+        if (clientX < canvasRect.x) {
+            // maintain x position with left edge of canvas
+            deltaX = 0;
+        } else if (clientX > canvasRect.x + oldWidth) {
+            // maintain x position with right edge of canvas
+            deltaX = canvasRect.width - oldWidth;
+        } else {
+            const distanceFromTopLeftX = clientXRelative - canvasLeft;
+            const ratioX = distanceFromTopLeftX / oldWidth;
+            deltaX = (ratioX * canvasRect.width) - distanceFromTopLeftX;
+        }
+
+        if (clientY < canvasRect.y) {
+            // maintain y position with top edge of canvas
+            deltaY = 0;
+        } else if (clientY > canvasRect.y + oldHeight) {
+            // maintain y position with bottom edge of canvas
+            deltaY = canvasRect.height - oldHeight;
+        } else {
+            const distanceFromTopLeftY = clientYRelative - canvasTop;
+            const ratioY = distanceFromTopLeftY / oldHeight;
+            deltaY = (ratioY * canvasRect.height) - distanceFromTopLeftY;
+        }
+
+        const coordinate: Coordinate = {
+            x: canvasLeft - deltaX,
+            y: canvasTop - deltaY,
+        };
+        this.$canvasArea.style.left = coordinate.x + 'px';
+        this.$canvasArea.style.top = coordinate.y + 'px';
+        this.syncCanvasLocation(coordinate);
+    };
 
     private setAndClampZoomIndex(newIndex: number): void {
         const realZoomIndex = clamp(0, zoomLevelIndexMax, newIndex);

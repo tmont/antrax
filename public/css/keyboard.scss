@@ -39,7 +39,7 @@ ul.kbd-command-list {
 .shortcuts-container {
     display: flex;
     flex-direction: column;
-    gap: config.$gutter-half;
+    gap: config.$gutter;
     max-height: 60vh;
     overflow: auto;
 
@@ -47,17 +47,13 @@ ul.kbd-command-list {
         white-space: nowrap;
     }
 
-    .col {
-        display: flex;
-        flex-direction: column;
-        gap: config.$gutter;
-    }
-
     section {
         > header {
             color: config.$accent-color;
             margin-bottom: config.$gutter-quarter;
             text-shadow: 1px 1px 1px black;
+            font-size: 115%;
+            font-weight: bold;
         }
     }
 }

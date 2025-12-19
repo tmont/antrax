@@ -192,7 +192,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         }
 
         this.logger.debug(`new item order:`,
-            this.items.map(item => item.canvas.getName()).join(` ${chars.rightArrow} `));
+            this.items.map(item => item.canvas.getName()).join(` ${chars.arrowRight} `));
 
         return true;
     }
