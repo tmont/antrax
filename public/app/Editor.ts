@@ -312,14 +312,14 @@ export class Editor {
                     .register('NextColor', 'Canvas', 'Select next color', [ 'S', 'ArrowDown' ], () => {
                         const activeCanvas = this.activeCanvas;
                         if (activeCanvas) {
-                            this.setActiveColor(activeCanvas.getActiveColor() - 1);
+                            this.setActiveColor(activeCanvas.getActiveColor() + 1);
                         }
                         return true;
                     })
                     .register('PrevColor', 'Canvas', 'Select previous color', [ 'W', 'ArrowUp' ], () => {
                         const activeCanvas = this.activeCanvas;
                         if (activeCanvas) {
-                            this.setActiveColor(activeCanvas.getActiveColor() + 1);
+                            this.setActiveColor(activeCanvas.getActiveColor() - 1);
                         }
                         return true;
                     })
