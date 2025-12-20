@@ -2091,6 +2091,7 @@ export class Editor {
             });
             return false;
         }
+
         const location: Rect = {
             x: 0,
             y: 0,
@@ -2106,6 +2107,13 @@ export class Editor {
 
         const pixelData = copySelection.pixelData;
 
+        // if we are currently moving something, commit it to the canvas before pasting. this seems
+        // more intuitive, like if you continually paste+move multiple times, you don't want to have
+        // to paste+move+de-select each time.
+        if (this.settings.drawMode === 'move') {
+            canvas.finalizeTransientState(() => true);
+        }
+
         // paste onto [0, 0], select the newly pasted data, and go into move mode. note that
         // we are manually setting other options so that it doesn't commit it to the canvas by default
         // and also doesn't erase the selection once you start moving (which is the default behavior).
@@ -2119,7 +2127,8 @@ export class Editor {
 
         Popover.toast({
             type: 'success',
-            content: `Successfully copied data from ${copySelection.canvas.getName()} onto ${canvas.getName()}`,
+            content: `Successfully copied ${copiedSize} selection from ` +
+                `${copySelection.canvas.getName()} onto ${canvas.getName()}`,
         });
 
         return true;

@@ -210,3 +210,17 @@ export interface LoadedFile {
 }
 
 export const clamp = (min: number, max: number, value: number): number => Math.max(min, Math.min(max, value));
+
+export const derefPixelData = (data: PixelInfo[][]): PixelInfo[][] => {
+    const deref: PixelInfo[][] = [];
+
+    for (const row of data) {
+        const derefRow: PixelInfo[] = [];
+        deref.push(derefRow);
+        for (const pixel of row) {
+            derefRow.push({ modeColorIndex: pixel.modeColorIndex });
+        }
+    }
+
+    return deref;
+};

@@ -18,6 +18,7 @@ import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
     type Coordinate,
+    derefPixelData,
     type Dimensions,
     type DisplayModeColorIndex,
     type DisplayModeColorValue,
@@ -1042,7 +1043,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         this.transientCanvas.clearAll();
     }
 
-    private finalizeTransientState(predicate?: () => boolean): void {
+    public finalizeTransientState(predicate?: () => boolean): void {
         if (!this.transientState.length) {
             return;
         }
@@ -1092,7 +1093,9 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         this.drawContext.eraseOnMove = eraseOnMove;
 
         if (moveData) {
-            this.drawContext.movedData = moveData;
+            // need to dereference the pixel data here or else it will get blown away in certain
+            // cases (notably, deleting copied data cannot re-copy)
+            this.drawContext.movedData = derefPixelData(moveData);
             this.drawContext.movedData.forEach((row, y) => {
                 row.forEach((pixel, x) => {
                     this.transientState.push({
@@ -1121,18 +1124,17 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
 
         // if the selection is being moved around, use that instead of whatever
         // is currently selected
-        if (this.drawContext.movedData.length) {
-            return this.drawContext.movedData;
-        }
-
+        const pixelData = this.drawContext.movedData.length ? this.drawContext.movedData : this.pixelData;
         const copiedData: PixelInfo[][] = [];
 
-        const { x, y, width, height } = this.drawContext.selection;
+        const { x, y, width, height } = this.drawContext.movedData.length ?
+            { x: 0, y: 0, width: pixelData[0]!.length, height: pixelData.length } :
+            this.drawContext.selection;
 
         for (let i = y; i < y + height; i++) {
             const row: PixelInfo[] = [];
             for (let j = x; j < x + width; j++) {
-                const pixel = this.pixelData[i]?.[j];
+                const pixel = pixelData[i]?.[j];
                 if (pixel) {
                     row.push({
                         modeColorIndex: pixel.modeColorIndex,
@@ -1212,6 +1214,10 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                     rect.height * this.internalPixelHeight,
                     this.ctx,
                 );
+
+                // clear transient data, otherwise the previous data will be committed once you exit
+                // select/move mode
+                this.transientState = [];
 
                 // we cleared the transient data (including the selection rect), so we must re-render the
                 // selection rect on the transient canvas.
