@@ -9,6 +9,7 @@ export type ShortcutNameZoom = 'In' | 'Out' | 'Default';
 export type ShortcutNameToggle = 'Grid' | 'Uncolored' | 'Kangaroo';
 export type ShortcutNameExport = 'ASM' | 'Image';
 export type ShortcutName =
+    'HidePopoverOrModal' |
     `DrawMode${ShortcutNameDrawMode}` |
     'NextColor' | 'PrevColor' |
     'Undo' | 'Redo' | 'Rotate' | 'SelectAll' | 'DeSelectAll' |
@@ -36,6 +37,7 @@ const nameMap: Record<ShortcutName, 1> = {
     ExportASM: 1,
     ExportImage: 1,
     Help: 1,
+    HidePopoverOrModal: 1,
     NextColor: 1,
     PrevColor: 1,
     Redo: 1,

@@ -288,7 +288,7 @@ export class Editor {
         this.shortcutManager
             .registerGlobalPredicate(() => !this.canvasState.panning)
 
-            .registerBare('Escape', () => {
+            .registerBare('HidePopoverOrModal', 'Escape', () => {
                 if (Popover.hideTopMost()) {
                     this.logger.debug('hid topmost popover');
                     return false;
@@ -304,182 +304,195 @@ export class Editor {
                 return true;
             })
 
-            .register('NextColor', 'Canvas', 'Select next color', [ 'S', 'ArrowDown' ], notInInput, () => {
-                const activeCanvas = this.activeCanvas;
-                if (activeCanvas) {
-                    this.setActiveColor(activeCanvas.getActiveColor() - 1);
-                }
-                return true;
-            })
-            .register('PrevColor', 'Canvas', 'Select previous color', [ 'W', 'ArrowUp' ], notInInput, () => {
-                const activeCanvas = this.activeCanvas;
-                if (activeCanvas) {
-                    this.setActiveColor(activeCanvas.getActiveColor() + 1);
-                }
-                return true;
-            })
-            .register('Undo', 'Canvas', 'Undo last draw action for active object', 'Ctrl+Z', notInInput, () => {
-                this.applyCurrentCheckpoint(false);
-                return true;
-            })
-            .register('Redo', 'Canvas', 'Redo last draw action for active object', [ 'Ctrl+Shift+Z', 'Ctrl+Y' ], notInInput, () => {
-                this.applyCurrentCheckpoint(true);
-                return true;
-            })
-            .register('Rotate', 'Canvas', `Rotate active object 90${chars.degree} counter-clockwise`, 'Shift+G', notInInput, () => {
-                this.activeCanvas?.rotatePixelData();
-                return true;
+            .group((manager) => {
+                manager
+                    .registerGlobalPredicate(notInInput)
+                    .registerGlobalPredicate(() => !Modal.isActive())
+
+                    .register('NextColor', 'Canvas', 'Select next color', [ 'S', 'ArrowDown' ], () => {
+                        const activeCanvas = this.activeCanvas;
+                        if (activeCanvas) {
+                            this.setActiveColor(activeCanvas.getActiveColor() - 1);
+                        }
+                        return true;
+                    })
+                    .register('PrevColor', 'Canvas', 'Select previous color', [ 'W', 'ArrowUp' ], () => {
+                        const activeCanvas = this.activeCanvas;
+                        if (activeCanvas) {
+                            this.setActiveColor(activeCanvas.getActiveColor() + 1);
+                        }
+                        return true;
+                    })
+                    .register('Undo', 'Canvas', 'Undo last draw action for active object', 'Ctrl+Z', () => {
+                        this.applyCurrentCheckpoint(false);
+                        return true;
+                    })
+                    .register('Redo', 'Canvas', 'Redo last draw action for active object', [ 'Ctrl+Shift+Z', 'Ctrl+Y' ], () => {
+                        this.applyCurrentCheckpoint(true);
+                        return true;
+                    })
+                    .register('Rotate', 'Canvas', `Rotate active object 90${chars.degree} counter-clockwise`, 'Shift+G', () => {
+                        this.activeCanvas?.rotatePixelData();
+                        return true;
+                    })
+
+                    .register('DrawModeDraw', 'Draw mode', 'Draw', 'D', () => {
+                        this.setDrawMode('draw');
+                        return true;
+                    })
+                    .register('DrawModeErase', 'Draw mode', 'Erase', 'E', () => {
+                        this.setDrawMode('erase');
+                        return true;
+                    })
+                    .register('DrawModeFill', 'Draw mode', 'Fill', 'F', () => {
+                        this.setDrawMode('fill');
+                        return true;
+                    })
+                    .register('DrawModeDropper', 'Draw mode', 'Eye-dropper (select color)', 'Y', () => {
+                        this.setDrawMode('dropper');
+                        return true;
+                    })
+                    .register('DrawModeRectFilled', 'Draw mode', 'Filled rectangle', 'R', () => {
+                        this.setDrawMode('rect-filled');
+                        return true;
+                    })
+                    .register('DrawModeRect', 'Draw mode', 'Rectangle', 'Shift+R', () => {
+                        this.setDrawMode('rect');
+                        return true;
+                    })
+                    .register('DrawModeEllipseFilled', 'Draw mode', 'Filled ellipse', 'C', () => {
+                        this.setDrawMode('ellipse-filled');
+                        return true;
+                    })
+                    .register('DrawModeEllipse', 'Draw mode', 'Ellipse', 'Shift+C', () => {
+                        this.setDrawMode('ellipse');
+                        return true;
+                    })
+                    .register('DrawModeLine', 'Draw mode', 'Line', 'L', () => {
+                        this.setDrawMode('line');
+                        return true;
+                    })
+                    .register('DrawModePan', 'Draw mode', 'Pan', 'H', () => {
+                        this.setDrawMode('pan');
+                        return true;
+                    })
+                    .register('DrawModeSelect', 'Draw mode', 'Select', 'Z', () => {
+                        this.setDrawMode('select');
+                        return true;
+                    })
+                    .register('DrawModeMove', 'Draw mode', 'Move', 'M', () => {
+                        if (this.activeCanvas?.getCurrentSelection()) {
+                            this.setDrawMode('move');
+                        }
+                        return true;
+                    })
+
+                    .register('SelectAll', 'Selection', 'Select all', 'Ctrl+A', (e) => {
+                        if (!this.activeCanvas) {
+                            return true;
+                        }
+
+                        e.preventDefault();
+
+                        this.selectAllOnActiveCanvas();
+                        return true;
+                    })
+                    // must be registered after the modal closing Escape shortcut since that one takes precedence
+                    // and doesn't propagate in certain cases
+                    .register('DeSelectAll', 'Selection', 'De-select all', [ 'Ctrl+Shift+A', 'Escape' ], (e) => {
+                        // prevent default browser behavior for this case, on firefox Ctrl+Shift+A opens up the theme manager
+                        e.preventDefault();
+
+                        if (!this.activeCanvas) {
+                            return true;
+                        }
+
+                        this.logger.debug(`deselecting due to keyboard shortcut`);
+                        this.deselectAll();
+                        return true;
+                    })
+                    .register('SelectionCopy', 'Selection', 'Copy selected pixels', 'Ctrl+C', (e) => {
+                        if (this.copyActiveCanvasSelection()) {
+                            e.preventDefault();
+                        }
+
+                        return true;
+                    })
+                    .register('SelectionDelete', 'Selection', 'Erase selected pixels', 'Delete', () => {
+                        this.eraseActiveSelection();
+                        return true;
+                    })
+                    .register('SelectionPaste', 'Selection', 'Paste copied pixels', 'Ctrl+V', (e) => {
+                        if (this.pasteCopyBuffer()) {
+                            e.preventDefault();
+                        }
+
+                        return true;
+                    })
+
+                    .register('ZoomIn', 'Application', 'Increase zoom level', [ '=', '+' ], this.incrementZoomLevel.bind(this, 1))
+                    .register('ZoomOut', 'Application', 'Decrease zoom level', [ '-', '_' ], this.incrementZoomLevel.bind(this, -1))
+                    .register('ZoomDefault', 'Application', 'Set zoom level to 1x', [ 'Shift+0' ], () => {
+                        const canvas = this.activeCanvas;
+                        const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
+
+                        this.setAndClampZoomIndex(getZoomIndex(1));
+                        if (canvas) {
+                            this.adjustCanvasPositionRelativeToCursor(
+                                canvas,
+                                this.canvasState.mousePosition.x,
+                                this.canvasState.mousePosition.y,
+                                width,
+                                height,
+                            );
+                        }
+                        return true;
+                    })
+                    .register('ToggleGrid', 'Application', 'Toggle grid', 'G', () => {
+                        this.settings.showGrid = !this.settings.showGrid;
+                        this.project?.setShowGrid();
+                        this.$gridInput.checked = this.settings.showGrid;
+                        return true;
+                    })
+                    .register('ToggleUncolored', 'Application', 'Toggle transparent checkerboard', 'T', () => {
+                        // cannot toggle transparency when in Kangaroo mode
+                        if (this.settings.kangarooMode) {
+                            return true;
+                        }
+
+                        this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'color0' ?
+                            'background' :
+                            'color0';
+                        this.onUncoloredPixelBehaviorChanged();
+                        return true;
+                    })
+                    .register('ToggleKangaroo', 'Application', 'Toggle Kangaroo mode', 'K', () => {
+                        if (this.activeCanvas?.supportsKangarooMode()) {
+                            this.settings.kangarooMode = !this.settings.kangarooMode;
+                            this.onKangarooModeChanged();
+                        }
+                        return true;
+                    })
+                    .register('ExportASM', 'Application', 'Export active object as ASM', 'Shift+X', () => {
+                        this.project?.showExportImagesModal();
+                        return true;
+                    })
+                    .register('ExportImage', 'Application', 'Export active object as image', 'X', () => {
+                        this.project?.showExportASMModal();
+                        return true;
+                    })
             })
 
-            .register('DrawModeDraw', 'Draw mode', 'Draw', 'D', notInInput, () => {
-                this.setDrawMode('draw');
-                return true;
-            })
-            .register('DrawModeErase', 'Draw mode', 'Erase', 'E', notInInput, () => {
-                this.setDrawMode('erase');
-                return true;
-            })
-            .register('DrawModeFill', 'Draw mode', 'Fill', 'F', notInInput, () => {
-                this.setDrawMode('fill');
-                return true;
-            })
-            .register('DrawModeDropper', 'Draw mode', 'Eye-dropper (select color)', 'Y', notInInput, () => {
-                this.setDrawMode('dropper');
-                return true;
-            })
-            .register('DrawModeRectFilled', 'Draw mode', 'Filled rectangle', 'R', notInInput, () => {
-                this.setDrawMode('rect-filled');
-                return true;
-            })
-            .register('DrawModeRect', 'Draw mode', 'Rectangle', 'Shift+R', notInInput, () => {
-                this.setDrawMode('rect');
-                return true;
-            })
-            .register('DrawModeEllipseFilled', 'Draw mode', 'Filled ellipse', 'C', notInInput, () => {
-                this.setDrawMode('ellipse-filled');
-                return true;
-            })
-            .register('DrawModeEllipse', 'Draw mode', 'Ellipse', 'Shift+C', notInInput, () => {
-                this.setDrawMode('ellipse');
-                return true;
-            })
-            .register('DrawModeLine', 'Draw mode', 'Line', 'L', notInInput, () => {
-                this.setDrawMode('line');
-                return true;
-            })
-            .register('DrawModePan', 'Draw mode', 'Pan', 'H', notInInput, () => {
-                this.setDrawMode('pan');
-                return true;
-            })
-            .register('DrawModeSelect', 'Draw mode', 'Select', 'Z', notInInput, () => {
-                this.setDrawMode('select');
-                return true;
-            })
-            .register('DrawModeMove', 'Draw mode', 'Move', 'M', notInInput, () => {
-                if (this.activeCanvas?.getCurrentSelection()) {
-                    this.setDrawMode('move');
-                }
-                return true;
-            })
+            // these open modals and we allow switching between them with keyboard shortcuts
+            // (the export modals we do not)
+            .group((manager) => {
+                manager
+                    .registerGlobalPredicate(notInInput)
 
-            .register('SelectAll', 'Selection', 'Select all', 'Ctrl+A', notInInput, (e) => {
-                if (!this.activeCanvas) {
-                    return true;
-                }
-
-                e.preventDefault();
-
-                this.selectAllOnActiveCanvas();
-                return true;
-            })
-            // must be registered after the modal closing Escape shortcut since that one takes precedence
-            // and doesn't propagate in certain cases
-            .register('DeSelectAll', 'Selection', 'De-select all', [ 'Ctrl+Shift+A', 'Escape' ], notInInput, (e) => {
-                // prevent default browser behavior for this case, on firefox Ctrl+Shift+A opens up the theme manager
-                e.preventDefault();
-
-                if (!this.activeCanvas) {
-                    return true;
-                }
-
-                this.logger.debug(`deselecting due to keyboard shortcut`);
-                this.deselectAll();
-                return true;
-            })
-            .register('SelectionCopy', 'Selection', 'Copy selected pixels', 'Ctrl+C', notInInput, (e) => {
-                if (this.copyActiveCanvasSelection()) {
-                    e.preventDefault();
-                }
-
-                return true;
-            })
-            .register('SelectionDelete', 'Selection', 'Erase selected pixels', 'Delete', notInInput, () => {
-                this.eraseActiveSelection();
-                return true;
-            })
-            .register('SelectionPaste', 'Selection', 'Paste copied pixels', 'Ctrl+V', notInInput, (e) => {
-                if (this.pasteCopyBuffer()) {
-                    e.preventDefault();
-                }
-
-                return true;
-            })
-
-            .register('ZoomIn', 'Application', 'Increase zoom level', [ '=', '+' ], notInInput, this.incrementZoomLevel.bind(this, 1))
-            .register('ZoomOut', 'Application', 'Decrease zoom level', [ '-', '_' ], notInInput, this.incrementZoomLevel.bind(this, -1))
-            .register('ZoomDefault', 'Application', 'Set zoom level to 1x', [ 'Shift+0' ], notInInput, () => {
-                const canvas = this.activeCanvas;
-                const { width, height } = canvas?.getHTMLRect() || { width: 0, height: 0 };
-
-                this.setAndClampZoomIndex(getZoomIndex(1));
-                if (canvas) {
-                    this.adjustCanvasPositionRelativeToCursor(
-                        canvas,
-                        this.canvasState.mousePosition.x,
-                        this.canvasState.mousePosition.y,
-                        width,
-                        height,
-                    );
-                }
-                return true;
-            })
-            .register('ToggleGrid', 'Application', 'Toggle grid', 'G', notInInput, () => {
-                this.settings.showGrid = !this.settings.showGrid;
-                this.project?.setShowGrid();
-                this.$gridInput.checked = this.settings.showGrid;
-                return true;
-            })
-            .register('ToggleUncolored', 'Application', 'Toggle transparent checkerboard', 'T', notInInput, () => {
-                // cannot toggle transparency when in Kangaroo mode
-                if (this.settings.kangarooMode) {
-                    return true;
-                }
-
-                this.settings.uncoloredPixelBehavior = this.settings.uncoloredPixelBehavior === 'color0' ?
-                    'background' :
-                    'color0';
-                this.onUncoloredPixelBehaviorChanged();
-                return true;
-            })
-            .register('ToggleKangaroo', 'Application', 'Toggle Kangaroo mode', 'K', notInInput, () => {
-                if (this.activeCanvas?.supportsKangarooMode()) {
-                    this.settings.kangarooMode = !this.settings.kangarooMode;
-                    this.onKangarooModeChanged();
-                }
-                return true;
-            })
-            .register('ExportASM', 'Application', 'Export active object as ASM', 'Shift+X', notInInput, () => {
-                this.project?.showExportImagesModal();
-                return true;
-            })
-            .register('ExportImage', 'Application', 'Export active object as image', 'X', notInInput, () => {
-                this.project?.showExportASMModal();
-                return true;
-            })
-            .register('Help', 'Application', 'Show help', [ 'F1', '?' ], notInInput, this.showMetaModal.bind(this, ('Help')))
-            .register('Shortcuts', 'Application', 'Show shortcuts', [ 'Ctrl+?' ], notInInput, this.showMetaModal.bind(this, ('Shortcuts')))
-            .register('Changelog', 'Application', 'Show changelog', [ 'Alt+?' ], notInInput, this.showMetaModal.bind(this, ('Changelog')))
-            ;
+                    .register('Help', 'Application', 'Show help', [ 'F1', '?' ], this.showMetaModal.bind(this, ('Help')))
+                    .register('Shortcuts', 'Application', 'Show shortcuts', [ 'Ctrl+?' ], this.showMetaModal.bind(this, ('Shortcuts')))
+                    .register('Changelog', 'Application', 'Show changelog', [ 'Alt+?' ], this.showMetaModal.bind(this, ('Changelog')));
+            });
 
         this.shortcutManager.enable();
     }

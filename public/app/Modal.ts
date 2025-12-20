@@ -108,6 +108,10 @@ export class Modal extends EventEmitter<ModalEventMap> {
         return modal;
     }
 
+    public static isActive(): boolean {
+        return !!Modal.current;
+    }
+
     private constructor(options: ModalOptions) {
         super();
         this.$el = parseTemplate(tmpl);

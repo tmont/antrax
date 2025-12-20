@@ -190,8 +190,24 @@ export interface ShortcutManagerOptions {
     autoMac: boolean;
 }
 
+interface ShortcutManagerGroup<TCat extends string | null, TName extends string | null> {
+    registerGlobalPredicate(predicate: ShortcutPredicate): this;
+    registerBare(
+        name: TName | null,
+        shortcut: KeyboardShortcut | KeyboardShortcut[],
+        ...actions: ShortcutAction[]
+    ): this;
+    register(
+        name: TName | null,
+        category: TCat | null,
+        description: ShortcutInfo<TCat, TName>['description'],
+        shortcut: KeyboardShortcut | KeyboardShortcut[],
+        ...actions: ShortcutAction[]
+    ): this;
+}
+
 export class ShortcutManager<TCat extends string | null = null, TName extends string | null = null>
-    extends EventEmitter<KeyboardShortcutsEventMap<TCat | null, TName | null>> {
+    extends EventEmitter<KeyboardShortcutsEventMap<TCat | null, TName | null>> implements ShortcutManagerGroup<TCat, TName> {
     private readonly shortcuts = new Map<ShortcutId, ShortcutInfo<TCat | null, TName | null>[]>();
     private readonly shortcutsByName = new Map<string | null, ShortcutInfo<TCat | null, TName | null>[]>();
     private keyHandler: ((e: KeyboardEvent) => void) | null = null;
@@ -243,14 +259,42 @@ export class ShortcutManager<TCat extends string | null = null, TName extends st
     }
 
     public registerBare(
+        name: TName | null,
         shortcut: KeyboardShortcut | KeyboardShortcut[],
         ...actions: ShortcutAction[]
     ): this {
-        return this.register(null, null, null, shortcut, ...actions);
+        return this.register(name, null, null, shortcut, ...actions);
     }
 
     public registerGlobalPredicate(predicate: ShortcutPredicate): this {
         this.globalPredicates.push(predicate);
+        return this;
+    }
+
+    public group(fn: (manager: ShortcutManagerGroup<TCat, TName>) => void): this {
+        const predicates: ShortcutPredicate[] = [];
+
+        const runPredicates: ShortcutPredicate = (e): boolean => {
+            return predicates.every(predicate => predicate(e));
+        };
+
+        const manager: ShortcutManagerGroup<TCat, TName> = {
+            registerGlobalPredicate: (predicate) => {
+                predicates.push(predicate);
+                return manager;
+            },
+            registerBare: (name, shortcut, ...actions) => {
+                return manager.register(name, null, null, shortcut, ...actions);
+            },
+
+            register: (name, category, description, shortcut, ...actions) => {
+                this.register(name, category, description, shortcut, runPredicates, ...actions);
+                return manager;
+            },
+        };
+
+        fn(manager);
+
         return this;
     }
 
@@ -302,7 +346,7 @@ export class ShortcutManager<TCat extends string | null = null, TName extends st
             shortcuts.push(shortcutInfo);
             shortcutsByName.push(shortcutInfo);
 
-            this.logger.debug(`registered ${id}: ${description}`);
+            this.logger.debug(`registered ${id}: ${name || 'n/a'}`);
         });
 
         return this;
@@ -412,24 +456,24 @@ export class ShortcutManager<TCat extends string | null = null, TName extends st
             }
 
             const id = shortcuts[0].id;
-            this.logger.debug(`found shortcut match for ${id} (${shortcuts.length})`);
-
             if (!this.globalPredicates.every(predicate => predicate(e))) {
-                this.logger.debug(`global predicate failed, not executing`);
+                this.logger.debug(`global predicate failed "${id}", not executing`);
                 return;
             }
 
             for (const shortcut of shortcuts) {
+                const debugName = shortcut.name || 'n/a';
                 if (shortcut.predicates.length && !shortcut.predicates.every(predicate => predicate(e))) {
-                    this.logger.debug(`predicate failed, not executing`);
+                    this.logger.debug(`predicate failed for "${debugName}", not executing`);
                     continue;
                 }
 
                 this.emit('match', { e, shortcut });
 
-                this.logger.info(`executing action "${shortcut.description || 'n/a'}" for ${id}`);
+                this.logger.info(`executing action "${debugName}" from key chord "${id}"`);
                 if (!shortcut.action(e)) {
-                    this.logger.debug(`action returned false, short-circuiting the action chain`);
+                    this.logger.info(`action "${debugName}" from key chord "${id}" returned false, ` +
+                        `short-circuiting the action chain`);
                     break;
                 }
             }
