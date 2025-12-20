@@ -426,7 +426,6 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         GlobalEvents.instance.on(`draggable_reorder.${this.eventNamespace}`, (e) => {
-            console.log(`draggable_reorder.project[${e.type}]`, this.name);
             const { $item: $element, type } = e;
             if (type !== 'object-item') {
                 return;
