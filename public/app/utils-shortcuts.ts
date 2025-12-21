@@ -7,7 +7,7 @@ export type ShortcutNameDrawMode =
 export type ShortcutNameSelection = 'Copy' | 'Paste' | 'Delete';
 export type ShortcutNameZoom = 'In' | 'Out' | 'Default';
 export type ShortcutNameToggle = 'Grid' | 'Uncolored' | 'Kangaroo';
-export type ShortcutNameExport = 'ASM' | 'Image';
+export type ShortcutNameExport = 'ASM' | 'Image' | 'Animation';
 export type ShortcutName =
     'HidePopoverOrModal' |
     `DrawMode${ShortcutNameDrawMode}` |
@@ -34,6 +34,7 @@ const nameMap: Record<ShortcutName, 1> = {
     DrawModeRect: 1,
     DrawModeRectFilled: 1,
     DrawModeSelect: 1,
+    ExportAnimation: 1,
     ExportASM: 1,
     ExportImage: 1,
     Help: 1,

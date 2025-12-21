@@ -467,14 +467,18 @@ export class Editor {
                         }
                         return true;
                     })
-                    .register('ExportASM', 'Application', 'Export active object as ASM', 'Shift+X', () => {
-                        this.project?.showExportImagesModal();
-                        return true;
-                    })
-                    .register('ExportImage', 'Application', 'Export active object as image', 'X', () => {
+                    .register('ExportASM', 'Application', 'Export active object as ASM', 'X', () => {
                         this.project?.showExportASMModal();
                         return true;
                     })
+                    .register('ExportImage', 'Application', 'Export active object as image', 'Shift+X', () => {
+                        this.project?.showExportImagesModal();
+                        return true;
+                    })
+                    .register('ExportAnimation', 'Application', 'Show animation dialog for active group', 'Ctrl+Shift+X', () => {
+                        this.project?.showAnimationModal();
+                        return true;
+                    });
             })
 
             // these open modals and we allow switching between them with keyboard shortcuts

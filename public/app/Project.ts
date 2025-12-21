@@ -1026,6 +1026,10 @@ export class Project extends EventEmitter<ProjectEventMap> {
         imageModal.show();
     }
 
+    public showAnimationModal(): void {
+        this.activeGroup?.showAnimationModal();
+    }
+
     public addGroup(): ObjectGroup {
         const group = new ObjectGroup({
             editorSettings: this.editorSettings,

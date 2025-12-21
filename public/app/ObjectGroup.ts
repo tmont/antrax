@@ -410,138 +410,9 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                     case 'export-images':
                         this.emit('action_export_images', this.items);
                         break;
-                    case 'animate': {
-                        const canvases = this.items.map(item => item.canvas);
-                        if (!canvases[0]) {
-                            break;
-                        }
-
-                        // see comment in project.showExportImagesModal() for why this is necessary
-                        canvases.forEach(canvas => canvas.render());
-
-                        let currentFrame = 0;
-                        const $tmpl = findTemplateContent(document, '#modal-content-animate-form');
-                        const $modalContent = $tmpl.cloneNode(true) as ParentNode;
-                        const $fpsInput = findInput($modalContent, '#animate-fps');
-                        const $preview = findCanvas($modalContent, 'canvas');
-                        const ctx = get2dContext($preview);
-
-                        const firstCanvas = canvases[0];
-
-                        const maxSize = 256; // NOTE: this should match the max size of .canvas-preview
-
-
-                        const $objectList = findElement($modalContent, '.animate-form-object-list');
-                        $objectList.innerHTML = '';
-                        $objectList.style.maxWidth = `${maxSize}px`;
-                        canvases.forEach((canvas, i) => {
-                            const $canvas = document.createElement('canvas');
-                            $canvas.setAttribute('title', `[${i}] ${canvas.getName()}`);
-                            $canvas.setAttribute('data-object-id', canvas.id);
-                            canvas.copyImageToCanvas($canvas, 48);
-                            $objectList.appendChild($canvas);
-                        });
-
-                        const zoomControl = new ZoomControl({
-                            context: 'export-images',
-                            editorSettings: this.editorSettings,
-                            $mount: findElement($modalContent, '.zoom-control'),
-                        });
-
-                        zoomControl.init();
-                        zoomControl.on('zoom_level_change', (newIndex) => {
-                            this.emit('zoom_level_change', newIndex);
-                            zoomControl.syncUI();
-                            canvases.forEach(canvas => canvas.render());
-                        });
-
-                        const maxFPS = Number($fpsInput.max) || 30;
-                        const minFPS = Number($fpsInput.min) || 1;
-
-                        let filteredCanvases: PixelCanvas[] = canvases.concat([]);
-
-                        const filterItems = PixelCanvas.getFilteredMultiSelectItems(
-                            canvases,
-                            findElement($modalContent, '.animate-form-object-filter'),
-                            () => {
-                                filteredCanvases = canvases.concat([])
-                                    .filter(canvas => filterItems.some(item => item.id === canvas.id && !isItemGroup(item) && item.selected));
-
-                                $objectList.querySelectorAll('[data-object-id]').forEach(($canvas) => {
-                                    if (!($canvas instanceof HTMLElement)) {
-                                        return;
-                                    }
-
-                                    const canvasId = $canvas.getAttribute('data-object-id') || '';
-                                    $canvas.style.display = filterItems.some(item => item.id === canvasId && !isItemGroup(item) && item.selected) ?
-                                        '' :
-                                        'none';
-                                });
-                            },
-                        );
-
-                        const drawFrame = () => {
-                            const canvas = filteredCanvases[currentFrame];
-
-                            // the dimensions might change due to zoom level so we need to calculate
-                            // this every frame
-                            const { width, height } = firstCanvas.getDisplayDimensions();
-                            const maxDimension = Math.max(width, height);
-
-                            const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
-
-                            const newWidth = width * scale;
-                            const newHeight = height * scale;
-
-                            if ($preview.width !== newWidth || $preview.height !== newHeight) {
-                                $preview.width = newWidth;
-                                $preview.height = newHeight;
-
-                                this.logger.debug(`animation preview set to ` +
-                                    `${$preview.width}x${$preview.height} (scale=${scale})`);
-                            }
-
-                            if (canvas) {
-                                ctx.clearRect(0, 0, $preview.width, $preview.height);
-                                canvas.drawBackgroundOnto(ctx, 0, 0, $preview.width, $preview.height);
-                                canvas.drawImageOnto(ctx, 0, 0, $preview.width, $preview.height);
-                                currentFrame = (currentFrame + 1) % filteredCanvases.length;
-                            } else {
-                                currentFrame = 0;
-                            }
-
-                            const lastFrameAt = Date.now();
-
-                            const wait = () => {
-                                const fps = clamp(minFPS, maxFPS, Number($fpsInput.value) || 0);
-                                if ($fpsInput.value !== fps.toString()) {
-                                    $fpsInput.value = fps.toString();
-                                }
-                                const nextFrameAt = lastFrameAt + ((1 / fps) * 1000);
-                                if (Date.now() >= nextFrameAt) {
-                                    drawFrame();
-                                    return;
-                                }
-
-                                window.requestAnimationFrame(wait);
-                            };
-
-                            wait();
-                        };
-
-                        const modal = Modal.create({
-                            type: 'default',
-                            title: `Animating ${this.name}`,
-                            actions: 'close',
-                            contentHtml: $modalContent,
-                        });
-
-                        modal.show();
-                        drawFrame();
-                        $fpsInput.focus();
-
+                    case 'animate':
+                        this.showAnimationModal();
                         break;
-                    }
                 }
             });
         });
@@ -569,6 +440,135 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         });
 
         this.items.forEach(item => item.init());
+    }
+
+    public showAnimationModal(): void {
+        const canvases = this.items.map(item => item.canvas);
+        if (!canvases[0]) {
+            return;
+        }
+
+        // see comment in project.showExportImagesModal() for why this is necessary
+        canvases.forEach(canvas => canvas.render());
+
+        let currentFrame = 0;
+        const $tmpl = findTemplateContent(document, '#modal-content-animate-form');
+        const $modalContent = $tmpl.cloneNode(true) as ParentNode;
+        const $fpsInput = findInput($modalContent, '#animate-fps');
+        const $preview = findCanvas($modalContent, 'canvas');
+        const ctx = get2dContext($preview);
+
+        const firstCanvas = canvases[0];
+        const maxSize = 256; // NOTE: this should match the max size of .canvas-preview
+
+        const $objectList = findElement($modalContent, '.animate-form-object-list');
+        $objectList.innerHTML = '';
+        $objectList.style.maxWidth = `${maxSize}px`;
+        canvases.forEach((canvas, i) => {
+            const $canvas = document.createElement('canvas');
+            $canvas.setAttribute('title', `[${i}] ${canvas.getName()}`);
+            $canvas.setAttribute('data-object-id', canvas.id);
+            canvas.copyImageToCanvas($canvas, 48);
+            $objectList.appendChild($canvas);
+        });
+
+        const zoomControl = new ZoomControl({
+            context: 'export-images',
+            editorSettings: this.editorSettings,
+            $mount: findElement($modalContent, '.zoom-control'),
+        });
+
+        zoomControl.init();
+        zoomControl.on('zoom_level_change', (newIndex) => {
+            this.emit('zoom_level_change', newIndex);
+            zoomControl.syncUI();
+            canvases.forEach(canvas => canvas.render());
+        });
+
+        const maxFPS = Number($fpsInput.max) || 30;
+        const minFPS = Number($fpsInput.min) || 1;
+
+        let filteredCanvases: PixelCanvas[] = canvases.concat([]);
+
+        const filterItems = PixelCanvas.getFilteredMultiSelectItems(
+            canvases,
+            findElement($modalContent, '.animate-form-object-filter'),
+            () => {
+                filteredCanvases = canvases.concat([])
+                    .filter(canvas => filterItems.some(item => item.id === canvas.id && !isItemGroup(item) && item.selected));
+
+                $objectList.querySelectorAll('[data-object-id]').forEach(($canvas) => {
+                    if (!($canvas instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    const canvasId = $canvas.getAttribute('data-object-id') || '';
+                    $canvas.style.display = filterItems.some(item => item.id === canvasId && !isItemGroup(item) && item.selected) ?
+                        '' :
+                        'none';
+                });
+            },
+        );
+
+        const drawFrame = () => {
+            const canvas = filteredCanvases[currentFrame];
+
+            // the dimensions might change due to zoom level so we need to calculate
+            // this every frame
+            const { width, height } = firstCanvas.getDisplayDimensions();
+            const maxDimension = Math.max(width, height);
+
+            const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
+
+            const newWidth = width * scale;
+            const newHeight = height * scale;
+
+            if ($preview.width !== newWidth || $preview.height !== newHeight) {
+                $preview.width = newWidth;
+                $preview.height = newHeight;
+
+                this.logger.debug(`animation preview set to ` +
+                    `${$preview.width}x${$preview.height} (scale=${scale})`);
+            }
+
+            if (canvas) {
+                ctx.clearRect(0, 0, $preview.width, $preview.height);
+                canvas.drawBackgroundOnto(ctx, 0, 0, $preview.width, $preview.height);
+                canvas.drawImageOnto(ctx, 0, 0, $preview.width, $preview.height);
+                currentFrame = (currentFrame + 1) % filteredCanvases.length;
+            } else {
+                currentFrame = 0;
+            }
+
+            const lastFrameAt = Date.now();
+
+            const wait = () => {
+                const fps = clamp(minFPS, maxFPS, Number($fpsInput.value) || 0);
+                if ($fpsInput.value !== fps.toString()) {
+                    $fpsInput.value = fps.toString();
+                }
+                const nextFrameAt = lastFrameAt + ((1 / fps) * 1000);
+                if (Date.now() >= nextFrameAt) {
+                    drawFrame();
+                    return;
+                }
+
+                window.requestAnimationFrame(wait);
+            };
+
+            wait();
+        };
+
+        const modal = Modal.create({
+            type: 'default',
+            title: `Animating ${this.name}`,
+            actions: 'close',
+            contentHtml: $modalContent,
+        });
+
+        modal.show();
+        drawFrame();
+        $fpsInput.focus();
     }
 
     public updateAllThumbnails(): void {
