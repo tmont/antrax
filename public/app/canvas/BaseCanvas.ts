@@ -5,7 +5,7 @@ import type DisplayMode from '../DisplayMode.ts';
 import type { EditorSettings } from '../Editor.ts';
 import { type EventArgMap, EventEmitter } from '../EventEmitter.ts';
 import { Logger } from '../Logger.ts';
-import { type Coordinate, type DisplayModeColorValue, get2dContext } from '../utils.ts';
+import { type Coordinate, type DisplayModeColorIndex, type DisplayModeColorValue, get2dContext } from '../utils.ts';
 import type { EditorCanvas, SharedCanvasSettings } from './types.ts';
 
 export interface BaseCanvasOptions {
@@ -129,6 +129,25 @@ export abstract class BaseCanvas<T extends EventArgMap = {}, TRenderOptions exte
 
     public get displayMode(): DisplayMode {
         return this.settings.displayMode;
+    }
+
+    /**
+     * Gets the first available non-transparent and non-background color
+     */
+    public get defaultColor(): DisplayModeColorIndex {
+        const colors = this.getColors();
+        for (let i = 0; i < colors.length; i++) {
+            const colorValue = colors[i];
+            if (!colorValue) {
+                continue;
+            }
+
+            if (colorValue.colors.some(color => color.value !== 'transparent' && color.value !== 'background')) {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     protected convertAbsoluteToPixelCoordinate(location: Coordinate): Coordinate {

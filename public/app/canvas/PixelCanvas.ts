@@ -169,7 +169,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
             throw new Error(`ColorPalette{${this.palette.id}} does not belong to ColorPaletteSet{${this.paletteSet.id}}`);
         }
 
-        this.activeColor = options.activeColor || 0;
+        this.activeColor = typeof options.activeColor === 'number' ? options.activeColor : this.defaultColor;
         this.drawContext = {
             state: 'idle',
             selection: null,
@@ -322,7 +322,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
             newMode = DisplayMode.create(newMode);
         }
         this.settings.displayMode = newMode;
-        this.setActiveColor(0);
+        this.setActiveColor(this.defaultColor);
         this.emit('display_mode_change');
     }
 
