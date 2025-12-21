@@ -93,15 +93,6 @@
         }
     }
 
-    .zoom-level-label {
-        cursor: pointer;
-    }
-
-    .zoom-level-value {
-        display: inline-block;
-        width: 1.7em; // totally rock solid
-    }
-
     .divider {
         height: 100%;
         border-right: 2px solid config.$border-color;

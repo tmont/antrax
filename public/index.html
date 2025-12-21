@@ -298,12 +298,7 @@
                             <input type="checkbox" id="option-show-grid" autocomplete="off"/>
                             <label for="option-show-grid"><ins>G</ins>rid</label>
                         </div>
-                        <div>
-                            <label class="zoom-level-label">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                                <span class="zoom-level-value">1x</span>
-                            </label>
-                        </div>
+                        <div class="zoom-control"></div>
                         <div class="checkbox-container" title="Toggle transparent checkerboard pattern" data-shortcut="ToggleUncolored">
                             <input type="checkbox" id="option-uncolored-pixel-behavior" autocomplete="off" checked />
                             <label for="option-uncolored-pixel-behavior">
@@ -436,6 +431,9 @@
                 <div class="canvas-preview">
                     <canvas></canvas>
                 </div>
+                <div class="canvas-preview-info">
+                    <div class="zoom-control"></div>
+                </div>
                 <hr />
                 <div class="animate-form-scrolling-list"><div class="animate-form-object-list"></div></div>
             </div>
@@ -535,7 +533,11 @@
                     <canvas></canvas>
                 </div>
 
-                <div class="canvas-preview-info"></div>
+                <div class="canvas-preview-info">
+                    <div class="preview-stats"></div>
+                    <span>&middot;</span>
+                    <div class="zoom-control"></div>
+                </div>
             </div>
         </template>
 

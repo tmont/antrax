@@ -23,7 +23,6 @@ import {
     findTemplateContent,
     parseTemplate
 } from './utils-dom.ts';
-import { isValidZoomLevel, zoomLevelLabel } from './utils-zoom.ts';
 import {
     type AssemblyNumberFormatRadix,
     chars,
@@ -44,6 +43,7 @@ import {
     type PixelInfo,
     zeroPad
 } from './utils.ts';
+import { ZoomControl } from './ZoomControl.ts';
 
 const tmpl = `
 <div class="project-structure">
@@ -172,6 +172,7 @@ export type ProjectEventMap = {
     action_load: [ File ];
     action_save: [ HTMLElement ];
     action_new_project: [];
+    zoom_level_change: [ number ];
 };
 
 export class Project extends EventEmitter<ProjectEventMap> {
@@ -792,6 +793,20 @@ export class Project extends EventEmitter<ProjectEventMap> {
         const $canvas = findCanvas($modalContent, 'canvas');
         const $info = findElement($modalContent, '.canvas-preview-info');
 
+        const zoomControl = new ZoomControl({
+            context: 'export-images',
+            editorSettings: this.editorSettings,
+            $mount: findElement($info, '.zoom-control'),
+        });
+
+        zoomControl.init();
+        zoomControl.on('zoom_level_change', (newIndex) => {
+            this.emit('zoom_level_change', newIndex);
+            zoomControl.syncUI();
+            canvases.forEach(canvas => canvas.render());
+            generateImages();
+        });
+
         const $bgColor = findInput($modalContent, '#export-images-bg');
         const $bgAlpha = findInput($modalContent, '#export-images-bg-alpha');
         const $uncolored = findSelect($modalContent, '#export-images-uncolored');
@@ -835,13 +850,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
         const setInfo = (blob: { size: number } | null): void => {
             const size = blob?.size || 0;
-            const zoomLabel = isValidZoomLevel(this.editorSettings.zoomLevel) ?
-                zoomLevelLabel[this.editorSettings.zoomLevel] :
-                this.editorSettings.zoomLevel.toString();
-            $info.innerText = `${$canvas.width}${chars.times}${$canvas.height} ` +
-                `${chars.interpunct} ${formatFileSize(size)} ` +
-                `${chars.interpunct} zoom: ${zoomLabel}x`
-            $info.setAttribute('title', `${size} bytes`);
+
+            const $stats = findElement($info, '.preview-stats');
+            $stats.innerText = `${$canvas.width}${chars.times}${$canvas.height} ` +
+                `${chars.interpunct} ${formatFileSize(size)}`;
+            $stats.setAttribute('title', `${size} bytes`);
         };
 
         const generateImages = (): void => {
@@ -1014,7 +1027,9 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public addGroup(): ObjectGroup {
-        const group = new ObjectGroup();
+        const group = new ObjectGroup({
+            editorSettings: this.editorSettings,
+        });
         this.logger.info(`adding new group ${group.getName()}`);
 
         this.wireUpGroup(group);
@@ -1087,6 +1102,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
             this.updateObjectCountsUI();
             this.emit('group_remove', group);
         });
+
+        group.on('zoom_level_change', newIndex => this.emit('zoom_level_change', newIndex));
     }
 
     public createObjectInNewGroup(options: Omit<CanvasOptions, 'group' | 'palette'>): ObjectGroupItem {
@@ -1198,9 +1215,8 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.groups.forEach(group => group.updateAllThumbnails());
     }
 
-    public zoomTo(): void {
-        // TODO why forceRender here?
-        this.groups.forEach(group => group.setZoomLevel(group === this.activeGroup));
+    public setZoomLevel(): void {
+        this.groups.forEach(group => group.setZoomLevel());
     }
 
     public setShowGrid(): void {

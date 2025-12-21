@@ -27,7 +27,6 @@ import {
     isValidZoomLevelIndex,
     zoomLevelIndexDefault,
     zoomLevelIndexMax,
-    zoomLevelLabel,
     zoomLevels
 } from './utils-zoom.ts';
 import {
@@ -46,8 +45,9 @@ import {
     type LoadedFile,
     nope,
     type PixelInfo,
-    type Rect,
+    type Rect
 } from './utils.ts';
+import { ZoomControl } from './ZoomControl.ts';
 
 export interface CopiedCanvasData {
     pixelData: PixelInfo[][];
@@ -109,17 +109,6 @@ const saveAsFormTmpl = `
     <div class="submit-container">
         <button type="submit" class="btn btn-primary">Save</button>
     </div>
-</form>
-`;
-
-const zoomFormTmpl = `
-<form class="form-vertical">
-    <input class="form-control zoom-level-input"
-           autocomplete="off"
-           type="range"
-           min="0"
-           max="${zoomLevelIndexMax}"
-           step="1" />
 </form>
 `;
 
@@ -186,7 +175,6 @@ export class Editor {
     private readonly $gutterTop: HTMLElement;
     private readonly $gridInput: HTMLInputElement;
     private readonly $uncolorPixelInput: HTMLInputElement;
-    private readonly $zoomValue: HTMLElement;
     private readonly $pixelWidthInput: HTMLInputElement;
     private readonly $pixelHeightInput: HTMLInputElement;
     private readonly $canvasWidthInput: HTMLInputElement;
@@ -201,8 +189,9 @@ export class Editor {
     private readonly $displayModeSelect: HTMLSelectElement;
     private readonly $kangarooModeInput: HTMLInputElement;
     private readonly selectionButtons: SelectionButtons;
+    private readonly zoomControl: ZoomControl;
     private initialized = false;
-    private settings: EditorSettings;
+    private readonly settings: EditorSettings;
     private readonly copyBuffer: CopyBuffer = [];
     private loadedFile: LoadedFile | null = null;
 
@@ -236,7 +225,6 @@ export class Editor {
         this.$gridInput = findInput(this.$gutterBottom, '#option-show-grid');
         this.$uncolorPixelInput = findInput(this.$gutterBottom, '#option-uncolored-pixel-behavior');
         this.$kangarooModeInput = findInput(this.$gutterBottom, '#option-kangaroo-mode');
-        this.$zoomValue = findElement(this.$gutterBottom, '.zoom-level-value');
         this.$pixelWidthInput = findInput(this.$gutterBottom, '#option-pixel-width');
         this.$pixelHeightInput = findInput(this.$gutterBottom, '#option-pixel-height');
         this.$canvasWidthInput = findInput(this.$gutterBottom, '#option-canvas-width');
@@ -263,6 +251,12 @@ export class Editor {
         this.settings = options.settings || {
             ...defaultSettings,
         };
+
+        this.zoomControl = new ZoomControl({
+            $mount: findElement(this.$gutterBottom, '.zoom-control'),
+            editorSettings: this.settings,
+            context: 'bottom-gutter',
+        });
 
         this.paletteSets = new ColorPaletteSetCollection({
             paletteSets: options.paletteSets,
@@ -728,6 +722,8 @@ export class Editor {
             modal.show();
         });
 
+        this.project.on('zoom_level_change', newIndex => this.setAndClampZoomIndex(newIndex));
+
         this.updateObjectStats();
     }
 
@@ -1187,20 +1183,7 @@ export class Editor {
     }
 
     public updateZoomLevelUI(): void {
-        this.$zoomValue.innerText = (
-            isValidZoomLevel(this.settings.zoomLevel) ?
-                zoomLevelLabel[this.settings.zoomLevel] :
-                this.settings.zoomLevel
-        ) + 'x';
-
-        // if the popover to set the zoom level is open, keep that in sync as well
-        const $zoomInput = document.body.querySelector('input.zoom-level-input');
-        if ($zoomInput instanceof HTMLInputElement) {
-            const zoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
-                getZoomIndex(this.settings.zoomLevel) :
-                zoomLevelIndexDefault;
-            $zoomInput.value = zoomIndex.toString();
-        }
+        this.zoomControl.syncUI();
     }
 
     public updateGridUI(): void {
@@ -1435,26 +1418,8 @@ export class Editor {
             this.onKangarooModeChanged();
         });
 
-        const $zoomFormContent = parseTemplate(zoomFormTmpl);
-
-        const zoomPopover = new Popover({
-            title: 'Set zoom level',
-            content: $zoomFormContent,
-        });
-        const $zoomLabel = findElement(this.$gutterBottom, '.zoom-level-label');
-        const $zoomInput = findInput($zoomFormContent, 'input');
-        $zoomFormContent.addEventListener('submit', e => e.preventDefault());
-
-        $zoomInput.addEventListener('input', () => this.setAndClampZoomIndex(Number($zoomInput.value)));
-        $zoomLabel.addEventListener('click', () => {
-            const zoomIndex = isValidZoomLevel(this.settings.zoomLevel) ?
-                getZoomIndex(this.settings.zoomLevel) :
-                zoomLevelIndexDefault;
-            $zoomInput.value = zoomIndex.toString();
-
-            zoomPopover.show($zoomLabel);
-            $zoomInput.focus();
-        });
+        this.zoomControl.init();
+        this.zoomControl.on('zoom_level_change', newIndex => this.setAndClampZoomIndex(newIndex));
 
         const inputs: [ HTMLInputElement, (value: number) => void ][] = [
             [ this.$pixelWidthInput, value => this.project?.setPixelDimensions(value, null) ],
@@ -1970,7 +1935,7 @@ export class Editor {
 
         this.settings.zoomLevel = newZoomLevel;
         this.updateZoomLevelUI();
-        this.project?.zoomTo();
+        this.project?.setZoomLevel();
     }
 
     private applyCurrentCheckpoint(redo = false): void {
@@ -2381,13 +2346,13 @@ export class Editor {
 
         const uncoloredPixelBehavior = json.settings.uncoloredPixelBehavior === 'background' ? 'background': 'color0';
 
-        this.settings = {
-            zoomLevel: json.settings.zoomLevel,
-            showGrid: json.settings.showGrid,
-            uncoloredPixelBehavior,
-            kangarooMode: json.settings.kangarooMode || false,
-            drawMode: isDrawMode(json.settings.drawMode) ? json.settings.drawMode : 'draw',
-        };
+        // need to keep the same object reference, so all settings must be overridden. at the moment,
+        // the ZoomControl is not reinstantiated and that has a reference to the editor settings.
+        this.settings.zoomLevel = json.settings.zoomLevel;
+        this.settings.showGrid = json.settings.showGrid;
+        this.settings.uncoloredPixelBehavior = uncoloredPixelBehavior;
+        this.settings.kangarooMode = json.settings.kangarooMode || false;
+        this.settings.drawMode = isDrawMode(json.settings.drawMode) ? json.settings.drawMode : 'draw';
 
         const paletteSetCollection = new ColorPaletteSetCollection({
             paletteSets,

@@ -23,11 +23,13 @@ import {
     get2dContext,
     type SiblingInsertOrder
 } from './utils.ts';
+import { ZoomControl } from './ZoomControl.ts';
 
 export interface ObjectGroupOptions {
     id?: ObjectGroup['id'];
     name?: string;
     items?: ObjectGroupItem[];
+    editorSettings: EditorSettings;
 }
 
 export interface ObjectGroupSerialized {
@@ -89,6 +91,7 @@ export type ObjectGroupEventMap = {
     item_add: [ ObjectGroupItem ];
     item_delete: [ ObjectGroupItem ];
     delete: [];
+    zoom_level_change: [ number ];
 }
 
 export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
@@ -98,10 +101,11 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
     public readonly $itemContainer: HTMLElement;
     private readonly $el: HTMLElement;
     private readonly items: ObjectGroupItem[];
+    private readonly editorSettings: EditorSettings;
 
     private static instanceCount = 0;
 
-    public constructor(options?: ObjectGroupOptions) {
+    public constructor(options: ObjectGroupOptions) {
         super();
 
         ObjectGroup.instanceCount++;
@@ -110,6 +114,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         this.items = options?.items || [];
         this.$el = parseTemplate(objectGroupTmpl);
         this.$itemContainer = findElement(this.$el, '.group-items');
+        this.editorSettings = options?.editorSettings;
 
         this.logger = Logger.from(this);
     }
@@ -415,8 +420,8 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         canvases.forEach(canvas => canvas.render());
 
                         let currentFrame = 0;
-                        const content = findTemplateContent(document, '#modal-content-animate-form');
-                        const $modalContent = content.cloneNode(true) as ParentNode;
+                        const $tmpl = findTemplateContent(document, '#modal-content-animate-form');
+                        const $modalContent = $tmpl.cloneNode(true) as ParentNode;
                         const $fpsInput = findInput($modalContent, '#animate-fps');
                         const $preview = findCanvas($modalContent, 'canvas');
                         const ctx = get2dContext($preview);
@@ -424,13 +429,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                         const firstCanvas = canvases[0];
 
                         const maxSize = 256; // NOTE: this should match the max size of .canvas-preview
-                        const { width, height } = firstCanvas.getDisplayDimensions();
-                        const maxDimension = Math.max(width, height);
 
-                        const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
-
-                        $preview.width = width * scale;
-                        $preview.height = height * scale;
 
                         const $objectList = findElement($modalContent, '.animate-form-object-list');
                         $objectList.innerHTML = '';
@@ -443,7 +442,18 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
                             $objectList.appendChild($canvas);
                         });
 
-                        this.logger.debug(`animation preview set to ${$preview.width}x${$preview.height} (scale=${scale})`);
+                        const zoomControl = new ZoomControl({
+                            context: 'export-images',
+                            editorSettings: this.editorSettings,
+                            $mount: findElement($modalContent, '.zoom-control'),
+                        });
+
+                        zoomControl.init();
+                        zoomControl.on('zoom_level_change', (newIndex) => {
+                            this.emit('zoom_level_change', newIndex);
+                            zoomControl.syncUI();
+                            canvases.forEach(canvas => canvas.render());
+                        });
 
                         const maxFPS = Number($fpsInput.max) || 30;
                         const minFPS = Number($fpsInput.min) || 1;
@@ -472,6 +482,24 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
 
                         const drawFrame = () => {
                             const canvas = filteredCanvases[currentFrame];
+
+                            // the dimensions might change due to zoom level so we need to calculate
+                            // this every frame
+                            const { width, height } = firstCanvas.getDisplayDimensions();
+                            const maxDimension = Math.max(width, height);
+
+                            const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
+
+                            const newWidth = width * scale;
+                            const newHeight = height * scale;
+
+                            if ($preview.width !== newWidth || $preview.height !== newHeight) {
+                                $preview.width = newWidth;
+                                $preview.height = newHeight;
+
+                                this.logger.debug(`animation preview set to ` +
+                                    `${$preview.width}x${$preview.height} (scale=${scale})`);
+                            }
 
                             if (canvas) {
                                 ctx.clearRect(0, 0, $preview.width, $preview.height);
@@ -551,8 +579,8 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         this.items.forEach(item => item.updateThumbnailBg());
     }
 
-    public setZoomLevel(forceRender = true): void {
-        this.items.forEach(item => item.canvas.setZoomLevel(forceRender));
+    public setZoomLevel(): void {
+        this.items.forEach(item => item.canvas.setZoomLevel(item === this.activeItem));
     }
 
     public toJSON(): ObjectGroupSerialized {
@@ -574,6 +602,7 @@ export class ObjectGroup extends EventEmitter<ObjectGroupEventMap> {
         const group = new ObjectGroup({
             id: String(serialized.id),
             name: serialized.name,
+            editorSettings: settings,
         });
 
         const items = serialized.items.map(item =>

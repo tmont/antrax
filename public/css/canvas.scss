@@ -35,9 +35,18 @@
 }
 
 .canvas-preview-info {
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: config.$gutter-eighth;
     font-size: 75%;
     color: config.$muted-color;
+    transition: color linear 150ms;
+
+    &:hover {
+        color: config.$color;
+        text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+    }
 }
 
 .frame-container {

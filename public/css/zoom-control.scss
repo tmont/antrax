@@ -1,0 +1,10 @@
+.zoom-control {
+    .zoom-level-label {
+        cursor: pointer;
+    }
+
+    .zoom-level-value {
+        display: inline-block;
+        width: 1.7em; // totally rock solid
+    }
+}
