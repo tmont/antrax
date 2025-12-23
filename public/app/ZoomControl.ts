@@ -97,7 +97,7 @@ export class ZoomControl extends EventEmitter<ZoomControlEventMap> {
     }
 
     public syncUI(): void {
-        this.logger.warn('syncing UI to zoom level', this.editorSettings.zoomLevel + 'x');
+        this.logger.debug('syncing UI to zoom level', this.editorSettings.zoomLevel + 'x');
         this.$value.innerText = (
             isValidZoomLevel(this.editorSettings.zoomLevel) ?
                 zoomLevelLabel[this.editorSettings.zoomLevel] :
