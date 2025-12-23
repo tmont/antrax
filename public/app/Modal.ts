@@ -65,7 +65,6 @@ export class Modal extends EventEmitter<ModalEventMap> {
     private static $overlay: HTMLElement | null = null;
 
     private readonly $el: HTMLElement;
-    private isConnected = false;
 
     public static create(options: ModalOptions): Modal {
         if (!Modal.$overlay) {
@@ -76,14 +75,7 @@ export class Modal extends EventEmitter<ModalEventMap> {
             });
         }
 
-        if (Modal.current) {
-            Modal.current?.destroy();
-            Modal.current = null;
-        }
-
-        const modal = new Modal(options);
-        Modal.current = modal;
-        return modal;
+        return new Modal(options);
     }
 
     public static confirm(options: Omit<Partial<ModalOptionsText>, 'actions'>, onConfirmed: () => void): Modal {
@@ -200,11 +192,9 @@ export class Modal extends EventEmitter<ModalEventMap> {
             Modal.current.destroy();
         }
 
-        if (!this.isConnected) {
+        if (this.$el.parentNode !== document.body) {
             document.body.appendChild(this.$el);
         }
-
-        this.isConnected = true;
 
         Popover.hideAll();
 
@@ -228,6 +218,5 @@ export class Modal extends EventEmitter<ModalEventMap> {
         this.hide();
         this.$el.remove();
         Modal.current = null;
-        this.isConnected = false;
     }
 }
