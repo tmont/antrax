@@ -49,14 +49,39 @@
     }
 }
 
+$border-size: 1px;
+$border-radius: config.$input-radius;
+
+.btn-group {
+    display: flex;
+    gap: 0;
+    align-items: center;
+
+    .btn {
+        border-right-width: 0;
+        border-radius: 0;
+
+        &:first-child {
+            border-top-left-radius: $border-radius;
+            border-bottom-left-radius: $border-radius;
+        }
+
+        &:last-child {
+            border-right-width: $border-size;
+            border-top-right-radius: $border-radius;
+            border-bottom-right-radius: $border-radius;
+        }
+    }
+}
+
 .btn {
     display: inline-block;
     color: config.$color;
     text-decoration: none;
     user-select: none;
     padding: config.$gutter-quarter config.$gutter-half;
-    border-radius: config.$input-radius;
-    border: 1px solid transparent;
+    border-radius: $border-radius;
+    border: $border-size solid transparent;
     cursor: pointer;
 
     &:hover {

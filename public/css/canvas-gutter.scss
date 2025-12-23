@@ -111,3 +111,9 @@
         }
     }
 }
+
+.canvas-selection-controls {
+    .btn {
+        padding: config.$gutter-quarter config.$gutter-half;
+    }
+}

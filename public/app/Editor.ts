@@ -131,10 +131,6 @@ const selectionMoreTmpl = `
             De-select all
         </a>
     </li>
-    <li class="dropdown-item divider"></li>
-    <li class="dropdown-item">
-        <a href="#" data-shortcut="Rotate" data-action="rotate" class="dropdown-link"><i class="fa-solid fa-fw fa-rotate-left icon"></i>Rotate</a>
-    </li>
 </ul>
 `;
 
@@ -155,6 +151,7 @@ interface SelectionButtons {
     readonly $more: HTMLButtonElement;
     readonly $flipV: HTMLButtonElement;
     readonly $flipH: HTMLButtonElement;
+    readonly $rotate: HTMLButtonElement;
     readonly $paste: HTMLButtonElement;
 }
 
@@ -246,6 +243,7 @@ export class Editor {
             $delete: findButton(this.$gutterTop, btnSelector('delete')),
             $flipH: findButton(this.$gutterTop, btnSelector('flip-h')),
             $flipV: findButton(this.$gutterTop, btnSelector('flip-v')),
+            $rotate: findButton(this.$gutterTop, btnSelector('rotate')),
             $paste: findButton(this.$gutterTop, btnSelector('paste')),
             $more: findButton(this.$gutterTop, btnSelector('more')),
         };
@@ -1574,6 +1572,7 @@ export class Editor {
         this.selectionButtons.$delete.addEventListener('click', () => this.eraseActiveSelection());
         this.selectionButtons.$flipV.addEventListener('click', () => this.flipActiveSelection('vertical'));
         this.selectionButtons.$flipH.addEventListener('click', () => this.flipActiveSelection('horizontal'));
+        this.selectionButtons.$rotate.addEventListener('click', () => this.activeCanvas?.rotatePixelData());
         this.selectionButtons.$paste.addEventListener('click', () => this.pasteCopyBuffer());
 
         const $moreContent = parseTemplate(selectionMoreTmpl);
@@ -1589,7 +1588,6 @@ export class Editor {
             const $redo = findElement($moreContent, '[data-action="redo"]');
             const $selectAll = findElement($moreContent, '[data-action="select-all"]');
             const $deSelectAll = findElement($moreContent, '[data-action="de-select-all"]');
-            const $rotate = findElement($moreContent, '[data-action="rotate"]');
 
             const undoContext = this.undoContext[this.activeCanvas?.id || ''];
 
@@ -1597,7 +1595,6 @@ export class Editor {
             $redo.classList.toggle('disabled', !undoContext || undoContext.current >= undoContext.stack.length - 1);
             $selectAll.classList.toggle('disabled', !this.activeCanvas);
             $deSelectAll.classList.toggle('disabled', !this.activeCanvas);
-            $rotate.classList.toggle('disabled', !this.activeCanvas);
         };
 
         morePopover.on('show', syncMoreActions);
@@ -1620,9 +1617,6 @@ export class Editor {
                         break;
                     case 'de-select-all':
                         this.deselectAll();
-                        break;
-                    case 'rotate':
-                        this.activeCanvas?.rotatePixelData();
                         break;
                 }
             });
@@ -2149,9 +2143,9 @@ export class Editor {
         const isSelected = drawState === 'selected';
         const disabled = !canvas || !isActiveCanvas || !isSelected;
 
-        const { $copy, $crop, $delete, $more, $flipH, $flipV } = this.selectionButtons;
+        const { $copy, $crop, $delete, $more, $flipH, $flipV, $rotate } = this.selectionButtons;
         $copy.disabled = $crop.disabled = $delete.disabled = disabled;
-        $more.disabled = $flipV.disabled = !isActiveCanvas;
+        $more.disabled = $flipV.disabled = $rotate.disabled = !isActiveCanvas;
         $flipH.disabled = !isActiveCanvas || !canvas?.displayMode.supportsHorizontalFlip;
         this.syncPasteSelectionAction();
         this.syncDrawModeButtons();
