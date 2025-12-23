@@ -47,6 +47,9 @@ $tertiary-bg: #444444;
 $tertiary-color: #919191;
 $tertiary-border: #6c6c6c;
 
+$help-keyword-color: $secondary-color;
+$help-keyword-menu-color: #e3c68d;
+
 $card-title-bg: color.adjust($bg-color, $lightness: -5%);
 $card-body-bg: color.adjust($bg-color, $lightness: -2%);
 $accent-color: color.adjust($color, $lightness: 10%);

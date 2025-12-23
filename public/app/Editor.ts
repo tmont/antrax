@@ -3,6 +3,7 @@ import { ColorPaletteSetCollection, type ColorPaletteSetCollectionSerialized } f
 import DisplayMode from './DisplayMode.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { formatFileSize } from './formatting.ts';
+import { HelpModal } from './HelpModal.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { ObjectGroup } from './ObjectGroup.ts';
@@ -194,6 +195,7 @@ export class Editor {
     private readonly settings: EditorSettings;
     private readonly copyBuffer: CopyBuffer = [];
     private loadedFile: LoadedFile | null = null;
+    private readonly helpModal: HelpModal = HelpModal.instance;
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
@@ -1474,6 +1476,8 @@ export class Editor {
             });
         });
 
+        this.helpModal.on('shortcut_link', () => this.showMetaModal('Shortcuts'));
+
         // empty project example links
         let inFlight = false;
         this.$el.querySelectorAll<HTMLAnchorElement>('.example-project-list a').forEach(($anchor) => {
@@ -1845,9 +1849,8 @@ export class Editor {
                 break;
             }
             case 'Help':
-                title = 'Help!';
-                $content = parseTemplate(`<p>I need somebody! Not just anybody!</p>`);
-                break;
+                this.helpModal.show();
+                return true;
             default:
                 nope(type);
                 return false;

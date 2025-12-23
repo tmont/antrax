@@ -1,0 +1,167 @@
+@use "./config";
+
+.help-content-container {
+    display: flex;
+    flex: 1;
+    height: 35em;
+
+    .help-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: config.$gutter-quarter;
+        white-space: nowrap;
+        padding: config.$gutter-half 0;
+
+        nav {
+            display: flex;
+            gap: config.$gutter-quarter;
+            justify-content: center;
+            input[type="search"] {
+                flex: 1;
+                max-width: 10em;
+                display: none;
+            }
+            padding: 0 config.$gutter-quarter;
+        }
+
+        a.help-item {
+            display: block;
+            padding: config.$gutter-eighth config.$gutter-half;
+            color: config.$color;
+            text-decoration: none;
+            border: 2px solid transparent;
+            border-radius: 2px;
+            position: relative;
+
+            &.active {
+                font-weight: bold;
+                color: config.$primary-color;
+                background-color: config.$sidebar-bg-color;
+                border-color: config.$border-color;
+                border-right-color: config.$sidebar-bg-color;
+                margin-right: -2px;
+                cursor: default;
+            }
+
+            &:hover:not(.active) {
+                background-color: config.$accent-bg;
+            }
+        }
+    }
+
+    .help-content {
+        flex: 1;
+        padding: config.$gutter;
+        background-color: config.$sidebar-bg-color;
+        border: 2px solid config.$border-color;
+        border-right: none;
+        border-top-left-radius: 2px;
+        border-bottom-left-radius: 2px;
+        min-width: 30em;
+        max-width: 100em;
+        overflow: auto;
+
+        .help-section {
+            display: none;
+            flex-direction: column;
+            gap: (config.$gutter * 2);
+
+            > section {
+                border-left: config.$gutter-quarter solid rgba(config.$border-color, 0.5);
+                padding-left: config.$gutter-half;
+            }
+
+            section {
+                display: flex;
+                flex-direction: column;
+                gap: config.$gutter-half;
+
+                .section-content {
+                    display: flex;
+                    flex-direction: column;
+                    gap: config.$gutter;
+                }
+            }
+
+            &.active {
+                display: flex;
+            }
+        }
+
+        header {
+            font-weight: bold;
+            font-size: 125%;
+        }
+        h3 {
+            font-weight: bold;
+            font-size: 110%;
+        }
+
+        .image-container {
+            padding: config.$gutter-half;
+        }
+
+        figure {
+            display: block;
+            text-align: center;
+            img {
+                display: block;
+                margin: 0 auto;
+                max-height: 20em;
+                max-width: 40em;
+                border-radius: config.$gutter-quarter;
+                padding: config.$gutter-half;
+                border: 1px solid config.$border-color;
+                box-shadow:
+                    2px 2px 5px rgba(0, 0, 0, 0.5),
+                    -2px -2px 5px rgba(0, 0, 0, 0.15);
+            }
+        }
+
+        kbd {
+            font-size: 75%;
+        }
+
+        a[href^="#help-content-"] {
+            display: inline-block;
+
+            &:before {
+                content: "?";
+                font-size: 80%;
+                display: inline-block;
+                padding-right: 2px;
+            }
+        }
+    }
+
+    .help-keyword, .help-keyword-menu {
+        display: inline-block;
+        &:before {
+            content: "\b7";
+        }
+    }
+    .help-keyword {
+        display: inline-block;
+        color: config.$help-keyword-color;
+    }
+
+    .help-keyword-menu {
+        display: inline-block;
+        color: config.$help-keyword-menu-color;
+    }
+
+    .with-icon {
+        display: inline-block;
+    }
+
+    .parenthetical {
+        display: inline-block;
+
+        &:before {
+            content: "(";
+        }
+        &:after {
+            content: ")";
+        }
+    }
+}

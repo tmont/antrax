@@ -554,6 +554,671 @@
             </div>
         </template>
 
+        <template id="help-content">
+            <div class="help-content-container">
+                <div class="help-sidebar">
+                    <nav>
+                        <button type="button" class="btn btn-xs btn-tertiary btn-back" title="Back" disabled>
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-xs btn-tertiary btn-forward" title="Forward" disabled>
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                        <input type="search" class="form-control" placeholder="Search help" />
+                    </nav>
+
+                    <hr />
+
+                    <ul class="list-unstyled">
+                        <li><a class="help-item" href="#help-content-animation">Animation</a></li>
+                        <li><a class="help-item" href="#help-content-canvas-interaction">Canvas interaction</a></li>
+                        <li><a class="help-item" href="#help-content-debug">Debug</a></li>
+                        <li><a class="help-item" href="#help-content-display-modes">Display modes</a></li>
+                        <li><a class="help-item" href="#help-content-draw-modes">Draw modes</a></li>
+                        <li><a class="help-item" href="#help-content-editor-settings">Editor settings</a></li>
+                        <li><a class="help-item" href="#help-content-export-asm">Export ASM</a></li>
+                        <li><a class="help-item" href="#help-content-export-image">Export image</a></li>
+                        <li><a class="help-item" href="#help-content-palettes">Palettes &amp; palette sets</a></li>
+                        <li><a class="help-item" href="#help-content-project-structure">Project structure</a></li>
+                        <li><a class="help-item" href="#help-content-save-and-load">Save &amp; load</a></li>
+                        <li><a class="help-item" href="#help-content-selection-actions">Selection actions</a></li>
+                        <li><a class="help-item" href="#help-content-ui">User interface</a></li>
+                    </ul>
+                </div>
+
+                <div class="help-content">
+                    <section class="help-section" id="help-content-animation">
+                        <section>
+                            <header>Animation</header>
+                            <div class="section-content">
+                                <p>
+                                    A simple animation for all the objects within a
+                                    <a href="#help-content-project-structure">group</a>
+                                    can be generated.
+                                    Access the animation dialog from the
+                                    <span class="help-keyword">overflow menu</span>
+                                    <span class="parenthetical"><button type="button" class="btn btn-xs btn-tertiary"><i class="fa-solid fa-ellipsis-h"></i></button></span>.
+                                </p>
+
+                                <figure class="single">
+                                    <img alt="group overflow menu screenshot" src="/images/help/group-overflow-animate.png"/>
+                                </figure>
+
+                                <p>
+                                    The <span class="help-keyword-menu">Animate&hellip;</span> option is not
+                                    available if there are less than two objects in the group.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-animation_dialog">
+                            <header>Animation dialog</header>
+                            <div class="section-content">
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the animation dialog"
+                                             src="/images/help/animate-modal.png" />
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    The animation dialog shows a preview of the animation,
+                                    at the specified <abbr title="frames per second">FPS</abbr>.
+                                    Each frame being animated is displayed underneath the
+                                    animation in order. To adjust this ordering you can
+                                    <a href="#help-content-project-structure_ordering">re-order</a>
+                                    the objects from the
+                                    <a href="#help-content-ui_main-sidebar">Main Sidebar</a>.
+                                </p>
+
+                                <p>
+                                    The zoom level affects the animation and can be altered
+                                    from this dialog.
+                                </p>
+
+                                <p>
+                                    The <span class="help-keyword">object</span>s that are
+                                    being animated can be filtered
+                                    using the <span class="help-keyword">object</span> picker.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="help-section" id="help-content-canvas-interaction">
+                        <section>
+                            <header>Canvas interaction</header>
+                            <div class="section-content">
+                                <p>
+                                    The <span class="help-keyword">canvas</span> is the thing in the middle of the
+                                    screen that you draw on. Click and drag the mouse to draw.
+                                    <kbd>Ctrl</kbd>+click to erase.
+                                </p>
+
+                                <p>
+                                    To <a href="#help-content-draw-modes_pan">pan</a> the
+                                    <span class="help-keyword">canvas</span>, hold <kbd>Shift</kbd>+click
+                                    and drag.
+                                </p>
+
+                                <p>
+                                    You can undo/redo drawing and resizing actions
+                                    by finding the appropriate item in the <span class="help-keyword">overflow menu</span>
+                                    <span class="parenthetical"><button type="button" class="btn btn-xs btn-tertiary"><i class="fa-solid fa-ellipsis-h"></i></button></span>
+                                    in the <a href="#help-content-ui_top-gutter">top gutter</a>.
+                                </p>
+
+                                <p>
+                                    There are many
+                                    <a href="#" class="keyboard-link"><i class="fa-solid fa-keyboard"></i> keyboard
+                                    shortcuts</a> for most common operations. Learning to use them will greatly
+                                    speed up your work.
+                                </p>
+
+                                <p>
+                                    See the section on <a href="#help-content-editor-settings">Editor Settings</a>
+                                    for info on zooming, showing the grid and adjusting the canvas size.
+                                </p>
+
+                                <p>
+                                    See the section on <a href="#help-content-draw-modes">Draw Modes</a>
+                                    for info on drawing shapes, color filling, moving regions, and more.
+                                </p>
+
+                                <p>
+                                    See the section on <a href="#help-content-selection-actions">Selection Actions</a>
+                                    for how to move, flip, rotate, crop, and perform other actions against a
+                                    <a href="#help-content-draw-modes_select">selection</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="#help-content-canvas-interaction_touch-support">
+                            <h3>Touch support</h3>
+                            <div class="section-content">
+                                <p>
+                                    There is limited supported for touch devices: enough that things kind
+                                    of work but not so much that it&lsquo;s the best way of doing things.
+                                </p>
+
+                                <p>
+                                    Obviously keyboard shortcuts are going to be difficult, but there is a
+                                    touchable UI to do most actions. For example, instead of
+                                    <kbd>Shift</kbd>+click to <a href="#help-content-draw-modes_pan">pan</a>
+                                    there is a dedicated button to go into Pan mode where you don&lsquo;t need to
+                                    hold down <kbd>Shift</kbd>.
+                                </p>
+
+                                <p>
+                                    Other things like undo/redo have a touchable UI in the
+                                    <a href="#help-content-selection-actions">Selection Actions</a>
+                                    <span class="help-keyword">overflow menu</span>
+                                    <span class="parenthetical"><button type="button" class="btn btn-xs btn-tertiary"><i class="fa-solid fa-ellipsis-h"></i></button></span>.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="help-section" id="help-content-draw-modes">
+                        <section>
+                            <header>Draw modes</header>
+                            <div class="section-content">
+                                <p>
+                                    The editor is &ldquo;modal&rdquo;, in that the context of how to
+                                    <a href="#help-content-canvas-interaction">interact with the canvas</a>
+                                    changes depending on which <span class="help-keyword">draw mode</span>
+                                    is active.
+                                </p>
+
+                                <p>
+                                    There is a button to switch between each mode located in the
+                                    <a href="#help-content-ui_canvas-sidebar">Canvas Sidebar</a>.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of draw mode buttons in a grid"
+                                             src="/images/help/draw-modes.png" />
+                                    </figure>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_draw">
+                            <h3><i class="fa-fw fa-solid fa-paintbrush"></i> Draw</h3>
+                            <div class="section-content">
+                                <p>
+                                    This is the default <span class="help-keyword">draw mode</span>. When
+                                    you click on the <span class="help-keyword">canvas</span> the
+                                    <a href="#help-content-palettes">active color</a> will be applied
+                                    to the pixel.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_fill">
+                            <h3><i class="fa-solid fa-fill"></i>Fill</h3>
+                            <div class="section-content">
+                                <p>
+                                    Fills all (orthogonally) adjacent pixels that match the current pixel&lsquo;s
+                                    color with the <a href="#help-content-palettes">active color</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_erase">
+                            <h3><i class="fa-fw fa-solid fa-eraser"></i>Erase</h3>
+                            <div class="section-content">
+                                <p>
+                                    Erases the pixel. Either draws <em>transparent</em> or the current
+                                    <a href="#help-content-palettes">background color</a> depending
+                                    on the state of the <a href="#help-content-editor-settings_uncolored">uncolored
+                                    pixel behavior toggle</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_shapes">
+                            <h3>
+                                <i class="fa-fw fa-regular fa-square"></i> Rect
+                                &middot;
+                                <i class="fa-fw fa-solid fa-square"></i> Filled Rect
+                                &middot;
+                                <i class="fa-fw fa-regular fa-circle"></i> Ellipse
+                                &middot;
+                                <i class="fa-fw fa-solid fa-circle"></i> Filled Ellipse
+                            </h3>
+                            <div class="section-content">
+                                <p>Click+drag to draw a shape.</p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_line">
+                            <h3><i class="fa-fw fa-solid fa-slash"></i> Line</h3>
+                            <div class="section-content">
+                                <p>Click+drag to draw a single-pixel-width line.</p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_pan">
+                            <h3><i class="fa-fw fa-regular fa-hand"></i> Pan</h3>
+                            <div class="section-content">
+                                <p>
+                                    Click+drag to move the <span class="help-keyword">canvas</span> around.
+                                    If things get out of control
+                                    you can return the <span class="help-keyword">canvas</span> to its original
+                                    position by clicking on
+                                    the <i class="fa-solid fa-bullseye"></i> icon in the
+                                    <a href="#help-content-ui_top-gutter">top gutter</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_select">
+                            <h3><i class="fa-fw fa-solid fa-arrow-pointer"></i> Select</h3>
+                            <div class="section-content">
+                                <p>
+                                    Click+drag to select a <span class="help-keyword">region</span>
+                                    of the <span class="help-keyword">canvas</span>.
+                                    This <span class="help-keyword">region</span> can then be moved or
+                                    otherwise <a href="#help-content-selection-actions">acted upon</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-draw-modes_move">
+                            <h3><i class="fa-fw fa-solid fa-up-down-left-right"></i> Move</h3>
+                            <div class="section-content">
+                                <p>
+                                    Click+drag to move the selected <span class="help-keyword">region</span>.
+                                    This mode is only enabled when a <span class="help-keyword">region</span>
+                                    has been selected.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="help-section" id="help-content-project-structure">
+                        <section>
+                            <header>Project structure</header>
+                            <p>
+                                When you start working on something
+                                a <span class="help-keyword">project</span> is created for you. The
+                                <span class="help-keyword">project</span> is merely a way of organizing all
+                                of your graphics into a single item that can be
+                                <a href="#help-content-save-and-load_saving">saved</a> to an external file
+                                and <a href="#help-content-save-and-load_loading">loaded</a>
+                                at a later time.
+                            </p>
+
+                            <p>
+                                The <span class="help-keyword">project</span> can be viewed in the
+                                <a href="#help-content-ui_main-sidebar">Main Sidebar</a>.
+                            </p>
+
+                            <p>
+                                One <span class="help-keyword">project</span> can be open at a time. Each
+                                <span class="help-keyword">project</span> contains
+                                <span class="help-keyword">group</span>s and each
+                                <span class="help-keyword">group</span> contains
+                                <span class="help-keyword">object</span>s.
+                            </p>
+
+                            <p>
+                                <span class="help-keyword">Group</span>s are meant as a way to manage
+                                similar graphics objects, e.g. each frame of an
+                                <a href="#help-content-animation">animated</a> sprite. They offer
+                                a convenient way of exporting multiple objects into various formats,
+                                such as <a href="#help-content-export-asm">Assembly</a> or a
+                                <a href="#help-content-export-image">spritesheet</a>.
+                            </p>
+
+                            <p>
+                                All three levels of the hierarchy can be renamed via the
+                                <span class="help-keyword-menu">Edit&hellip;</span> option of the
+                                <span class="help-keyword">overflow menu</span>
+                                <span class="parenthetical"><button type="button" class="btn btn-xs btn-tertiary"><i class="fa-solid fa-ellipsis-h"></i></button></span>.
+                            </p>
+                        </section>
+
+                        <section id="help-content-project-structure_ordering">
+                            <header>Ordering</header>
+
+                            <p>
+                                When <a href="#help-content-animation">animating</a>
+                                <span class="help-keyword">object</span>s, the order of the frames
+                                is dictated by the order of the <span class="help-keyword">object</span>s
+                                in the <span class="help-keyword">group</span>. You can modify this
+                                ordering by dragging the <span class="help-keyword">object</span> around
+                                by its <span class="with-icon"><i class="fa-solid fa-grip"></i> handle</span>.
+                            </p>
+
+                            <div class="image-container">
+                                <figure>
+                                    <img alt="screenshot of re-ordering an object"
+                                         src="/images/help/project-structure-object-reorder.png"/>
+                                </figure>
+                            </div>
+
+                            <p>
+                                <span class="help-keyword">Object</span>s can also be moved to
+                                a different <span class="help-keyword">group</span> using the same mechanism.
+                            </p>
+
+                            <p>
+                                <span class="help-keyword">Group</span>s can be re-ordered in the same way,
+                                although it might help to collapse each of them first. The ordering
+                                of <span class="help-keyword">group</span>s affects the order in which
+                                they appear when <a href="#help-content-export-image">exporting a spritesheet</a>.
+                            </p>
+                        </section>
+                    </section>
+
+                    <section class="help-section" id="help-content-save-and-load">
+                        <section>
+                            <header>Save &amp; load</header>
+                            <p>
+                                A <span class="help-keyword">project</span> can be saved to
+                                an external file and loaded later. The external file is
+                                specifically gzipped JSON, and is an overly verbose
+                                representation of the current editor state. Some things
+                                like the undo stack are not represented in the saved file,
+                                so will not be preserved after loading.
+                            </p>
+
+                            <p>
+                                To save or load a <span class="help-keyword">project</span>
+                                click on the <span class="help-keyword-menu">Save&hellip;</span> or
+                                <span class="help-keyword-menu">Load&hellip;</span> items
+                                in the project&lsquo;s
+                                <span class="help-keyword">overflow menu</span>
+                                <span class="parenthetical"><button type="button" class="btn btn-xs btn-tertiary"><i class="fa-solid fa-ellipsis-h"></i></button></span>.
+                            </p>
+
+                            <div class="image-container">
+                                <figure>
+                                    <img alt="screenshot of the project overflow menu"
+                                         src="/images/help/project-overflow-save-load.png" />
+                                </figure>
+                            </div>
+                        </section>
+
+                        <section id="help-content-save-and-load_saving">
+                            <h3>Saving</h3>
+                            <p>
+                                You can choose a name when saving the file, although depending
+                                on your browser settings, it may not prompt you for a file
+                                location. So if there is an existing file the browser may add
+                                a unique suffix irrespective of what name you specify.
+                            </p>
+                        </section>
+
+                        <section id="help-content-save-and-load_loading">
+                            <h3>Loading</h3>
+                            <p>
+                                Details about a loaded file will appear underneath the
+                                <span class="help-keyword">project</span> name in the
+                                <a href="#help-content-ui_canvas-sidebar">Canvas Sidebar</a>.
+                            </p>
+
+                            <div class="image-container">
+                                <figure>
+                                    <img alt="screenshot of loaded file details"
+                                         src="/images/help/loaded-file-details.png"/>
+                                </figure>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="help-section" id="help-content-ui">
+                        <section>
+                            <header>User interface</header>
+                            <div class="section-content">
+                                <p>
+                                    The <span class="text-antrax">Antrax</span> editor is made up of several
+                                    components:
+                                    the <em>Main Sidebar</em>,
+                                    the <em>Main Header</em>,
+                                    the <em>Canvas Area</em>,
+                                    the <em>Canvas Sidebar</em>,
+                                    the <em>Top Gutter</em>,
+                                    and
+                                    the <em>Bottom Gutter</em>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-ui_main-sidebar">
+                            <h3>Main Sidebar</h3>
+                            <div class="section-content">
+                                <p>
+                                    This houses the <a href="#help-content-project-structure">project structure</a>.
+                                    You can manage your <a href="#help-content-project-structure">project</a>
+                                    and your <span class="help-keyword">group</span>s and
+                                    <span class="help-keyword">object</span>s.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-ui_main-header">
+                            <h3>Main Header</h3>
+                            <div class="section-content">
+                                <p>
+                                    The main header shows the currently active
+                                    <a href="#help-content-palettes_palette-sets">Palette Set</a> and all of its
+                                    <a href="#help-content-palettes_palettes">Palettes</a>. Click on a color
+                                    swatch to reveal the <a href="#help-content-palettes_color-picker">color picker</a>.
+                                    When you choose a new color it will be propagated immediately around the UI.
+                                </p>
+
+                                <p>
+                                    You can reveal the palette set management UI by clicking on the name.
+                                    From this dropdown you can change the name or assign a different palette
+                                    set to the active <span class="help-keyword">object</span>.
+                                </p>
+
+                                <p>
+                                    Palette Sets can only be deleted if they are not in use.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of palette set dropdown"
+                                             src="/images/help/main-header-palette-set-dropdown.png" />
+                                    </figure>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="help-content-ui_canvas-area">
+                            <h3>Canvas Area</h3>
+                            <div class="section-content">
+                                <p>
+                                    This is where all the
+                                    <a href="#help-content-canvas-interaction">drawing</a> happens.
+                                    If the <a href="#help-content-project-structure">project</a> is
+                                    empty, some example projects will be shown here instead.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-ui_canvas-sidebar">
+                            <h3>Canvas Sidebar</h3>
+                            <div class="section-content">
+                                <p>
+                                    This sidebar shows information about the currently active
+                                    <span class="help-keyword">object</span>. You can switch
+                                    between different <a href="#help-content-draw-modes">draw modes</a>,
+                                    re-assign a <a href="#help-content-palettes">palette</a> to the
+                                    active <span class="help-keyword">object</span>, switch to
+                                    a different <a href="#help-content-display-modes">display mode</a>,
+                                    or change the active color.
+                                </p>
+
+                                <p>
+                                    <a href="#help-content-palettes">Palettes</a> and
+                                    <a href="#help-content-display-modes">display modes</a>
+                                    are intertwined, in that assigning a
+                                    <a href="#help-content-palettes">palette</a> to an
+                                    <span class="help-keyword">object</span> is only relevant for the Atari 7800
+                                    <a href="#help-content-display-modes">display modes</a>.
+                                    When the
+                                    <a href="#help-content-display-modes">display mode</a> is
+                                    <a href="#help-content-display-modes_none"><code>none</code></a>,
+                                    the UI for selecting a
+                                    <a href="#help-content-palettes">palette</a> disappears.
+                                </p>
+
+                                <p>
+                                    For <a href="#help-content-display-modes">display modes</a> that have an
+                                    equal number of colors available
+                                    to them, you can switch between them at will. Otherwise, the
+                                    <span class="help-keyword">canvas</span> <strong>must be clear</strong>
+                                    to switch to a different
+                                    <a href="#help-content-display-modes">display mode</a>.
+                                </p>
+
+                                <div style="display: flex; gap: 1rem">
+                                    <div class="image-container">
+                                        <figure>
+                                            <img alt="screenshot of canvas sidebar"
+                                                 src="/images/help/ui-canvas-sidebar.png" />
+                                        </figure>
+                                    </div>
+
+                                    <section style="justify-content: center">
+                                        <p>
+                                            The colors that are available to draw with are displayed in a list.
+                                            Click on a color row to begin drawing with that color.
+                                        </p>
+
+                                        <p>
+                                            In certain <a href="#help-content-display-modes">display modes</a>,
+                                            pixels can contain more than one color.
+                                            The available color-pairs will be displayed in those cases.
+                                        </p>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="help-content-ui_top-gutter">
+                            <h3>Top Gutter</h3>
+                            <div class="section-content">
+                                <p>
+                                    The top gutter is above the canvas area and contains information
+                                    and actions relevant to the active <span class="help-keyword">object</span>.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the top gutter"
+                                             src="/images/help/ui-top-gutter.png" />
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    The first section contains
+                                    <a href="#help-content-selection-actions">selection actions</a>: things you
+                                    can do once something is <a href="#help-content-draw-modes_select">selected</a>.
+                                    It also contains an <span class="help-keyword">overflow menu</span>
+                                    for performing explicit Undo/Redo actions, or manually
+                                    <a href="#help-content-draw-modes_select">selecting</a> or de-selecting all.
+                                </p>
+
+                                <p>
+                                    The second section is a breadcrumb indicating the active
+                                    <span class="help-keyword">group</span> and
+                                    <span class="help-keyword">object</span>.
+                                </p>
+
+                                <p>
+                                    The third section contains positional information:
+                                </p>
+
+                                <ol>
+                                    <li>The last pixel coordinates of the cursor</li>
+                                    <li>
+                                        The dimensions of the
+                                        <a href="#help-content-draw-modes_select">selected</a>
+                                        <span class="help-keyword">region</span> (in pixels)
+                                    </li>
+                                    <li>
+                                        The on-screen coordinates of the <span class="help-keyword">canvas</span>
+                                        within the Canvas Area. Click this to reset the
+                                        <span class="help-keyword">canvas</span> to its original location.
+                                    </li>
+                                </ol>
+                            </div>
+                        </section>
+
+                        <section id="help-content-ui_bottom-gutter">
+                            <h3>Bottom Gutter</h3>
+                            <div class="section-content">
+                                <p>
+                                    The bottom gutter is below the canvas area and contains information
+                                    and actions relevant to the global editor state.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the bottom gutter"
+                                             src="/images/help/ui-bottom-gutter.png"/>
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    The first section contains <span class="text-antrax">Antrax</span>-specific
+                                    informational links:
+                                </p>
+
+                                <ol>
+                                    <li><i class="fa-fw fa-solid fa-circle-question"></i> Help</li>
+                                    <li><i class="fa-fw fa-solid fa-keyboard"></i> Shortcuts</li>
+                                    <li><i class="fa-fw fa-solid fa-list"></i> Changelog</li>
+                                </ol>
+
+                                <p>
+                                    The second section contains inputs for altering the dimensions
+                                    of pixels and the <span class="help-keyword">canvas</span>.
+                                    For certain <a href="#help-content-display-modes">display modes</a>
+                                    these values are either locked to a certain size or clamped to
+                                    certain multiples.
+                                </p>
+
+                                <p>
+                                    The third section has miscellaneous settings that alter
+                                    the <span class="help-keyword">canvas</span> view:
+                                </p>
+
+                                <ol>
+                                    <li>
+                                        Toggle the <span class="help-keyword">canvas</span> grid
+                                    </li>
+                                    <li>
+                                        <i class="fa fa-magnifying-glass"></i> Click to change
+                                        the zoom level
+                                    </li>
+                                    <li>
+                                        <span class="color-swatch transparent-checkerboard"
+                                              style="display: inline-block; vertical-align: text-top"></span>
+                                        Toggle the uncolored pixel behavior: checked will
+                                        show a checkerboard pattern, unchecked will show
+                                        the active <a href="#help-content-palettes">palette set&lsquo;s</a>
+                                        background color. This is disabled when in Kangaroo mode.
+                                    </li>
+                                    <li>
+                                        &#x1f998; Toggle Kangaroo mode. Only relevant for certain
+                                        <a href="#help-content-display-modes">display modes</a>.
+                                    </li>
+                                </ol>
+                            </div>
+                        </section>
+                    </section>
+                </div>
+            </div>
+        </template>
+
         <script src="/app.js"></script>
     </body>
 </html>
