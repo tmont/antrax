@@ -1,3 +1,15 @@
+## v0.5.0 (2025-12-23)
+- Added support for Command/Option keys on Mac
+- Restyled shortcut modal
+- Added "pan" draw mode
+- Added "Select All" and "De-select All" menu items to selection 
+  action overflow
+- Flipping with nothing selected will now flip the entire canvas,
+  similar to how rotate behaves
+- Added zoom controls to animation and image export modals
+- Added Ctrl+Shift+X shortcut for showing animation dialog
+- Added some content to help modal
+
 ## v0.4.1 (2025-12-16)
 - Updated _Dragon Warrior_ example project
 - Fixed non-deterministic ordering of groups when exporting a spritesheet
