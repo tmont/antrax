@@ -11,7 +11,7 @@ export const parseTemplate = (html: string): HTMLElement => {
 export const findOrDie = <T>(ancestor: ParentNode, selector: string, predicate: (node: unknown) => node is T): T => {
     const child = ancestor.querySelector(selector);
     if (!predicate(child)) {
-        throw new Error(`Unable to find ${selector}`);
+        throw new Error(`Unable to find "${selector}"`);
     }
 
     return child;
