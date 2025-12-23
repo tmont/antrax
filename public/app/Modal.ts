@@ -196,6 +196,10 @@ export class Modal extends EventEmitter<ModalEventMap> {
     }
 
     public show(): void {
+        if (Modal.current && Modal.current !== this) {
+            Modal.current.destroy();
+        }
+
         if (!this.isConnected) {
             document.body.appendChild(this.$el);
         }
@@ -208,6 +212,8 @@ export class Modal extends EventEmitter<ModalEventMap> {
         if (Modal.$overlay) {
             Modal.$overlay.style.display = 'block';
         }
+
+        Modal.current = this;
     }
 
     public hide(): void {
@@ -222,5 +228,6 @@ export class Modal extends EventEmitter<ModalEventMap> {
         this.hide();
         this.$el.remove();
         Modal.current = null;
+        this.isConnected = false;
     }
 }
