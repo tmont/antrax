@@ -24,6 +24,13 @@
             padding: 0 config.$gutter-quarter;
         }
 
+        .help-items {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+        }
+
         a.help-item {
             display: block;
             padding: config.$gutter-eighth config.$gutter-half;

@@ -25,6 +25,7 @@ type HelpKeyword = keyof typeof keywordContent;
 const isKeyword = (text: string): text is HelpKeyword => text in keywordContent;
 
 export type HelpSection =
+    'about' |
     'animation' |
     'canvas-interaction' |
     'debug' |
@@ -41,6 +42,7 @@ export type HelpSection =
     ;
 
 const sectionMap: Record<HelpSection, 1> = {
+    about: 1,
     "canvas-interaction": 1,
     "display-modes": 1,
     "draw-modes": 1,
