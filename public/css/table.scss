@@ -7,12 +7,22 @@ table {
     width: 100%;
     background-color: config.$table-bg;
 
+    thead th {
+        background-color: color.adjust(config.$table-bg, $lightness: -2%);
+    }
+
     td, th {
         padding: config.$gutter-half;
         border: 1px solid config.$border-color;
 
         p {
             margin-bottom: config.$gutter-eighth;
+        }
+    }
+
+    &.compact {
+        td, th {
+            padding: config.$gutter-quarter config.$gutter-half;
         }
     }
 

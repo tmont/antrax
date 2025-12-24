@@ -167,4 +167,8 @@
             content: ")";
         }
     }
+
+    code {
+        color: config.$code-color;
+    }
 }

@@ -721,6 +721,193 @@
                         </section>
                     </section>
 
+                    <section class="help-section" id="help-content-debug">
+                        <section>
+                            <header>Debug</header>
+                            <div class="section-content">
+                                <p>
+                                    The <span class="help-keyword-menu">Debug&hellip;</span> menu item
+                                    in an <span class="help-keyword">object</span>&lsquo;s
+                                    <span class="help-keyword">overflow menu</span>
+                                    launches a dialog that allows for export and import of the raw
+                                    JSON representation for an <span class="help-keyword">object</span>.
+                                    Mostly, this is of little utility.
+                                </p>
+
+                                <p>
+                                    One use case is to paste this data into a different
+                                    <span class="help-keyword">project</span> that is open in
+                                    a different browser tab, thereby copying an object
+                                    from one <span class="help-keyword">project</span>
+                                    to another. This requires the
+                                    target <span class="help-keyword">object</span>
+                                    to be the same size and the
+                                    <a href="#help-content-display-modes">display modes</a>
+                                    to match among other things.
+                                </p>
+
+                                <p>
+                                    Note that actual colors are not part of the data so the target&lsquo;s
+                                    <a href="#help-content-palettes">color palette</a> may need to
+                                    be adjusted.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-debug_format">
+                            <h3>Format</h3>
+                            <div class="section-content">
+                                <p>
+                                    The format of the JSON data is simply an array of arrays
+                                    representing the rows and columns of the
+                                    <span class="help-keyword">pixel</span> data. Each array item
+                                    is an object containing a <code>modeColorIndex</code> key
+                                    that specifies the zero-based index into the array of
+                                    available colors for the <span class="help-keyword">object</span>.
+                                </p>
+
+                                <p>
+                                    A <code>null</code> value indicates the absence of any color data
+                                    and the <span class="help-keyword">pixel</span> should not
+                                    be colored (which may equate to either <em>transparent</em>
+                                    or the <a href="#help-content-palettes">background color</a>
+                                    depending on the
+                                    <a href="#help-content-editor-settings_uncolored">uncolored pixel behavior</a>
+                                    setting).
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="help-section" id="help-content-display-modes">
+                        <section>
+                            <header>Display modes</header>
+                            <div class="section-content">
+                                <p>
+                                    Each <span class="help-keyword">object</span> has a
+                                    <em>display mode</em> which can alter certain available
+                                    options, like <span class="help-keyword">pixel</span>
+                                    dimensions, <span class="help-keyword">canvas</span> dimensions,
+                                    and <a href="#help-content-palettes">colors</a>.
+                                </p>
+
+                                <p>
+                                    The term <em>display mode</em> comes from the Atari 7800
+                                    graphics engine MARIA, which has several different display
+                                    modes that offer different ways of rendering graphics,
+                                    from providing different color combinations to allowing
+                                    larger screen resolutions.
+                                </p>
+
+                                <table class="compact hoverable" style="max-width: 30em; margin: 0 auto">
+                                    <thead>
+                                        <tr>
+                                            <th>Mode</th>
+                                            <th>Colors</th>
+                                            <th>Width multiple</th>
+                                            <th>Max width</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>None</td><td>26</td><td>1</td><td>256</td></tr>
+                                        <tr><td>160A</td><td>4</td><td>4</td><td>128</td></tr>
+                                        <tr><td>160B</td><td>13</td><td>2</td><td>64</td></tr>
+                                        <tr><td>320A</td><td>4</td><td>4</td><td>128</td></tr>
+                                        <tr><td>320B</td><td>16</td><td>2</td><td>64</td></tr>
+                                        <tr><td>320C</td><td>13</td><td>2</td><td>64</td></tr>
+                                        <tr><td>320D</td><td>4</td><td>4</td><td>128</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section id="help-content-display-modes_none">
+                            <h3>None</h3>
+                            <div class="section-content">
+                                <p>
+                                    The <code>none</code> display mode is the default and behaves
+                                    like you would expect. There are no limitations on colors, dimensions,
+                                    or anything else (beyond what <span class="text-antrax">Antrax</span> itself
+                                    supports).
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-display-modes_160">
+                            <h3>160A/160B</h3>
+                            <div class="section-content">
+                                <p>
+                                    These modes force the <span class="help-keyword">pixel</span>
+                                    dimensions to be <code>12&times;7</code>. The
+                                    <span class="help-keyword">canvas</span> width is clamped
+                                    to certain multiples and has a maximum width
+                                    based on how many bytes of graphics data each
+                                    <span class="help-keyword">pixel</span> requires.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-display-modes_320">
+                            <h3>320A/320B/320C/320D</h3>
+                            <div class="section-content">
+                                <p>
+                                    These modes all have similar restrictions to the 160 modes, with
+                                    a few extra caveats.
+                                </p>
+
+                                <p>
+                                    The "320" display modes offer twice the resolution by effectively
+                                    splitting each <span class="help-keyword">pixel</span> in half,
+                                    thus allowing two colors per 160-sized
+                                    <span class="help-keyword">pixel</span>. This comes at the
+                                    cost of being very confusing, not allowing partial transparency,
+                                    and being much more difficult to visualize. These modes
+                                    are the biggest reason <span class="text-antrax">Antrax</span> exists.
+                                </p>
+
+                                <p>
+                                    Their bitwise presentation is also incredibly confusing so it&lsquo;s much
+                                    easier to have a tool generate the graphics data for you in lieu
+                                    of doing it by hand.
+                                </p>
+
+                                <p>
+                                    The reason they&lsquo;re called &ldquo;320&rdquo; is because the resolution
+                                    is doubled. However, I find that an incredibly confusing way of
+                                    thinking about it, as you cannot draw twice as many
+                                    <span class="help-keyword">pixel</span>s, the
+                                    <span class="help-keyword">pixel</span>s are
+                                    just now rendered differently. Internally,
+                                    <span class="text-antrax">Antrax</span> treats these double-resolution
+                                    &ldquo;pixels&rdquo; as a single <span class="help-keyword">pixel</span>
+                                    with multiple colors. This makes
+                                    visualizing what you&lsquo;re actually allowed to do in these modes
+                                    much easier instead of treating each color as a single
+                                    <span class="help-keyword">pixel</span>.
+                                </p>
+
+                                <p>
+                                    For example, MARIA doesn&lsquo;t allow drawing one 320
+                                    &ldquo;pixel&rdquo; at an odd horizontal offset, because you can only
+                                    draw them in pairs, and they must all align.
+                                    So basically each 320 &ldquo;pixel&rdquo; is really a 160
+                                    &ldquo;pixel&rdquo; with
+                                    (potentially) two different colors.
+                                </p>
+
+                                <p>
+                                    Thinking about these modes
+                                    in this way can help internalize how the graphics engine
+                                    actually works and not get caught up in how much
+                                    "resolution" you are gaining or losing for each display mode:
+                                    they simply render the same sized
+                                    <span class="help-keyword">pixel</span>s
+                                    in a different manner.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
                     <section class="help-section" id="help-content-draw-modes">
                         <section>
                             <header>Draw modes</header>
