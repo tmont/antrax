@@ -1201,6 +1201,192 @@
                         </section>
                     </section>
 
+                    <section class="help-section" id="help-content-export-asm">
+                        <section>
+                            <header>Export ASM</header>
+                            <div class="section-content">
+                                <p>
+                                    <span class="help-keyword">Object</span>s in certain
+                                    <a href="#help-content-display-modes">display modes</a>
+                                    can be exported to Assembly suitable for the Atari 7800.
+                                    This code can be directly integrated into the rest of the
+                                    game code.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the export ASM modal dialog"
+                                             src="/images/help/export-asm-modal.png" />
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    There are a handful of options to tweak the generated
+                                    code to your liking.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_export-what">
+                            <h3>What to export</h3>
+                            <div class="section-content">
+                                <p>
+                                    The three checkboxes at the top let you choose what
+                                    to export.
+                                </p>
+
+                                <p>
+                                    &ldquo;Header info&rdquo; provides information
+                                    needed for the display list entry. Since this
+                                    can be kind of confusing, it also includes a small
+                                    explanation of the bit values (depending on the
+                                    level of detail that is selected, see below).
+                                </p>
+
+                                <p>
+                                    &ldquo;Object&rdquo; generates the instructions
+                                    for the actual graphics byte data.
+                                </p>
+
+                                <p>
+                                    &ldquo;Palettes&rdquo; exports a comment with
+                                    the color data for all relevant
+                                    <a href="#help-content-palettes">palettes</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_export-indent">
+                            <h3>Indentation</h3>
+                            <div class="section-content">
+                                <p>
+                                    &ldquo;TAB&rdquo;, &ldquo;4 spaces&rdquo;, and
+                                    &ldquo;2 spaces&rdquo; control how code is
+                                    indented.
+                                </p>
+
+                                <p>
+                                    If you desire a different indentation than those three
+                                    options, keep that to yourself. Gross.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_export-detail">
+                            <h3>Detail level</h3>
+                            <div class="section-content">
+                                <p>
+                                    &ldquo;Detail&rdquo; provides control over how much
+                                    extra annotation to display in comments.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_export-object-filter">
+                            <h3>Object filter</h3>
+                            <div class="section-content">
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the object filter"
+                                             src="/images/help/export-asm-object-filter.png"/>
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    The <span class="help-keyword">object</span> filter
+                                    is a dropdown that lets you filter which objects are
+                                    being exported. This is most useful when exporting
+                                    a <span class="help-keyword">group</span> or the
+                                    entire <span class="help-keyword">project</span>.
+                                </p>
+
+                                <p>
+                                    This control is not shown when only a single
+                                    <span class="help-keyword">object</span> is being exported.
+                                </p>
+
+                                <p>
+                                    If the sum of the byte widths of all the objects
+                                    exceeds 256 bytes then a warning will be displayed.
+                                    You can use the <span class="help-keyword">object</span>
+                                    filter to omit <span class="help-keyword">object</span>s
+                                    until you&lsquo;re under the limit.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the object filter"
+                                             src="/images/help/export-asm-warning.png"/>
+                                    </figure>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_address">
+                            <h3>Address</h3>
+                            <div class="section-content">
+                                <p>
+                                    &ldquo;Address&rdquo; lets you set the byte offset
+                                    where the graphics data will be written. If the
+                                    value is prefixed with <code>$</code> it will be
+                                    interpreted as hexadecimal; <code>%</code> as binary;
+                                    otherwise decimal. In the generated code it
+                                    is always shown as hexadecimal.
+                                </p>
+
+                                <p>
+                                    If &ldquo;w/ label&rdquo; is checked, then the value
+                                    is instead interpreted as a label, and each line
+                                    will add 256 to the label. So, if &ldquo;Address&rdquo;
+                                    is set to <code>MY_DATA</code> and &ldquo;w/ label&rdquo;
+                                    is checked, the first block will be written to
+                                    the address <code>MY_DATA</code>, the next will be
+                                    written to <code>MY_DATA + $100</code>, and so on.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_prepend-group">
+                            <h3>Prepend group</h3>
+                            <div class="section-content">
+                                <p>
+                                    If checked, the <span class="help-keyword">group</span>
+                                    name will be added as a prefix to each
+                                    <span class="help-keyword">object</span>&lsquo;s
+                                    label.
+                                </p>
+
+                                <p>
+                                    For example, if the <span class="help-keyword">group</span>
+                                    is named &ldquo;foo&rdquo; and the <span class="help-keyword">object</span>
+                                    is named &ldquo;bar&rdquo;, the label by default will
+                                    be <code>Bar</code> (converted to PascalCase). If this option
+                                    is checked it will be <code>FooBar</code>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_label-colon">
+                            <h3>Label colon</h3>
+                            <div class="section-content">
+                                <p>
+                                    If checked, a colon will be added to the end of all
+                                    labels.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-export-asm_label-byte-format">
+                            <h3>Byte format</h3>
+                            <div class="section-content">
+                                <p>
+                                    Byte values (<code>.byte xxx</code>) will be formatted
+                                    according to the specified radix.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
                     <section class="help-section" id="help-content-project-structure">
                         <section>
                             <header>Project structure</header>
