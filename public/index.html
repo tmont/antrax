@@ -584,7 +584,7 @@
                             <li><a class="help-item" href="#help-content-editor-settings">Editor settings</a></li>
                             <li><a class="help-item" href="#help-content-export-asm">Export ASM</a></li>
                             <li><a class="help-item" href="#help-content-export-image">Export image</a></li>
-                            <li><a class="help-item" href="#help-content-palettes">Palettes &amp; palette sets</a></li>
+                            <li><a class="help-item" href="#help-content-palettes">Colors &amp; palettes</a></li>
                             <li><a class="help-item" href="#help-content-project-structure">Project structure</a></li>
                             <li><a class="help-item" href="#help-content-save-and-load">Save &amp; load</a></li>
                             <li><a class="help-item" href="#help-content-selection-actions">Selection actions</a></li>
@@ -776,8 +776,8 @@
                                     be colored (which may equate to either <em>transparent</em>
                                     or the <a href="#help-content-palettes">background color</a>
                                     depending on the
-                                    <a href="#help-content-editor-settings_uncolored">uncolored pixel behavior</a>
-                                    setting).
+                                    <a href="#help-content-editor-settings_uncolored-pixel-behavior">uncolored
+                                        pixel behavior</a> setting).
                                 </p>
                             </div>
                         </section>
@@ -965,7 +965,8 @@
                                 <p>
                                     Erases the pixel. Either draws <em>transparent</em> or the current
                                     <a href="#help-content-palettes">background color</a> depending
-                                    on the state of the <a href="#help-content-editor-settings_uncolored">uncolored
+                                    on the state of the
+                                    <a href="#help-content-editor-settings_uncolored-pixel-behavior">uncolored
                                     pixel behavior toggle</a>.
                                 </p>
                             </div>
@@ -1523,6 +1524,97 @@
                         </section>
                     </section>
 
+                    <section class="help-section" id="help-content-palettes">
+                        <section>
+                            <header>Colors &amp; palettes</header>
+                            <div class="section-content">
+                                <p>
+                                    Colors are organized into palettes,
+                                    which are organized into palette sets.
+                                </p>
+
+                                <p>
+                                    Each palette has three colors, and each palette has eight palette
+                                    in addition to a background color. This mimics the way colors
+                                    are handled by the Atari 7800.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-palettes_palette-sets">
+                            <h3>Palette Sets</h3>
+                            <div class="section-content">
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of a palette set"
+                                             src="/images/help/palette-set.png"/>
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    Palette sets can be viewed and managed in the
+                                    <a href="#help-content-ui_top-gutter">Top Gutter</a>.
+                                    The palette set for the active
+                                    <span class="help-keyword">object</span> will be shown,
+                                    and other palette sets are revealed in a dropdown.
+                                </p>
+
+                                <p>
+                                    Each <span class="help-keyword">object</span> has an
+                                    assigned palette set, that dictates which colors are
+                                    available for <a href="#help-content-canvas-interaction">drawing</a>.
+                                    The available colors will be shown in the
+                                    <a href="#help-content-ui_canvas-sidebar">Canvas Sidebar</a>.
+                                </p>
+
+                                <p>
+                                    Palette sets can be renamed or deleted by clicking the
+                                    <span class="help-keyword">overflow menu</span> in the dropdown.
+                                    A palette set can only be deleted if it is not assigned to
+                                    any <span class="help-keyword">object</span>s.
+                                </p>
+
+                                <p>
+                                    Palette sets also contain a background color, which has significance
+                                    for the Atari 7800 <a href="#help-content-display-modes">display modes</a>,
+                                    and also affects the behavior of the
+                                    <a href="#help-content-editor-settings_uncolored-pixel-behavior">uncolored
+                                        pixel behavior</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-palettes_palettes">
+                            <h3>Palettes</h3>
+                            <div class="section-content">
+                                <p>
+                                    The eight palettes are named <code>P0</code>&ndash;<code>P7</code>.
+                                    The palette(s) that contains the active color(s) will be highlighted.
+                                </p>
+
+                                <p>
+                                    Each palette contains three colors, referred to as
+                                    <code>C0</code>, <code>C1</code>, and <code>C2</code>.
+                                    Click on a color swatch to reveal the color picker and
+                                    choose a new color.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the color picker"
+                                             src="/images/help/color-picker.png" />
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    When a new color is picked, all usages of that color will
+                                    immediately be updated around the
+                                    <a href="#help-content-ui">UI</a>.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
                     <section class="help-section" id="help-content-project-structure">
                         <section>
                             <header>Project structure</header>
@@ -1690,7 +1782,7 @@
                                     The main header shows the currently active
                                     <a href="#help-content-palettes_palette-sets">Palette Set</a> and all of its
                                     <a href="#help-content-palettes_palettes">Palettes</a>. Click on a color
-                                    swatch to reveal the <a href="#help-content-palettes_color-picker">color picker</a>.
+                                    swatch to reveal the <a href="#help-content-palettes_palettes">color picker</a>.
                                     When you choose a new color it will be propagated immediately around the UI.
                                 </p>
 
@@ -1701,7 +1793,8 @@
                                 </p>
 
                                 <p>
-                                    Palette Sets can only be deleted if they are not in use.
+                                    <a href="#help-content-palettes_palette-sets">Palette sets</a> can only
+                                    be deleted if they are not in use.
                                 </p>
 
                                 <div class="image-container">
