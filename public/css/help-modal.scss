@@ -143,6 +143,9 @@
     .help-keyword {
         display: inline-block;
         color: config.$help-keyword-color;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        cursor: pointer;
     }
 
     .help-keyword-menu {

@@ -1,7 +1,28 @@
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
-import { findButton, findElement, findTemplateContent } from './utils-dom.ts';
+import { Popover } from './Popover.ts';
+import { findButton, findElement, findTemplateContent, parseTemplate } from './utils-dom.ts';
+
+const keywordContent = {
+    'active color': 'The currently selected color, this can change from object to object',
+    canvas: 'The rectangular region in the center of the screen on which you draw',
+    'draw mode': 'Dictates the behavior when interacting with the canvas: e.g. draw/erase/fill/pan/etc.',
+    group: 'A named, ordered collection of objects visible in the main sidebar',
+    object: 'A graphics object, most often this can be considered a "sprite"',
+    'overflow menu': parseTemplate(`<div>Dropdown menu identified by a button with an ellipsis: ` +
+        `<button type="button" class="btn btn-xs btn-tertiary"><i class="fa-solid fa-ellipsis-h"></i></button></div>`),
+    project: 'A collection of groups and objects which can be serialized to an external file',
+    pixel: 'Refers to a pixel as represented in the object, ' +
+        'its size dictated by the user-defined pixel dimensions',
+    region: 'An outlined rectangle on the canvas that can be manipulated. ' +
+        'Usually created by using the "select" draw mode.',
+    'zoom level': 'The magnification multiple applied to the canvas',
+} as const;
+
+type HelpKeyword = keyof typeof keywordContent;
+
+const isKeyword = (text: string): text is HelpKeyword => text in keywordContent;
 
 export type HelpSection =
     'animation' |
@@ -97,6 +118,20 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
             $item.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.emit('shortcut_link');
+            });
+        });
+
+        const keywordPopover = new Popover({ size: 'medium' });
+        $content.querySelectorAll<HTMLSpanElement>('.help-keyword').forEach(($keyword) => {
+            $keyword.addEventListener('click', () => {
+                const text = $keyword.innerText.trim().toLowerCase();
+                if (!isKeyword(text)) {
+                    this.logger.error(`unknown help keyword "${text}"`, $keyword);
+                    return;
+                }
+
+                keywordPopover.setContent(keywordContent[text]);
+                keywordPopover.show($keyword);
             });
         });
 

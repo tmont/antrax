@@ -23,7 +23,7 @@ type PopoverArrowAlignment = 'left' | 'center';
 export interface PopoverOptions {
     title?: string;
     dropdown?: boolean;
-    content: string | HTMLElement;
+    content?: string | HTMLElement;
     arrow?: boolean;
     toast?: boolean;
     timeoutMs?: number;
@@ -34,6 +34,7 @@ export interface PopoverOptions {
 
 export class Popover extends EventEmitter<PopoverEventMap> {
     private readonly $el: HTMLElement;
+    private readonly $bodyContent: HTMLElement;
     private readonly isToast: boolean;
     private readonly timeoutMs: number;
     private readonly arrowAlign: PopoverArrowAlignment;
@@ -49,11 +50,7 @@ export class Popover extends EventEmitter<PopoverEventMap> {
             this.hide();
         });
 
-        if (options.title) {
-            findElement(this.$el, '.popover-title').innerText = options.title;
-        } else {
-            this.$el.classList.add('no-header');
-        }
+        this.setTitle(options.title || null);
 
         this.isToast = options.toast === true;
         this.timeoutMs = options.timeoutMs || 5000;
@@ -86,14 +83,13 @@ export class Popover extends EventEmitter<PopoverEventMap> {
                 break;
         }
 
-        const $content = findElement(this.$el, '.popover-content');
+        this.$bodyContent = findElement(this.$el, '.popover-content');
         if (options.size === 'medium') {
-            $content.classList.add('medium');
+            this.$bodyContent.classList.add('medium');
         }
-        if (options.content instanceof HTMLElement) {
-            $content.appendChild(options.content);
-        } else {
-            $content.innerText = options.content;
+
+        if (options.content) {
+            this.setContent(options.content);
         }
     }
 
@@ -103,6 +99,15 @@ export class Popover extends EventEmitter<PopoverEventMap> {
             this.$el.classList.remove('no-header');
         } else {
             this.$el.classList.add('no-header');
+        }
+    }
+
+    public setContent(content: string | HTMLElement) {
+        if (content instanceof HTMLElement) {
+            this.$bodyContent.innerHTML = '';
+            this.$bodyContent.appendChild(content);
+        } else {
+            this.$bodyContent.innerText = content;
         }
     }
 
