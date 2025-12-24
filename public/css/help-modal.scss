@@ -106,11 +106,13 @@
 
         .image-container {
             padding: config.$gutter-half;
+            display: flex;
+            gap: config.$gutter;
+            justify-content: center;
+            align-items: center;
         }
 
         figure {
-            display: block;
-            text-align: center;
             img {
                 display: block;
                 margin: 0 auto;
@@ -177,5 +179,10 @@
 
     code {
         color: config.$code-color;
+    }
+
+    .transparent-checkerboard {
+        display: inline-block;
+        vertical-align: text-top;
     }
 }

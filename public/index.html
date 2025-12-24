@@ -1041,6 +1041,166 @@
                         </section>
                     </section>
 
+                    <section class="help-section" id="help-content-editor-settings">
+                        <section>
+                            <header>Editor settings</header>
+                            <div class="section-content">
+                                <p>
+                                    These are some knobs to turn to tweak the behavior of the
+                                    editor.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-editor-settings_pixel-dimensions">
+                            <h3>Pixel dimensions</h3>
+                            <div class="section-content">
+                                <p>
+                                    The width and height in onscreen pixels of each
+                                    <span class="help-keyword">object</span>&lsquo;s
+                                    <span class="help-keyword">pixel</span>. In general,
+                                    this should just be the aspect ratio of the pixels
+                                    when they are rendered by the actual hardware, e.g.
+                                    <code>12&times;7</code> for the Atari 7800.
+                                </p>
+
+                                <p>
+                                    Certain <a href="#help-content-display-modes">display modes</a>
+                                    lock the <span class="help-keyword">pixel</span> dimensions
+                                    and they cannot be altered.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-editor-settings_canvas-dimensions">
+                            <h3>Canvas dimensions</h3>
+                            <div class="section-content">
+                                <p>
+                                    The width and height in <span class="help-keyword">pixel</span>s
+                                    of the active <span class="help-keyword">object</span>.
+                                </p>
+
+                                <p>
+                                    Certain <a href="#help-content-display-modes">display modes</a>
+                                    restrict the widths that are allowed. The input controls will
+                                    not allow you to set a width that is invalid, and will revert
+                                    it to the nearest valid value.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-editor-settings_grid">
+                            <h3>Grid</h3>
+                            <div class="section-content">
+                                <p>
+                                    The grid outlines each <span class="help-keyword">pixel</span>
+                                    on the <span class="help-keyword">canvas</span>. It will not show
+                                    up anywhere else (e.g. during
+                                    <a href="#help-content-export-image">image export</a> or
+                                    <a href="#help-content-animation">animation</a>).
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of a canvas with the grid off"
+                                             src="/images/help/editor-settings-grid-off.png"/>
+                                    </figure>
+                                    <figure>
+                                        <img alt="screenshot of a canvas with the grid on"
+                                             src="/images/help/editor-settings-grid-on.png"/>
+                                    </figure>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="help-content-editor-settings_zoom-level">
+                            <h3>Zoom level</h3>
+                            <div class="section-content">
+                                <p>
+                                    The <span class="help-keyword">canvas</span> can be magnified by
+                                    some preset values, ranging from 0.125x to 8x. This affects
+                                    <a href="#help-content-export-image">image export</a> and
+                                    <a href="#help-content-animation">animation</a>.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the zoom level control"
+                                             src="/images/help/zoom-control.png" />
+                                    </figure>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="help-content-editor-settings_uncolored-pixel-behavior">
+                            <h3>Uncolored pixel behavior</h3>
+                            <div class="section-content">
+                                <p>
+                                    Uncolored <span class="help-keyword">pixel</span>s show up as
+                                    a <span class="color-swatch transparent-checkerboard"></span>
+                                    checkerboard pattern by default. This can be changed so
+                                    that they appear as the active
+                                    <a href="#help-content-palettes_palette-sets">palette set&lsquo;s</a>
+                                    background color instead.
+                                </p>
+
+                                <p>
+                                    Note that this option is affected by
+                                    <span class="with-icon">&#x1f998; Kangaroo mode</span> (see below).
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-editor-settings_kangaroo-mode">
+                            <h3>&#x1f998; Kangaroo mode</h3>
+                            <div class="section-content">
+                                <p>
+                                    <span class="with-icon">&#x1f998; Kangaroo mode</span> is an
+                                    Atari 7800 oddity that replaces transparent
+                                    <span class="help-keyword">pixel</span>s
+                                    (or <a href="#help-content-display-modes_320">partial pixels</a>)
+                                    with the background color. This means that all
+                                    <span class="help-keyword">object</span>s will actually render as
+                                    rectangular.
+                                </p>
+
+                                <p>
+                                    This is most noticeable and/or useful in the
+                                    <a href="#help-content-display-modes_320">320B</a>
+                                    <a href="#help-content-display-modes">display mode</a>, where three
+                                    extra colors are revealed that make use of the first color
+                                    in either palette 0 or palette 4.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of color list when kangaroo mode is off"
+                                             src="/images/help/editor-settings-kangaroo-color-list-off.png" />
+                                    </figure>
+                                    <figure>
+                                        <img alt="screenshot of color list when kangaroo mode is on"
+                                             src="/images/help/editor-settings-kangaroo-color-list-on.png"/>
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    If <span class="with-icon">&#x1f998; Kangaroo mode</span> is enabled,
+                                    then the uncolored pixel behavior
+                                    (see above) is forcefully changed to show the background color.
+                                </p>
+
+                                <p>
+                                    If the
+                                    <a href="#help-content-display-modes">display mode</a>
+                                    is set to
+                                    <code><a href="#help-content-display-modes_none">none</a></code>,
+                                    then <span class="with-icon">&#x1f998; Kangaroo mode</span> is
+                                    forcefully toggled off and the controls are disabled.
+                                </p>
+                            </div>
+                        </section>
+                    </section>
+
                     <section class="help-section" id="help-content-project-structure">
                         <section>
                             <header>Project structure</header>
@@ -1403,16 +1563,20 @@
                                         the <span class="help-keyword">zoom level</span>
                                     </li>
                                     <li>
-                                        <span class="color-swatch transparent-checkerboard"
-                                              style="display: inline-block; vertical-align: text-top"></span>
-                                        Toggle the uncolored <span class="help-keyword">pixel</span> behavior:
+                                        <span class="color-swatch transparent-checkerboard"></span>
+                                        Toggle the
+                                        <a href="#help-content-editor-settings_uncolored-pixel-behavior">uncolored
+                                            pixel behavior</a>:
                                         checked will
                                         show a checkerboard pattern, unchecked will show
                                         the active <a href="#help-content-palettes">palette set&lsquo;s</a>
-                                        background color. This is disabled when in Kangaroo mode.
+                                        background color. This is disabled when in
+                                        <a href="#help-content-editor-settings_kangaroo-mode">Kangaroo mode</a>.
                                     </li>
                                     <li>
-                                        &#x1f998; Toggle Kangaroo mode. Only relevant for certain
+                                        &#x1f998; Toggle
+                                        <a href="#help-content-editor-settings_kangaroo-mode">Kangaroo mode</a>.
+                                        Only relevant for certain
                                         <a href="#help-content-display-modes">display modes</a>.
                                     </li>
                                 </ol>
