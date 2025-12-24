@@ -141,6 +141,24 @@
                 padding-right: 2px;
             }
         }
+
+        a[target="_blank"] {
+            display: inline-block;
+
+            &::after {
+                display: inline-block;
+                margin-left: 2px;
+                font-size: 80%; // this icon is kinda big
+
+                // mostly copied from fontawesome
+                font-family: "Font Awesome 7 Free";
+                content: "\f08e";
+                font-weight: 900;
+                font-style: normal;
+                width: 1.25em;
+                text-align: center;
+            }
+        }
     }
 
     .help-keyword, .help-keyword-menu {
