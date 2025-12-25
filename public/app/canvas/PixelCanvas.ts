@@ -863,6 +863,10 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         };
 
         const onTouchStart = (e: TouchEvent): void => {
+            if (this.editorSettings.drawMode === 'pan') {
+                return;
+            }
+
             startDrawing();
 
             activatePixelAtCursor({
@@ -886,7 +890,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         };
 
         const onMouseDown = (e: MouseEvent) => {
-            if (e.shiftKey) {
+            if (e.shiftKey || this.editorSettings.drawMode === 'pan') {
                 return;
             }
 
@@ -947,7 +951,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                 return;
             }
 
-            if (this.editorSettings.drawMode === 'move') {
+            if (this.editorSettings.drawMode === 'move' || this.editorSettings.drawMode === 'pan') {
                 return;
             }
 
