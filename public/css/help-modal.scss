@@ -11,6 +11,7 @@
         gap: config.$gutter-quarter;
         white-space: nowrap;
         padding: config.$gutter-half 0;
+        width: 11em; // accurately and painstakingly measured to perfection
 
         nav {
             display: flex;
@@ -64,8 +65,7 @@
         border-right: none;
         border-top-left-radius: 2px;
         border-bottom-left-radius: 2px;
-        min-width: 30em;
-        max-width: 100em;
+        width: 45em; // accurately and painstakingly measured to perfection
         overflow: auto;
 
         .help-section {
