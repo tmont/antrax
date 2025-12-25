@@ -123,7 +123,7 @@
                                         <i class="fa-solid fa-fw fa-arrows-left-right"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-tertiary" data-action="rotate" data-shortcut="Rotate" title="Rotate 90&deg; counter-clockwise" autocomplete="off" disabled>
-                                        <i class="fa-solid fa-fw fa-rotate"></i>
+                                        <i class="fa-solid fa-fw fa-rotate-left"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-tertiary" data-action="paste" data-shortcut="SelectionPaste" title="Paste selection" autocomplete="off" disabled>
                                         <i class="fa-solid fa-fw fa-paste"></i>
@@ -738,7 +738,9 @@
                                 </p>
 
                                 <p>
-                                    Other things like undo/redo have a touchable UI in the
+                                    Other things like
+                                    <span data-shortcut="Undo">undo</span>/<span data-shortcut="Redo">redo</span>
+                                    have a touchable UI in the
                                     <a href="#help-content-selection-actions">Selection Actions</a>
                                     <span class="help-keyword">overflow menu</span>.
                                 </p>
@@ -1797,6 +1799,191 @@
                                     <img alt="screenshot of loaded file details"
                                          src="/images/help/loaded-file-details.png"/>
                                 </figure>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section class="help-section" id="help-content-selection-actions">
+                        <section>
+                            <header>Selection actions</header>
+                            <div class="section-content">
+                                <p>
+                                    Once you have something
+                                    <a href="#help-content-draw-modes_select">selected</a>,
+                                    you can perform a number of different actions against
+                                    that selection. These actions are displayed in a small
+                                    toolbar in the
+                                    <a href="#help-content-ui_top-gutter">Top Gutter</a>.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the selection actions toolbar"
+                                             src="/images/help/selection-actions.png" />
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    By default, all selection actions are disabled, but
+                                    each button will become enabled once it&lsquo;s possible
+                                    to take that action.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-selection-actions_copy-paste">
+                            <h3>
+                                <span data-shortcut="SelectionCopy"><i class="fa-solid fa-copy"></i> Copy</span>
+                                &amp;
+                                <span data-shortcut="SelectionPaste"><i class="fa-solid fa-paste"></i> Paste</span>
+                            </h3>
+
+                            <div class="section-content">
+                                <p>
+                                    <span data-shortcut="SelectionCopy">Copy</span> will store the contents
+                                    of the current <a href="#help-content-draw-modes_select">selection</a>
+                                    for later use. The contents are de-referenced,
+                                    meaning that even if the underlying
+                                    <span class="help-keyword">pixels</span> change, what&lsquo;s in the
+                                    copy buffer will not.
+                                </p>
+
+                                <p>
+                                    Once you have something <span data-shortcut="SelectionCopy">copied</span>,
+                                    it can now be <span data-shortcut="SelectionPaste">pasted</span> onto any
+                                    other <span class="help-keyword">object</span>, as long as the
+                                    <a href="#help-content-display-modes">display modes</a> are the same. The
+                                    previously <span data-shortcut="SelectionCopy">copied</span>
+                                    <span class="help-keyword">pixels</span> will appear at <code>[0,0]</code> on the
+                                    <span class="help-keyword">canvas</span>. This new data will
+                                    be <a href="#help-content-draw-modes_select">selected</a>
+                                    and the <a href="#help-content-draw-modes">draw mode</a>
+                                    will be set to <a href="#help-content-draw-modes_move">move</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-selection-actions_crop">
+                            <h3><i class="fa-solid fa-crop"></i> Crop</h3>
+
+                            <div class="section-content">
+                                <p>
+                                    Crop&lsquo;s the <span class="help-keyword">canvas</span>
+                                    to the current <a href="#help-content-draw-modes_select">selection</a>.
+                                    If the <a href="#help-content-display-modes">display mode</a>
+                                    does not allow that exact width, the next largest valid
+                                    width will be used.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-selection-actions_delete">
+                            <h3><span data-shortcut="SelectionDelete"><i class="fa-solid fa-trash"></i> Delete</span></h3>
+
+                            <div class="section-content">
+                                <p>
+                                    <span data-shortcut="SelectionDelete">Erases</span> the
+                                    <a href="#help-content-draw-modes_select">selection</a>.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-selection-actions_flip">
+                            <h3>
+                                <i class="fa-solid fa-arrows-left-right"></i> Flip Horizontal
+                                &amp;
+                                <i class="fa-solid fa-arrows-up-down"></i> Flip Vertical
+                            </h3>
+
+                            <div class="section-content">
+                                <p>
+                                    Reflects each <span class="help-keyword">pixel</span> horizontally or
+                                    vertically. These two actions can be executed even if nothing is selected.
+                                    In that case the entire <span class="help-keyword">canvas</span>
+                                    will be flipped.
+                                </p>
+
+                                <p>
+                                    A horizontal flip is not valid for
+                                    <a href="#help-content-display-modes">display modes</a> that
+                                    have multicolored <span class="help-keyword">pixels</span> and do not
+                                    have the corresponding reflected color.
+                                </p>
+
+                                <p>
+                                    For example, if a <span class="help-keyword">pixel</span> is colored
+                                    <span class="color-swatch-list inline">
+                                        <span class="color-swatch" style="background-color: #8146bd"></span>
+                                        <span class="color-swatch" style="background-color: #ad863e"></span>
+                                    </span>
+                                    there must be a corresponding color
+                                    <span class="color-swatch-list inline">
+                                        <span class="color-swatch" style="background-color: #ad863e"></span>
+                                        <span class="color-swatch" style="background-color: #8146bd"></span>
+                                    </span>
+                                    in order to flip horizontally.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-selection-actions_rotate">
+                            <h3>
+                                <span data-shortcut="Rotate"><i class="fa-solid fa-rotate-left"></i> Rotate</span>
+                            </h3>
+
+                            <div class="section-content">
+                                <p>
+                                    <span data-shortcut="Rotate">Rotates</span> the
+                                    <strong>entire <span class="help-keyword">canvas</span></strong>
+                                    90&deg; counter-clockwise. This <em>only</em> operates on the
+                                    entire <span class="help-keyword">canvas</span>, the
+                                    <a href="#help-content-draw-modes_select">selection</a>
+                                    is ignored. Note that the <span class="help-keyword">canvas</span>
+                                    may be resized!
+                                </p>
+
+                                <p>
+                                    This has limited utility, particularly when the
+                                    <span class="help-keyword">pixels</span> are not square.
+                                    However, it&lsquo;s kinda fun.
+                                </p>
+
+                                <p>
+                                    If you want to <span data-shortcut="Rotate">rotate</span> clockwise,
+                                    press the button three times. And stop complaining.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-selection-actions_more">
+                            <h3>Other actions</h3>
+
+                            <div class="section-content">
+                                <p>
+                                    Some less-used actions are hidden in the
+                                    <span class="help-keyword">overflow menu</span>.
+                                </p>
+
+                                <div class="image-container">
+                                    <figure>
+                                        <img alt="screenshot of the selection actions overflow menu"
+                                             src="/images/help/selection-actions-overflow.png" />
+                                    </figure>
+                                </div>
+
+                                <p>
+                                    Explicit items for
+                                    <span data-shortcut="Undo">Undo</span> and
+                                    <span data-shortcut="Redo">Redo</span> live here, which
+                                    is handy if you're on a device without a keyboard.
+                                </p>
+
+                                <p>
+                                    Similarly, explicit items for
+                                    <span data-shortcut="SelectAll">Select All</span> and
+                                    <span data-shortcut="DeSelectAll">De-select All</span> can
+                                    be found here as well.
+                                </p>
                             </div>
                         </section>
                     </section>

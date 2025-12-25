@@ -5,6 +5,12 @@
     gap: config.$gutter-quarter;
     justify-content: center;
     align-items: center;
+
+    &.inline {
+        display: inline-flex;
+        gap: 0;
+        vertical-align: text-top;
+    }
 }
 
 .color-swatch {
