@@ -332,6 +332,14 @@ export class Editor {
                         this.activeCanvas?.rotatePixelData();
                         return true;
                     })
+                    .register('FlipHorizontal', 'Canvas', `Flip active object or selection horizontally`, 'Shift+H', () => {
+                        this.flipActiveSelection('horizontal');
+                        return true;
+                    })
+                    .register('FlipVertical', 'Canvas', `Flip active object or selection vertically`, 'Shift+V', () => {
+                        this.flipActiveSelection('vertical');
+                        return true;
+                    })
 
                     .register('DrawModeDraw', 'Draw mode', 'Draw', 'D', () => {
                         this.setDrawMode('draw');

@@ -116,10 +116,10 @@
                                     <button type="button" class="btn btn-sm btn-tertiary" data-action="delete" data-shortcut="SelectionDelete" title="Delete selection" autocomplete="off" disabled>
                                         <i class="fa-solid fa-fw fa-trash"></i>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-v" title="Flip selection vertically" autocomplete="off" disabled>
+                                    <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-v" data-shortcut="FlipVertical" title="Flip vertically" autocomplete="off" disabled>
                                         <i class="fa-solid fa-fw fa-arrows-up-down"></i>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-h" title="Flip selection horizontally" autocomplete="off" disabled>
+                                    <button type="button" class="btn btn-sm btn-tertiary" data-action="flip-h" data-shortcut="FlipHorizontal" title="Flip horizontally" autocomplete="off" disabled>
                                         <i class="fa-solid fa-fw fa-arrows-left-right"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-tertiary" data-action="rotate" data-shortcut="Rotate" title="Rotate 90&deg; counter-clockwise" autocomplete="off" disabled>
@@ -1890,21 +1890,25 @@
 
                         <section id="help-content-selection-actions_flip">
                             <h3>
-                                <i class="fa-solid fa-arrows-left-right"></i> Flip Horizontal
+                                <span data-shortcut="FlipHorizontal"><i class="fa-solid fa-arrows-left-right"></i>
+                                    Flip Horizontal</span>
                                 &amp;
-                                <i class="fa-solid fa-arrows-up-down"></i> Flip Vertical
+                                <span data-shortcut="FlipVertical"><i class="fa-solid fa-arrows-up-down"></i>
+                                    Flip Vertical</span>
                             </h3>
 
                             <div class="section-content">
                                 <p>
-                                    Reflects each <span class="help-keyword">pixel</span> horizontally or
-                                    vertically. These two actions can be executed even if nothing is selected.
+                                    Reflects each <span class="help-keyword">pixel</span>
+                                    <span data-shortcut="FlipHorizontal">horizontally</span> or
+                                    <span data-shortcut="FlipVertical">vertically</span>.
+                                    These two actions can be executed even if nothing is selected.
                                     In that case the entire <span class="help-keyword">canvas</span>
                                     will be flipped.
                                 </p>
 
                                 <p>
-                                    A horizontal flip is not valid for
+                                    A <span data-shortcut="FlipHorizontal">horizontal flip</span> is not valid for
                                     <a href="#help-content-display-modes">display modes</a> that
                                     have multicolored <span class="help-keyword">pixels</span> and do not
                                     have the corresponding reflected color.
@@ -1921,7 +1925,7 @@
                                         <span class="color-swatch" style="background-color: #ad863e"></span>
                                         <span class="color-swatch" style="background-color: #8146bd"></span>
                                     </span>
-                                    in order to flip horizontally.
+                                    in order to <span data-shortcut="FlipHorizontal">flip horizontally</span>.
                                 </p>
                             </div>
                         </section>
