@@ -66,6 +66,7 @@ const idPrefix = 'help-content-';
 interface HistoryItem {
     section: HelpSection;
     subsection?: string;
+    scrollTop: number;
 }
 
 type HelpModalEventMap = {
@@ -83,6 +84,7 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
     private readonly $content: HTMLElement;
     private readonly $back: HTMLButtonElement;
     private readonly $forward: HTMLButtonElement;
+    private readonly $scrollContainer: HTMLElement;
     private history: HistoryItem[] = [];
     private historyPosition = 0;
 
@@ -97,6 +99,7 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
 
         this.$back = findButton($content, '.btn-back');
         this.$forward = findButton($content, '.btn-forward');
+        this.$scrollContainer = findElement($content, '.help-content');
 
         this.$back.addEventListener('click', () => this.goBack());
         this.$forward.addEventListener('click', () => this.goForward());
@@ -205,7 +208,7 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
         return 'HelpModal';
     }
 
-    public navigateTo(sectionName: HelpSection, subsection?: string, appendToHistory = true): void {
+    public navigateTo(sectionName: HelpSection, subsection?: string, appendToHistory = true, scrollTop = 0): void {
         this.logger.debug('navigating to ' + sectionName + (subsection ? ' > ' + subsection : ''));
         const sectionId = `${idPrefix}${sectionName}`;
         const selector = `.help-content #${sectionId}`;
@@ -226,9 +229,15 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
                     // don't push consecutive identical history items
                     const last = this.history[this.history.length - 1];
                     if (!last || last.section !== sectionName || last.subsection !== subsection) {
+                        const current = this.history[this.historyPosition];
+                        if (current) {
+                            current.scrollTop = this.$scrollContainer.scrollTop;
+                        }
+
                         this.history.push({
                             section: sectionName,
                             subsection,
+                            scrollTop: 0,
                         });
                     }
 
@@ -254,7 +263,7 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
                         behavior: 'instant',
                     });
                 } else {
-                    $section.closest('.help-content')?.scrollTo(0, 0);
+                    this.$scrollContainer.scrollTo(0, scrollTop);
                 }
             }
         });
@@ -272,24 +281,21 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
     }
 
     public goBack(): void {
-        const { section, subsection } = this.history[this.historyPosition - 1] || {};
-        if (!section) {
-            return;
-        }
-
-        this.navigateTo(section, subsection, false);
-        this.historyPosition--;
-        this.syncNavUI();
+        this.navigateToHistoryItem(-1);
     }
 
     public goForward(): void {
-        const { section, subsection } = this.history[this.historyPosition + 1] || {};
+        this.navigateToHistoryItem(1);
+    }
+
+    private navigateToHistoryItem(dir = 1 | -1): void {
+        const { section, subsection, scrollTop } = this.history[this.historyPosition + dir] || {};
         if (!section) {
             return;
         }
 
-        this.navigateTo(section, subsection, false);
-        this.historyPosition++;
+        this.navigateTo(section, subsection, false, scrollTop);
+        this.historyPosition += dir;
         this.syncNavUI();
     }
 
