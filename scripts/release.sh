@@ -33,7 +33,8 @@ main() {
             "${rootDir}/public/app.scss" \
             "${releaseDir}/public/app.css"
 
-        cp -v -R \
+        echo "copying files to ${releaseDir}..."
+        cp -R \
           "${rootDir}/public/index.html" \
           "${rootDir}/public/fonts/" \
           "${rootDir}/public/images/" \
@@ -42,7 +43,6 @@ main() {
 
         local changelogContent
         changelogContent=$(pandoc -f markdown-auto_identifiers -t html "${rootDir}/CHANGELOG.md")
-
 
         local nextVersion="" currentVersion
         currentVersion=$(bun -e "import pkg from './package.json'; console.log(pkg.version);")
@@ -77,7 +77,7 @@ main() {
     fi
 
     echo "sending files to ${RELEASE_REMOTE_HOST}..."
-    rsync -vaz --delete "${releaseDir}/public/" "${RELEASE_REMOTE_HOST}":"${RELEASE_REMOTE_DIR}"
+    rsync -az --info=name1 --delete "${releaseDir}/public/" "${RELEASE_REMOTE_HOST}":"${RELEASE_REMOTE_DIR}"
 
     echo "all done in ${SECONDS}s"
 }
