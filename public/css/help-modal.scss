@@ -161,14 +161,13 @@
         }
     }
 
-    .help-keyword, .help-keyword-menu {
+    .help-keyword, .help-keyword-menu, [data-shortcut] {
         display: inline-block;
         &:before {
             content: "\b7";
         }
     }
     .help-keyword {
-        display: inline-block;
         color: config.$help-keyword-color;
         text-decoration: underline;
         text-decoration-style: dotted;
@@ -176,8 +175,12 @@
     }
 
     .help-keyword-menu {
-        display: inline-block;
         color: config.$help-keyword-menu-color;
+    }
+
+    [data-shortcut] {
+        cursor: pointer;
+        color: config.$help-keyword-shortcut-color;
     }
 
     .with-icon {
@@ -200,6 +203,17 @@
     }
 
     .transparent-checkerboard {
+        display: inline-block;
+        vertical-align: text-top;
+    }
+}
+
+.popover {
+    .kbd-command-list {
+        font-size: 80%;
+    }
+
+    .color-swatch {
         display: inline-block;
         vertical-align: text-top;
     }

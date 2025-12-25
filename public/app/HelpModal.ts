@@ -2,11 +2,14 @@ import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { Popover } from './Popover.ts';
+import type { ShortcutManager } from './ShortcutManager.ts';
 import { findButton, findElement, findTemplateContent, parseTemplate } from './utils-dom.ts';
 
 const keywordContent = {
     'active color': 'The currently selected color, this can change from object to object',
     canvas: 'The rectangular region in the center of the screen on which you draw',
+    'color swatch': parseTemplate('<div>Little square displaying a drawable color, e.g. ' +
+        '<span class="color-swatch" style="background-color: rebeccapurple"></span></div>'),
     'draw mode': 'Dictates the behavior when interacting with the canvas: e.g. draw/erase/fill/pan/etc.',
     group: 'A named, ordered collection of objects visible in the main sidebar',
     object: 'A graphics object, most often this can be considered a "sprite"',
@@ -70,10 +73,13 @@ type HelpModalEventMap = {
     shortcut_link: [];
 };
 
-export class HelpModal extends EventEmitter<HelpModalEventMap> {
-    public static instance: HelpModal = new HelpModal();
+interface HelpModalOptions {
+    shortcutManager: ShortcutManager<any, any>;
+}
 
+export class HelpModal extends EventEmitter<HelpModalEventMap> {
     private readonly modal: Modal;
+    private readonly shortcutManager: ShortcutManager;
     private readonly logger: Logger;
     private readonly $content: HTMLElement;
     private readonly $back: HTMLButtonElement;
@@ -81,9 +87,10 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
     private history: HistoryItem[] = [];
     private historyPosition = 0;
 
-    protected constructor() {
+    public constructor(options: HelpModalOptions) {
         super();
 
+        this.shortcutManager = options.shortcutManager;
         this.logger = Logger.from(this);
 
         const $tmpl = findTemplateContent(document, '#help-content').cloneNode(true) as DocumentFragment;
@@ -125,15 +132,66 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
 
         const keywordPopover = new Popover({ size: 'medium' });
         $content.querySelectorAll<HTMLSpanElement>('.help-keyword').forEach(($keyword) => {
+            const text = $keyword.innerText.trim().toLowerCase();
+            const textNoS = text.replace(/s$/, '');
+            let keyword: HelpKeyword;
+            if (isKeyword(text)) {
+                keyword = text;
+            } else if (isKeyword(textNoS)) {
+                keyword = textNoS;
+            } else {
+                this.logger.error(`unknown help keyword "${text}"`, $keyword);
+                return;
+            }
+
             $keyword.addEventListener('click', () => {
-                const text = $keyword.innerText.trim().toLowerCase();
-                if (!isKeyword(text)) {
-                    this.logger.error(`unknown help keyword "${text}"`, $keyword);
+                keywordPopover.setContent(keywordContent[keyword]);
+                keywordPopover.show($keyword);
+            });
+        });
+
+        const shortcutPopover = new Popover({
+            size: 'medium',
+            arrowAlign: 'left',
+        });
+        const $shortcutTmpl = parseTemplate(`<div>shortcut: <ul class="kbd-command-list inline"></ul></div>`);
+        $content.querySelectorAll<HTMLSpanElement>('[data-shortcut]').forEach(($el) => {
+            const shortcutName = $el.getAttribute('data-shortcut');
+            if (!shortcutName) {
+                this.logger.error(`Invalid value in data-shortcut attribute`, $el);
+                return;
+            }
+
+            const $content = $shortcutTmpl.cloneNode(true) as typeof $shortcutTmpl;
+            const $cmdList = findElement($content, '.kbd-command-list');
+            $el.addEventListener('click', () => {
+                // this stuff must be resolved lazily since the shortcut manager might not be
+                // configured yet
+                const shortcuts = this.shortcutManager.getShortcutsByName(shortcutName);
+                if (!shortcuts.length) {
+                    this.logger.error(`No shortcuts found for "${shortcutName}"`, $el);
                     return;
                 }
 
-                keywordPopover.setContent(keywordContent[text]);
-                keywordPopover.show($keyword);
+                $cmdList.innerHTML = '';
+                shortcuts.forEach((shortcut) => {
+                    const $li = document.createElement('li');
+                    for (let i = 0; i < shortcut.keys.length; i++) {
+                        const $kbd = document.createElement('kbd');
+                        $kbd.innerText = this.shortcutManager.getKeyText(shortcut.keys[i]!);
+                        $li.append($kbd);
+                        if (i !== shortcut.keys.length - 1) {
+                            $li.append(' + ');
+                        }
+                    }
+
+                    $cmdList.append($li);
+                });
+
+                // $shortcut.innerText = shortcuts.map(shortcut => shortcut.id).join(` ${chars.interpunct} `);
+
+                shortcutPopover.setContent($content);
+                shortcutPopover.show($el);
             });
         });
 
@@ -148,11 +206,6 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
 
     public get name(): string {
         return 'HelpModal';
-    }
-
-    public static show(sectionName?: HelpSection, subsection?: string): HelpModal {
-        this.instance.show(sectionName, subsection);
-        return this.instance;
     }
 
     public navigateTo(sectionName: HelpSection, subsection?: string, appendToHistory = true): void {
@@ -226,10 +279,6 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
         this.navigateTo(section, subsection, false);
         this.historyPosition++;
         this.syncNavUI();
-    }
-
-    public static hide(): void {
-        this.instance?.hide();
     }
 
     public show(sectionName?: HelpSection, subsection?: string): void {

@@ -192,7 +192,7 @@ export class Editor {
     private readonly settings: EditorSettings;
     private readonly copyBuffer: CopyBuffer = [];
     private loadedFile: LoadedFile | null = null;
-    private readonly helpModal: HelpModal = HelpModal.instance;
+    private readonly helpModal: HelpModal;
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
@@ -264,6 +264,9 @@ export class Editor {
         });
 
         this.shortcutManager = new ShortcutManager();
+        this.helpModal = new HelpModal({
+            shortcutManager: this.shortcutManager,
+        });
         this.setPaletteSets(this.paletteSets);
     }
 

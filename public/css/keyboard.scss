@@ -28,6 +28,10 @@ ul.kbd-command-list {
     flex-wrap: nowrap;
     align-items: center;
 
+    &.inline {
+        display: inline-flex;
+    }
+
     li:not(:last-child) {
         &:after {
             content: "•";
