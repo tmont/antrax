@@ -110,7 +110,7 @@
                                     <button type="button" class="btn btn-sm btn-tertiary" data-action="copy" data-shortcut="SelectionCopy" title="Copy selection" autocomplete="off" disabled>
                                         <i class="fa-solid fa-fw fa-copy"></i>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-tertiary" data-action="crop" title="Crop to selection" autocomplete="off" disabled>
+                                    <button type="button" class="btn btn-sm btn-tertiary" data-action="crop" data-shortcut="SelectionCrop" title="Crop to selection" autocomplete="off" disabled>
                                         <i class="fa-solid fa-fw fa-crop-simple"></i>
                                     </button>
                                     <button type="button" class="btn btn-sm btn-tertiary" data-action="delete" data-shortcut="SelectionDelete" title="Delete selection" autocomplete="off" disabled>
@@ -1864,11 +1864,12 @@
                         </section>
 
                         <section id="help-content-selection-actions_crop">
-                            <h3><i class="fa-solid fa-crop"></i> Crop</h3>
+                            <h3><span data-shortcut="SelectionCrop"><i class="fa-solid fa-crop"></i> Crop</span></h3>
 
                             <div class="section-content">
                                 <p>
-                                    Crop&lsquo;s the <span class="help-keyword">canvas</span>
+                                    <span data-shortcut="SelectionCrop">Crop&lsquo;s</span>
+                                    the <span class="help-keyword">canvas</span>
                                     to the current <a href="#help-content-draw-modes_select">selection</a>.
                                     If the <a href="#help-content-display-modes">display mode</a>
                                     does not allow that exact width, the next largest valid

@@ -4,7 +4,7 @@ export type ShortcutNameDrawMode =
     'Draw' | 'Erase' | 'Fill' | 'Dropper' |
     'RectFilled' | 'Rect' | 'EllipseFilled' | 'Ellipse' |
     'Line' | 'Pan' | 'Select' | 'Move';
-export type ShortcutNameSelection = 'Copy' | 'Paste' | 'Delete';
+export type ShortcutNameSelection = 'Copy' | 'Paste' | 'Delete' | 'Crop';
 export type ShortcutNameZoom = 'In' | 'Out' | 'Default';
 export type ShortcutNameToggle = 'Grid' | 'Uncolored' | 'Kangaroo';
 export type ShortcutNameExport = 'ASM' | 'Image' | 'Animation';
@@ -47,6 +47,7 @@ const nameMap: Record<ShortcutName, 1> = {
     Rotate: 1,
     SelectAll: 1,
     SelectionCopy: 1,
+    SelectionCrop: 1,
     SelectionDelete: 1,
     SelectionPaste: 1,
     Shortcuts: 1,

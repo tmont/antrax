@@ -423,6 +423,14 @@ export class Editor {
 
                         return true;
                     })
+                    .register('SelectionCrop', 'Selection', 'Crop to selection', 'Ctrl+Shift+C', (e) => {
+                        if (this.cropToActiveSelection()) {
+                            // on firefox Ctrl+Shift+C opens the DOM inspector
+                            e.preventDefault();
+                        }
+
+                        return true;
+                    })
                     .register('SelectionDelete', 'Selection', 'Erase selected pixels', 'Delete', () => {
                         this.eraseActiveSelection();
                         return true;
@@ -2021,12 +2029,12 @@ export class Editor {
         return true;
     }
 
-    public cropToActiveSelection(): void {
+    public cropToActiveSelection(): boolean {
         const canvas = this.activeCanvas;
         const rect = canvas?.getCurrentSelection();
         const pixelData = canvas?.getSelectionPixelData();
         if (!canvas || !rect || !pixelData) {
-            return;
+            return false;
         }
 
         this.logger.info(`cropping to ${rect.width}${chars.times}${rect.height}`);
@@ -2047,6 +2055,7 @@ export class Editor {
             ...canvas.getDimensions(),
         });
         this.pushUndoItem(canvas);
+        return true;
     }
 
     public pasteCopyBuffer(): boolean {
