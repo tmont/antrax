@@ -1,3 +1,11 @@
+## v0.6.0 (2025-12-24)
+- Fixed keyboard shortcuts not working due to bad modal state
+  detection
+- Rotate moved out of the overflow menu and into the gutter
+- Added the rest of the help content
+- Added keyboard shortcuts for flip and crop
+- Minor restyle of the selection actions
+
 ## v0.5.0 (2025-12-23)
 - Added support for Command/Option keys on Mac
 - Restyled shortcut modal
