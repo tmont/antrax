@@ -41,8 +41,7 @@ export type HelpSection =
     'project-structure' |
     'save-and-load' |
     'selection-actions' |
-    'ui'
-    ;
+    'ui';
 
 const sectionMap: Record<HelpSection, 1> = {
     about: 1,
@@ -188,8 +187,6 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
                     $cmdList.append($li);
                 });
 
-                // $shortcut.innerText = shortcuts.map(shortcut => shortcut.id).join(` ${chars.interpunct} `);
-
                 shortcutPopover.setContent($content);
                 shortcutPopover.show($el);
             });
@@ -221,7 +218,9 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
             if (isActive) {
                 if (appendToHistory) {
                     if (this.historyPosition !== this.history.length - 1) {
-                        this.history = this.history.slice(0, this.historyPosition);
+                        this.logger.debug(`current navigation index is not at the end of the history stack, ` +
+                            `slicing to 0..${this.historyPosition + 1}`);
+                        this.history = this.history.slice(0, this.historyPosition + 1);
                     }
 
                     // don't push consecutive identical history items
@@ -232,6 +231,19 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
                             subsection,
                         });
                     }
+
+                    while (this.history.length > 50) {
+                        this.history.shift();
+                    }
+
+                    // this.logger.debug(
+                    //     `history stack:`,
+                    //     '"' +
+                    //     this.history
+                    //         .map(x => x.section + (x.subsection ? ' > ' + x.subsection : ''))
+                    //         .join(`" ${chars.arrowRight} "`) +
+                    //     '"'
+                    // );
 
                     this.historyPosition = this.history.length - 1;
                 }
