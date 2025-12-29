@@ -457,14 +457,14 @@ export class ShortcutManager<TCat extends string | null = null, TName extends st
 
             const id = shortcuts[0].id;
             if (!this.globalPredicates.every(predicate => predicate(e))) {
-                this.logger.debug(`global predicate failed "${id}", not executing`);
+                // this.logger.debug(`global predicate failed "${id}", not executing`);
                 return;
             }
 
             for (const shortcut of shortcuts) {
                 const debugName = shortcut.name || 'n/a';
                 if (shortcut.predicates.length && !shortcut.predicates.every(predicate => predicate(e))) {
-                    this.logger.debug(`predicate failed for "${debugName}", not executing`);
+                    // this.logger.debug(`predicate failed for "${debugName}", not executing`);
                     continue;
                 }
 

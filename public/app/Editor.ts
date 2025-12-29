@@ -895,6 +895,8 @@ export class Editor {
         const displayMode = canvas.displayMode;
         this.logger.debug('display mode changed to', displayMode.name);
 
+        canvas.paletteSet.setType(displayMode.colorPaletteType);
+
         const defaultPixelDimensions = canvas.getPixelDimensions();
         const { width, height } = displayMode.getPixelDimensions(defaultPixelDimensions);
         this.project?.setPixelDimensions(width, height);
@@ -910,15 +912,14 @@ export class Editor {
             }
         }
 
-        this.$pixelWidthInput.disabled = displayMode.isFixedPixelSize;
-        this.$pixelHeightInput.disabled = displayMode.isFixedPixelSize;
+        this.$pixelWidthInput.disabled = this.$pixelHeightInput.disabled = displayMode.isFixedPixelSize;
 
         this.$canvasWidthInput.max = isFinite(displayMode.maxWidth) ? displayMode.maxWidth.toString() : '256';
         this.$canvasWidthInput.step = displayMode.pixelsPerByte > 0 ? displayMode.pixelsPerByte.toString() : '1';
         this.$canvasWidthInput.min = displayMode.pixelsPerByte > 0 ? displayMode.pixelsPerByte.toString() : '1';
 
         const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');
-        $paletteSelect.disabled = displayMode.name === 'none';
+        $paletteSelect.disabled = !displayMode.hasSinglePalette;
 
         this.$kangarooModeInput.disabled = !canvas.supportsKangarooMode();
 
@@ -2359,6 +2360,7 @@ export class Editor {
         if (!paletteSets.length) {
             paletteSets.push(new ColorPaletteSet({
                 mountEl: paletteMountEl,
+                type: 'rgb',
             }));
         }
 

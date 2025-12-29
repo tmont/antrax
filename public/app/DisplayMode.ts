@@ -1,8 +1,9 @@
 import { ColorPalette } from './ColorPalette.ts';
 import type { ColorPaletteSet } from './ColorPaletteSet.ts';
+import type { ColorPaletteType } from './colors.ts';
 import type { EditorSettings } from './Editor.ts';
 import {
-    type ColorIndex,
+    type PaletteColorIndex,
     type Dimensions,
     type DisplayModeColor,
     type DisplayModeColorString,
@@ -81,6 +82,23 @@ class DisplayMode {
             case '320C':
             case '320D':
                 return true;
+            default:
+                nope(this.name);
+                throw new Error(`Invalid type "${this.name}"`);
+        }
+    }
+
+    public get colorPaletteType(): ColorPaletteType {
+        switch (this.name) {
+            case 'none':
+                return 'rgb';
+            case '160A':
+            case '160B':
+            case '320A':
+            case '320B':
+            case '320C':
+            case '320D':
+                return 'atari7800';
             default:
                 nope(this.name);
                 throw new Error(`Invalid type "${this.name}"`);
@@ -333,7 +351,7 @@ class DisplayMode {
         }
         const effectivePalette: ColorPalette = palettes[effectiveIndex]!;
 
-        const colorIndexes: [ ColorIndex, ColorIndex, ColorIndex ] = [ 0, 1, 2 ];
+        const colorIndexes: [ PaletteColorIndex, PaletteColorIndex, PaletteColorIndex ] = [ 0, 1, 2 ];
         return colorIndexes
             .map((colorIndex) => {
                 const key: DisplayModeColorString = `P${effectiveIndex}C${colorIndex}`;

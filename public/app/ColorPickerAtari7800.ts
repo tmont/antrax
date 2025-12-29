@@ -1,4 +1,4 @@
-import { type Atari7800Color, colors } from './colors.ts';
+import { type IndexedRGBColor, colors } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Popover, type PopoverEventMap } from './Popover.ts';
@@ -9,21 +9,21 @@ const tmpl = `<div class="color-picker"><form></form></div>`;
 
 export interface ColorPickerOptions {
     title?: string | null;
-    activeColor?: Atari7800Color | null;
+    activeColor?: IndexedRGBColor | null;
 }
 
 export type ColorPickerEventMap = {
-    color_select: [ Atari7800Color, number ];
+    color_select: [ IndexedRGBColor, number ];
     hide: PopoverEventMap['hide'];
 };
 
-export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
+export class ColorPickerAtari7800 extends EventEmitter<ColorPickerEventMap>{
     private readonly logger: Logger;
     private readonly popover: Popover;
 
     private readonly $el: HTMLElement;
 
-    private static instance: ColorPicker = new ColorPicker();
+    private static instance: ColorPickerAtari7800 = new ColorPickerAtari7800();
 
     public get name(): string {
         return 'ColorPicker';
@@ -104,7 +104,7 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
         this.popover.show($target);
     }
 
-    public setActiveColor(color: Atari7800Color | null): void {
+    public setActiveColor(color: IndexedRGBColor | null): void {
         this.$el.querySelectorAll('.color-swatch').forEach((el) => {
             const index = el.getAttribute('data-color-index');
             el.classList.toggle('active', index === color?.index.toString());
@@ -115,8 +115,8 @@ export class ColorPicker extends EventEmitter<ColorPickerEventMap>{
         this.popover.setTitle(title);
     }
 
-    public static singleton(options?: ColorPickerOptions): ColorPicker {
-        const instance = ColorPicker.instance;
+    public static singleton(options?: ColorPickerOptions): ColorPickerAtari7800 {
+        const instance = ColorPickerAtari7800.instance;
         instance.off();
 
         instance.setTitle(options?.title || null);

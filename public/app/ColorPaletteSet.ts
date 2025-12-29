@@ -1,6 +1,16 @@
 import { ColorPalette, type ColorPaletteSerialized } from './ColorPalette.ts';
-import { ColorPicker } from './ColorPicker.ts';
-import { type Atari7800Color, colors, type ColorSerialized, colorToJson } from './colors.ts';
+import { ColorPickerAtari7800 } from './ColorPickerAtari7800.ts';
+import { ColorPickerRGB } from './ColorPickerRGB.ts';
+import {
+    type ColorPaletteType,
+    colors,
+    type ColorSerialized,
+    colorToJson,
+    getA7800ColorObject,
+    type IndexedRGBColor,
+    isAtari7800Color,
+    type RGBColor
+} from './colors.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
@@ -8,20 +18,21 @@ import { findElement, parseTemplate } from './utils-dom.ts';
 import {
     CodeGenerationDetailLevel,
     type CodeGenerationOptions,
-    type ColorIndex,
     type ColorPaletteSetStats,
     type DisplayModeColorValue,
     formatAssemblyNumber,
     generateId,
+    type PaletteColorIndex,
     type StatsReceiver
 } from './utils.ts';
 
 export interface ColorPaletteSetOptions {
     id?: ColorPaletteSet['id'];
     mountEl: HTMLElement;
-    backgroundColor?: Atari7800Color | ColorSerialized;
+    backgroundColor?: IndexedRGBColor | ColorSerialized;
     palettes?: ColorPalette[] | ColorPaletteSerialized[];
     name?: string;
+    type: ColorPaletteType;
 }
 
 export interface ColorPaletteSetSerialized {
@@ -29,6 +40,7 @@ export interface ColorPaletteSetSerialized {
     name: ColorPaletteSet['name'];
     backgroundColor: ColorSerialized;
     palettes: ColorPaletteSerialized[];
+    type?: ColorPaletteType; // not present in legacy
 }
 
 const paletteSetTmpl = `
@@ -54,14 +66,14 @@ const paletteSetTmpl = `
 `;
 
 export type ColorPaletteSetEventMap = {
-    bg_select: [ Atari7800Color ];
-    color_change: [ ColorPalette, Atari7800Color, ColorIndex ];
+    bg_select: [ RGBColor ];
+    color_change: [ ColorPalette, RGBColor, PaletteColorIndex ];
     overflow_click: [ HTMLElement ];
 };
 
 export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> implements StatsReceiver<ColorPaletteSetStats> {
     private readonly palettes: ColorPalette[] = [];
-    private backgroundColor: Atari7800Color;
+    private backgroundColor: RGBColor;
 
     private readonly $container: HTMLElement;
     private readonly $el: HTMLElement;
@@ -74,14 +86,19 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
     private currentStats: ColorPaletteSetStats = {
         objectCount: 0,
     };
+    private type: ColorPaletteType;
 
     private static instanceCount = 0;
 
     public constructor(options: ColorPaletteSetOptions) {
         super();
         ColorPaletteSet.instanceCount++;
-        const bg = typeof options.backgroundColor === 'number' ? colors[options.backgroundColor] :
-            (typeof options.backgroundColor !== 'undefined' ? options.backgroundColor : null);
+
+        this.id = options.id || generateId();
+        this.backgroundColor = getA7800ColorObject(options.backgroundColor) || colors[3];
+        this.name = options.name || `Palette Set ${ColorPaletteSet.instanceCount}`;
+        this.type = options.type;
+        this.logger = Logger.from(this);
 
         const palettes = Array.isArray(options.palettes) ?
             options.palettes.map((palette) => {
@@ -93,6 +110,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
                     colors: palette.colors,
                     id: String(palette.id),
                     name: palette.name,
+                    type: this.type || 'atari7800', // legacy empty values are atari7800
                 });
             }) :
             [];
@@ -100,14 +118,11 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         while (palettes.length < 8) {
             palettes.push(new ColorPalette({
                 name: 'P' + palettes.length,
+                type: this.type,
             }));
         }
 
-        this.id = options.id || generateId();
-        this.backgroundColor = bg || colors[3];
         this.palettes = palettes;
-        this.name = options.name || `Palette Set ${ColorPaletteSet.instanceCount}`;
-        this.logger = Logger.from(this);
 
         this.$container = options.mountEl;
         this.$el = parseTemplate(paletteSetTmpl);
@@ -123,7 +138,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         return this.palettes.find(palette => palette.id === String(paletteId)) || null;
     }
 
-    public getBackgroundColor(): Atari7800Color {
+    public getBackgroundColor(): RGBColor {
         return this.backgroundColor;
     }
 
@@ -178,7 +193,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
      * a color palette, and some colors span multiple palettes
      */
     public setActiveColor(color?: DisplayModeColorValue | null): void {
-        const paletteColorMap: Record<ColorPalette['id'], ColorIndex[]> = {};
+        const paletteColorMap: Record<ColorPalette['id'], PaletteColorIndex[]> = {};
         let activateBg = false;
 
         color?.colors.forEach((color) => {
@@ -201,6 +216,30 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         });
 
         this.$bgSwatch.classList.toggle('active', activateBg);
+    }
+
+    public setType(type: ColorPaletteType): void {
+        if (this.type === type) {
+            return;
+        }
+
+        this.type = type;
+
+        const colors = [ this.backgroundColor ];
+        ColorPalette.convertColors(this.type, colors, (color, newColor, i) => {
+            colors[i] = newColor;
+            this.logger.debug(`replaced "${color.hex}" with "${newColor.hex}"`);
+        });
+
+        if (colors[0]) {
+            this.setBackgroundColor(colors[0]);
+        }
+
+        this.palettes.forEach(palette => palette.setType(type));
+    }
+
+    public getType(): ColorPaletteType {
+        return this.type;
     }
 
     public init(): void {
@@ -226,10 +265,21 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
                 return;
             }
 
-            const picker = ColorPicker.singleton({
-                activeColor: this.backgroundColor,
-                title: 'Change background color',
-            });
+            // TODO abstract this out so it's not repeated
+            let picker: ColorPickerAtari7800 | ColorPickerRGB;
+            const title = `Change background color`;
+            if (this.type === 'atari7800' && isAtari7800Color(this.backgroundColor)) {
+                picker = ColorPickerAtari7800.singleton({
+                    activeColor: this.backgroundColor,
+                    title,
+                });
+            } else {
+                picker = ColorPickerRGB.singleton({
+                    activeColor: this.backgroundColor,
+                    title,
+                });
+            }
+
             picker.on('color_select', (color) => {
                 this.setBackgroundColor(color);
                 this.emit('bg_select', this.backgroundColor);
@@ -275,12 +325,12 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         this.$el.style.display = 'none';
     }
 
-    public setBackgroundColor(color: Atari7800Color): void {
+    public setBackgroundColor(color: RGBColor): void {
         this.backgroundColor = color;
         findElement(this.$el, '.bg-color-container .color-swatch').style.backgroundColor =
             this.backgroundColor.hex;
 
-        this.logger.debug(`ColorPaletteSet{${this.id}} set background color to ${color.index} (${color.hex})`);
+        this.logger.debug(`ColorPaletteSet{${this.id}} set background color to ${color.hex}`);
     }
 
     public generateCode(options: CodeGenerationOptions): string {
@@ -292,7 +342,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
                 (options.commentLevel >= CodeGenerationDetailLevel.Some ? ` ; "${this.name}"` : ''),
         ];
 
-        const generateCodeLine = (color: Atari7800Color, label: string): string => {
+        const generateCodeLine = (color: IndexedRGBColor, label: string): string => {
             let line = `${indent}.byte ${formatAssemblyNumber(color.index, 16)}`;
             if (options.commentLevel >= CodeGenerationDetailLevel.Some) {
                 line += ` ; ${label}`;
@@ -304,10 +354,16 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
             return line;
         };
 
-        code.push(generateCodeLine(this.backgroundColor, 'BG'));
+        if (isAtari7800Color(this.backgroundColor)) {
+            code.push(generateCodeLine(this.backgroundColor, 'BG'));
+        }
 
         this.palettes.forEach((palette) => {
             palette.colors.forEach((color, colorIndex) => {
+                if (!isAtari7800Color(color)) {
+                    return;
+                }
+
                 code.push(generateCodeLine(color, palette.name + 'C' + colorIndex));
             });
         });
@@ -323,6 +379,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
             name: this.name,
             backgroundColor: colorToJson(this.backgroundColor),
             palettes: this.palettes.map(palette => palette.toJSON()),
+            type: this.type,
         };
     }
 
@@ -335,6 +392,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
             palettes: json.palettes,
             backgroundColor: json.backgroundColor,
             name: json.name,
+            type: json.type || 'atari7800',
         });
     }
 

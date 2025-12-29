@@ -1,12 +1,12 @@
 import { ColorPalette, colorPaletteTmpl } from './ColorPalette.ts';
 import { ColorPaletteSet, type ColorPaletteSetSerialized } from './ColorPaletteSet.ts';
-import type { Atari7800Color } from './colors.ts';
+import type { RGBColor } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { Popover } from './Popover.ts';
 import { findElement, findInput, parseTemplate } from './utils-dom.ts';
 import {
-    type ColorIndex,
+    type PaletteColorIndex,
     type ColorPaletteSetCollectionStats,
     type StatsReceiver
 } from './utils.ts';
@@ -21,8 +21,8 @@ export interface ColorPaletteSetCollectionSerialized {
 }
 
 export type ColorPaletteSetCollectionEventMap = {
-    color_change: [ ColorPaletteSet, ColorPalette, Atari7800Color, ColorIndex ];
-    bg_select: [ ColorPaletteSet, Atari7800Color ];
+    color_change: [ ColorPaletteSet, ColorPalette, RGBColor, PaletteColorIndex ];
+    bg_select: [ ColorPaletteSet, RGBColor ];
     palette_set_select: [ ColorPaletteSet ];
     name_change: [ ColorPaletteSet ];
 }
@@ -173,6 +173,7 @@ export class ColorPaletteSetCollection extends EventEmitter<ColorPaletteSetColle
 
                 const newPaletteSet = new ColorPaletteSet({
                     mountEl: findElement(document.body, '.content-header'),
+                    type: paletteSet.getType(),
                 });
 
                 this.paletteSets.push(newPaletteSet);

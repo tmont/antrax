@@ -1,14 +1,30 @@
-import { ColorPicker } from './ColorPicker.ts';
-import { type Atari7800Color, colors, type ColorSerialized, colorToJson, getColorObject } from './colors.ts';
+import { ColorPickerAtari7800 } from './ColorPickerAtari7800.ts';
+import { ColorPickerRGB } from './ColorPickerRGB.ts';
+import {
+    type ColorPaletteType,
+    colors,
+    type ColorSerialized,
+    colorToJson,
+    convertToClosestColor,
+    convertToRGBColor,
+    getA7800ColorObject,
+    type IndexedRGBColor,
+    isAtari7800Color,
+    type RGBColor,
+    rgbToHex
+} from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
 import { findElement, parseTemplate } from './utils-dom.ts';
-import { type ColorIndex, generateId, isPaletteColorIndex } from './utils.ts';
+import { generateId, isPaletteColorIndex, nope, type PaletteColorIndex } from './utils.ts';
+
+type AllowedColorOption = RGBColor | ColorSerialized;
 
 export interface ColorPaletteOptions {
     id?: ColorPalette['id'];
     name: string;
-    colors?: [ Atari7800Color | ColorSerialized, Atari7800Color | ColorSerialized, Atari7800Color | ColorSerialized ];
+    colors?: [ AllowedColorOption, AllowedColorOption, AllowedColorOption ];
+    type: ColorPaletteType;
 }
 
 export interface ColorPaletteSerialized {
@@ -17,7 +33,7 @@ export interface ColorPaletteSerialized {
     colors: [ ColorSerialized, ColorSerialized, ColorSerialized ];
 }
 
-const colorIndices: Record<ColorIndex, 1> = {
+const colorIndices: Record<PaletteColorIndex, 1> = {
     0: 1,
     1: 1,
     2: 1,
@@ -32,27 +48,36 @@ export const colorPaletteTmpl = `
 `;
 
 export type ColorPaletteEventMap = {
-    color_select: [ Atari7800Color, ColorIndex ],
-    color_change: [ Atari7800Color, ColorIndex ],
+    color_select: [ RGBColor, PaletteColorIndex ],
+    color_change: [ RGBColor, PaletteColorIndex ],
+};
+
+const isAtariTuple = (colors: [ RGBColor, RGBColor, RGBColor ]): colors is [ IndexedRGBColor, IndexedRGBColor, IndexedRGBColor ] => {
+    return colors.every(color => isAtari7800Color(color));
 };
 
 export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
-    public readonly colors: [ Atari7800Color, Atari7800Color, Atari7800Color ];
+    public readonly colors: [ RGBColor, RGBColor, RGBColor ];
     public readonly name: string;
     private initialized = false;
     private readonly logger: Logger;
     private readonly $el: HTMLElement;
     public readonly id: string;
+    private type: ColorPaletteType = 'rgb';
 
     public constructor(options: ColorPaletteOptions) {
         super();
 
         this.id = options.id || generateId();
         this.name = options.name;
+        this.type = options.type;
+
+        const color1 = getA7800ColorObject(options?.colors?.[0]) || convertToRGBColor(colors[0x47]);
+
         this.colors = [
-            getColorObject(options?.colors?.[0], colors[0x47]),
-            getColorObject(options?.colors?.[1], colors[0xe6]),
-            getColorObject(options?.colors?.[2], colors[0x97]),
+            color1,
+            getA7800ColorObject(options?.colors?.[1]) || convertToRGBColor(colors[0xe6]),
+            getA7800ColorObject(options?.colors?.[2]) || convertToRGBColor(colors[0x97]),
         ];
         this.$el = parseTemplate(colorPaletteTmpl);
         this.logger = Logger.from(this);
@@ -92,14 +117,27 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
                     return;
                 }
 
-                const picker = ColorPicker.singleton({
-                    activeColor: this.colors[paletteColorIndex],
-                    title: `Change ${this.name}C${paletteColorIndex}`,
-                });
+                let picker: ColorPickerAtari7800 | ColorPickerRGB;
+                const title = `Change ${this.name}C${paletteColorIndex}`;
+                const colors = this.colors;
+                if (this.type === 'atari7800' && isAtariTuple(colors)) {
+                    picker = ColorPickerAtari7800.singleton({
+                        activeColor: colors[paletteColorIndex],
+                        title,
+                    });
+                } else {
+                    picker = ColorPickerRGB.singleton({
+                        activeColor: colors[paletteColorIndex],
+                        title,
+                    });
+                }
 
                 picker.on('color_select', (color) => {
                     this.colors[paletteColorIndex] = color;
-                    this.logger.debug(`ColorPalette{${this.id}} selected color ${color.index} (${color.hex})`);
+
+                    const msg = `color` + (isAtari7800Color(color) ? ' ' + color.index : '');
+
+                    this.logger.debug(`ColorPalette{${this.id}} selected ${msg} (${color.hex})`);
                     this.updateColors();
                     this.emit('color_change', color, paletteColorIndex);
                 });
@@ -117,14 +155,14 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         this.$el?.classList.toggle('active', isActive);
     }
 
-    public setActiveColors(colors: ColorIndex[]): void {
-        const indexMap: Record<ColorIndex, 1> = colors.reduce((map, index) => {
+    public setActiveColors(colors: PaletteColorIndex[]): void {
+        const indexMap: Record<PaletteColorIndex, 1> = colors.reduce((map, index) => {
             map[index] = 1;
             return map;
-        }, {} as Record<ColorIndex, 1>);
+        }, {} as Record<PaletteColorIndex, 1>);
 
         this.$el.querySelectorAll('[data-index]').forEach(($swatch) => {
-            const index = Number($swatch.getAttribute('data-index')) as ColorIndex;
+            const index = Number($swatch.getAttribute('data-index')) as PaletteColorIndex;
             $swatch.classList.toggle('active', !!indexMap[index]);
         });
     }
@@ -135,7 +173,61 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         });
     }
 
-    public getColorAt(index: ColorIndex): Atari7800Color {
+    public setType(type: ColorPaletteType): void {
+        if (type === this.type) {
+            return;
+        }
+
+        this.logger.info(`changing type from "${this.type}" to "${type}"`);
+        this.type = type;
+
+        ColorPalette.convertColors(this.type, this.colors, (color, newColor, i) => {
+            this.colors[i] = newColor;
+            this.logger.debug(`replaced "${color.hex}" with "${newColor.hex}"`);
+        });
+
+        this.updateColors();
+    }
+
+    public static convertColors(
+        type: ColorPaletteType,
+        colorsToConvert: Readonly<RGBColor>[],
+        callback: (original: RGBColor, converted: RGBColor, index: number) => void,
+    ): void {
+        let conversionColors: Readonly<IndexedRGBColor>[] = [];
+
+        switch (type) {
+            case 'atari7800':
+                conversionColors = colors as any;
+                break;
+            case 'rgb':
+                conversionColors = colorsToConvert.map((color) => {
+                    return {
+                        ...color,
+                        hex: rgbToHex(color), // TODO handle if hex is already present
+                        index: (color.r << 16) | (color.g << 8) | color.b,
+                    };
+                });
+                return;
+            case 'nes':
+            case 'pico8':
+                throw new Error(`palette type "${type}" is not supported yet`);
+            default:
+                nope(type);
+                throw new Error(`Unknown palette type "${type}"`);
+        }
+
+        for (let i = 0; i < colorsToConvert.length; i++) {
+            const color = colorsToConvert[i];
+            if (!color) {
+                continue;
+            }
+            const converted = convertToClosestColor(color, conversionColors);
+            callback(color, converted, i);
+        }
+    }
+
+    public getColorAt(index: PaletteColorIndex): RGBColor {
         return this.colors[index];
     }
 

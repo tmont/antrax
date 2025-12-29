@@ -1,6 +1,6 @@
 import type { ColorPalette } from '../ColorPalette.ts';
 import type { ColorPaletteSet } from '../ColorPaletteSet.ts';
-import type { Atari7800Color } from '../colors.ts';
+import type { RGBColor } from '../colors.ts';
 import type DisplayMode from '../DisplayMode.ts';
 import type { EditorSettings } from '../Editor.ts';
 import { type EventArgMap, EventEmitter } from '../EventEmitter.ts';
@@ -106,7 +106,7 @@ export abstract class BaseCanvas<T extends EventArgMap = {}, TRenderOptions exte
         return this.displayHeight * this.magnificationScale;
     }
 
-    public get backgroundColor(): Atari7800Color {
+    public get backgroundColor(): RGBColor {
         return this.settings.paletteSet.getBackgroundColor();
     }
 

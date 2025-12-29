@@ -22,20 +22,20 @@ export type DisplayModeNameLo = '160A' | '160B';
 export type DisplayModeNameHi = '320A' | '320B' | '320C' | '320D';
 export type DisplayModeName = DisplayModeNameLo | DisplayModeNameHi | 'none';
 export type PaletteIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
-export type ColorIndex = 0 | 1 | 2;
+export type PaletteColorIndex = 0 | 1 | 2;
 
 const paletteIndexMap: Record<PaletteIndex, 1> = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1 };
-const colorIndexMap: Record<ColorIndex, 1> = { 0: 1, 1: 1, 2: 1 };
+const colorIndexMap: Record<PaletteColorIndex, 1> = { 0: 1, 1: 1, 2: 1 };
 export const isPaletteIndex = (index: number): index is PaletteIndex => !!paletteIndexMap[index as PaletteIndex];
-export const isPaletteColorIndex = (index: number): index is ColorIndex => !!colorIndexMap[index as ColorIndex];
+export const isPaletteColorIndex = (index: number): index is PaletteColorIndex => !!colorIndexMap[index as PaletteColorIndex];
 
 export interface ColorPaletteColor {
     palette: ColorPalette;
-    index: ColorIndex;
+    index: PaletteColorIndex;
 }
 
 export type DisplayModeNonColorString = 'T' | 'BG';
-export type DisplayModeColorString = `P${PaletteIndex}C${ColorIndex}`;
+export type DisplayModeColorString = `P${PaletteIndex}C${PaletteColorIndex}`;
 export type DisplayModeColorStringAll = DisplayModeNonColorString | DisplayModeColorString;
 export type ColorValue = 'transparent' | 'background' | ColorPaletteColor;
 

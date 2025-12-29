@@ -48,6 +48,10 @@ body {
     color: config.$color;
     font-size: 14px;
     overflow: hidden;
+
+    &.no-user-select {
+        user-select: none !important;
+    }
 }
 
 a {
