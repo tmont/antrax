@@ -1,41 +1,25 @@
-import { type IndexedRGBColor, colors } from './colors.ts';
-import { EventEmitter } from './EventEmitter.ts';
-import { Logger } from './Logger.ts';
-import { Popover, type PopoverEventMap } from './Popover.ts';
+import { ColorPickerBase } from './ColorPickerBase.ts';
+import { type IndexedRGBColor, colors, type ColorPaletteType } from './colors.ts';
 import { findOrDie, parseTemplate } from './utils-dom.ts';
 import { zeroPad } from './utils.ts';
 
 const tmpl = `<div class="color-picker"><form></form></div>`;
 
-export interface ColorPickerOptions {
-    title?: string | null;
-    activeColor?: IndexedRGBColor | null;
-}
-
-export type ColorPickerEventMap = {
-    color_select: [ IndexedRGBColor, number ];
-    hide: PopoverEventMap['hide'];
-};
-
-export class ColorPickerAtari7800 extends EventEmitter<ColorPickerEventMap>{
-    private readonly logger: Logger;
-    private readonly popover: Popover;
-
-    private readonly $el: HTMLElement;
-
-    private static instance: ColorPickerAtari7800 = new ColorPickerAtari7800();
-
+export class ColorPickerAtari7800 extends ColorPickerBase {
     public get name(): string {
         return 'ColorPicker';
     }
 
+    public get type(): ColorPaletteType {
+        return 'atari7800';
+    }
+
     public constructor() {
-        super();
+        super({
+            $content: parseTemplate(tmpl),
+        });
 
-        this.logger = Logger.from(this);
-
-        const $el = this.$el = parseTemplate(tmpl);
-        const $form = findOrDie($el, 'form', node => node instanceof HTMLFormElement);
+        const $form = findOrDie(this.$el, 'form', node => node instanceof HTMLFormElement);
 
         // note: this all assumes there are 256 colors (e.g. 16*16)
 
@@ -86,42 +70,19 @@ export class ColorPickerAtari7800 extends EventEmitter<ColorPickerEventMap>{
             btn.classList.add('active');
 
             this.logger.debug(`selected color ${index} (${color.hex})`);
-            this.emit('color_select', color, index);
+            this.emit('color_select', color);
         });
-
-        this.popover = new Popover({
-            content: $el,
-        });
-
-        this.popover.on('hide', () => this.emit('hide'));
     }
 
     public hide(): void {
         this.popover.hide();
     }
 
-    public show($target: HTMLElement): void {
-        this.popover.show($target);
-    }
-
     public setActiveColor(color: IndexedRGBColor | null): void {
+        super.setActiveColor(color);
         this.$el.querySelectorAll('.color-swatch').forEach((el) => {
             const index = el.getAttribute('data-color-index');
             el.classList.toggle('active', index === color?.index.toString());
         });
-    }
-
-    public setTitle(title: string | null): void {
-        this.popover.setTitle(title);
-    }
-
-    public static singleton(options?: ColorPickerOptions): ColorPickerAtari7800 {
-        const instance = ColorPickerAtari7800.instance;
-        instance.off();
-
-        instance.setTitle(options?.title || null);
-        instance.setActiveColor(options?.activeColor || null);
-
-        return instance;
     }
 }

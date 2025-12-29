@@ -1,7 +1,13 @@
-import { type HSVColor, hsvToRGB, type RGBColor, rgbToHex, rgbToHSV, type RGBValues } from './colors.ts';
-import { EventEmitter } from './EventEmitter.ts';
-import { Logger } from './Logger.ts';
-import { Popover, type PopoverEventMap } from './Popover.ts';
+import { ColorPickerBase } from './ColorPickerBase.ts';
+import {
+    type ColorPaletteType,
+    convertToIndexed,
+    type HSVColor,
+    hsvToRGB,
+    type IndexedRGBColor,
+    rgbToHSV,
+    type RGBValues
+} from './colors.ts';
 import { findElement, findInput, parseTemplate } from './utils-dom.ts';
 import { type ClientCoordinates, touchToCoordinates } from './utils-event.ts';
 import { clamp } from './utils.ts';
@@ -75,9 +81,6 @@ const calculateSVForContainer = (x: number, y: number, $container: HTMLElement) 
 
     const v = (height - y) / height;
     const sv = 1 - ((width - x) / width);
-    // const lum = v * (1 - (sv / 2));
-    // const sl = lum === 0 || lum === 1 ? 0 :
-    //     (value - lum) / Math.min(lum, 1 - lum);
 
     return { s: sv, v };
 };
@@ -86,39 +89,29 @@ const calculateSVForContainer = (x: number, y: number, $container: HTMLElement) 
 
 export interface ColorPickerOptions {
     title?: string | null;
-    activeColor?: RGBColor | null;
+    activeColor?: IndexedRGBColor | null;
 }
 
-export type ColorPickerEventMap = {
-    color_select: [ RGBColor ];
-    hide: PopoverEventMap['hide'];
-};
-
-export class ColorPickerRGB extends EventEmitter<ColorPickerEventMap> implements EventListenerObject {
-    private readonly logger: Logger;
-    private readonly popover: Popover;
-
-    private readonly $el: HTMLElement;
+export class ColorPickerRGB extends ColorPickerBase implements EventListenerObject {
     private readonly $hueInput: HTMLInputElement;
     private readonly $gradient: HTMLElement;
     private readonly $active: HTMLElement;
     private readonly $test: HTMLElement;
-    private activeColor: RGBColor | null;
-
+    private timeoutId: number | null = null;
     private hsv: HSVColor | null = null;
-
-    private static instance: ColorPickerRGB = new ColorPickerRGB();
 
     public get name(): string {
         return 'ColorPickerRGB';
     }
 
+    public get type(): ColorPaletteType {
+        return 'rgb';
+    }
+
     public constructor(options?: ColorPickerOptions) {
-        super();
-
-        this.logger = Logger.from(this);
-
-        this.$el = parseTemplate(tmpl);
+        super({
+            $content: parseTemplate(tmpl),
+        });
 
         this.$gradient = findElement(this.$el, '.sat-val-picker');
         this.$hueInput = findInput(this.$el, '.hue-picker input[type="range"]');
@@ -148,12 +141,6 @@ export class ColorPickerRGB extends EventEmitter<ColorPickerEventMap> implements
             const event = $input.id === 'color-picker-rgb-hex' ? 'change' : 'input';
             $input.addEventListener(event, () => this.handleInput($input));
         });
-
-        this.popover = new Popover({
-            content: this.$el,
-        });
-
-        this.popover.on('hide', () => this.emit('hide'));
     }
 
     public handleEvent(e: Event) {
@@ -265,7 +252,7 @@ export class ColorPickerRGB extends EventEmitter<ColorPickerEventMap> implements
     }
 
     public show($target: HTMLElement): void {
-        this.popover.show($target);
+        super.show($target);
         this.$gradient.addEventListener('mousedown', this);
         this.$gradient.addEventListener('touchstart', this);
         this.updateAll();
@@ -274,21 +261,25 @@ export class ColorPickerRGB extends EventEmitter<ColorPickerEventMap> implements
     public setHSV(hsv: HSVColor | null): void {
         this.hsv = hsv;
         const rgb = hsv ? hsvToRGB(hsv) : null;
-        this.activeColor = rgb ? { ...rgb, hex: rgbToHex(rgb) } : null;
+        this.activeColor = rgb ? convertToIndexed(rgb) : null;
         if (this.activeColor) {
             this.debounceColorSelection();
         }
     }
 
     public setRGB(rgb: RGBValues | null): void {
-        this.activeColor = rgb ? { ...rgb, hex: rgbToHex(rgb) } : null;
+        this.activeColor = rgb ? convertToIndexed(rgb) : null;
         this.hsv = rgb ? rgbToHSV(rgb) : null;
         if (this.activeColor) {
             this.debounceColorSelection();
         }
     }
 
-    private timeoutId: number | null = null;
+    public setActiveColor(color?: IndexedRGBColor | null) {
+        super.setActiveColor(color);
+        this.setRGB(color || null);
+    }
+
     private debounceColorSelection(): void {
         if (this.timeoutId) {
             window.clearTimeout(this.timeoutId);
@@ -364,19 +355,5 @@ export class ColorPickerRGB extends EventEmitter<ColorPickerEventMap> implements
     private updateAll() {
         this.updateFields();
         this.updateGradient();
-    }
-
-    public setTitle(title: string | null): void {
-        this.popover.setTitle(title);
-    }
-
-    public static singleton(options?: ColorPickerOptions): ColorPickerRGB {
-        const instance = ColorPickerRGB.instance;
-        instance.off();
-
-        instance.setTitle(options?.title || null);
-        instance.setRGB(options?.activeColor || null);
-
-        return instance;
     }
 }

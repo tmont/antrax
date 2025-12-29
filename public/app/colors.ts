@@ -10,13 +10,17 @@ export interface RGBColor extends RGBValues {
     hex: string;
 }
 
-export const hexToRGB = (hex: string): RGBColor => {
-    const [ r, g, b ] = (/^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/.exec(hex) || [ '0', '0', '0' ]).map(hex => parseInt(hex, 16));
+export const hexToRGB = (hex: string): IndexedRGBColor => {
+    let [ r, g, b ] = (/^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/.exec(hex) || [ '0', '0', '0' ]).map(hex => parseInt(hex, 16));
+    r = r || 0;
+    g = g || 0;
+    b = b || 0;
     return {
-        r: r || 0,
-        g: g || 0,
-        b: b || 0,
+        r,
+        g,
+        b,
         hex,
+        index: getRGBIndex({ r, g, b }),
     };
 };
 
@@ -94,7 +98,7 @@ export const isAtari7800Color = (color: any): color is IndexedRGBColor =>
 
 export const colorToJson = (color: RGBColor): ColorSerialized => isAtari7800Color(color) ? color.index : color.hex;
 
-export const getA7800ColorObject = (value: RGBColor | ColorSerialized | undefined): RGBColor | null => {
+export const getA7800ColorObject = (value: IndexedRGBColor | ColorSerialized | undefined): IndexedRGBColor | null => {
     if (typeof value === 'number') {
         // serialized atari 7800 color
         return colors[value] || null;
@@ -299,12 +303,15 @@ export const convertToClosestColor = (rgb: RGBValues, colors: IndexedRGBColor[])
     return closest;
 };
 
-export const convertToRGBColor = (color: IndexedRGBColor): RGBColor => {
+export const getRGBIndex = ({ r, g, b }: RGBValues) => (r << 16) | (g << 8) | b;
+
+export const convertToIndexed = (color: RGBValues): IndexedRGBColor => {
     return {
         r: color.r,
         g: color.g,
         b: color.b,
-        hex: color.hex,
+        hex: rgbToHex(color),
+        index: getRGBIndex(color),
     }
 };
 

@@ -1,6 +1,5 @@
 import { ColorPalette, type ColorPaletteSerialized } from './ColorPalette.ts';
-import { ColorPickerAtari7800 } from './ColorPickerAtari7800.ts';
-import { ColorPickerRGB } from './ColorPickerRGB.ts';
+import { ColorPicker } from './ColorPicker.ts';
 import {
     type ColorPaletteType,
     colors,
@@ -9,7 +8,7 @@ import {
     getA7800ColorObject,
     type IndexedRGBColor,
     isAtari7800Color,
-    type RGBColor
+    type RGBColor,
 } from './colors.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -66,14 +65,14 @@ const paletteSetTmpl = `
 `;
 
 export type ColorPaletteSetEventMap = {
-    bg_select: [ RGBColor ];
-    color_change: [ ColorPalette, RGBColor, PaletteColorIndex ];
+    bg_select: [ IndexedRGBColor ];
+    color_change: [ ColorPalette, IndexedRGBColor, PaletteColorIndex ];
     overflow_click: [ HTMLElement ];
 };
 
 export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> implements StatsReceiver<ColorPaletteSetStats> {
     private readonly palettes: ColorPalette[] = [];
-    private backgroundColor: RGBColor;
+    private backgroundColor: IndexedRGBColor;
 
     private readonly $container: HTMLElement;
     private readonly $el: HTMLElement;
@@ -265,20 +264,10 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
                 return;
             }
 
-            // TODO abstract this out so it's not repeated
-            let picker: ColorPickerAtari7800 | ColorPickerRGB;
-            const title = `Change background color`;
-            if (this.type === 'atari7800' && isAtari7800Color(this.backgroundColor)) {
-                picker = ColorPickerAtari7800.singleton({
-                    activeColor: this.backgroundColor,
-                    title,
-                });
-            } else {
-                picker = ColorPickerRGB.singleton({
-                    activeColor: this.backgroundColor,
-                    title,
-                });
-            }
+            const picker = ColorPicker.create(this.type, {
+                activeColor: this.backgroundColor,
+                title: 'Change background color',
+            });
 
             picker.on('color_select', (color) => {
                 this.setBackgroundColor(color);
@@ -286,7 +275,6 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
             });
             picker.show(e.target);
         });
-
 
         this.$dropdownLauncher.addEventListener('click', () => {
             this.emit('overflow_click', this.$dropdownLauncher);
@@ -325,12 +313,12 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         this.$el.style.display = 'none';
     }
 
-    public setBackgroundColor(color: RGBColor): void {
+    public setBackgroundColor(color: IndexedRGBColor): void {
         this.backgroundColor = color;
         findElement(this.$el, '.bg-color-container .color-swatch').style.backgroundColor =
             this.backgroundColor.hex;
 
-        this.logger.debug(`ColorPaletteSet{${this.id}} set background color to ${color.hex}`);
+        this.logger.debug(`ColorPaletteSet{${this.id}} set background color to ${color.index} (${color.hex})`);
     }
 
     public generateCode(options: CodeGenerationOptions): string {
