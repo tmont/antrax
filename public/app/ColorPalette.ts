@@ -9,6 +9,7 @@ import {
     getA7800ColorObject,
     getRGBIndex,
     type IndexedRGBColor,
+    nesColors,
     pico8Colors,
     type RGBColor,
     rgbToHex,
@@ -197,7 +198,8 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
                 conversionColors = pico8Colors;
                 break;
             case 'nes':
-                throw new Error(`palette type "${type}" is not supported yet`);
+                conversionColors = nesColors;
+                break;
             default:
                 nope(type);
                 throw new Error(`Unknown palette type "${type}"`);

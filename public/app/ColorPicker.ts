@@ -1,7 +1,7 @@
 import { ColorPickerGrid } from './ColorPickerGrid.ts';
 import type { ColorPickerBase, ColorPickerBaseOptions } from './ColorPickerBase.ts';
 import { ColorPickerRGB } from './ColorPickerRGB.ts';
-import { type ColorPaletteType, colors, pico8Colors } from './colors.ts';
+import { type ColorPaletteType, colors, nesColors, pico8Colors } from './colors.ts';
 import { nope } from './utils.ts';
 
 export class ColorPicker {
@@ -18,6 +18,12 @@ export class ColorPicker {
         rows: 2,
         colors: pico8Colors,
     });
+    private static instanceNES: ColorPickerGrid = new ColorPickerGrid({
+        type: 'nes',
+        cols: 16,
+        rows: 4,
+        colors: nesColors,
+    });
 
     public static create(type: ColorPaletteType, options?: ColorPickerBaseOptions): ColorPickerBase {
         let picker: ColorPickerBase;
@@ -32,7 +38,8 @@ export class ColorPicker {
                 picker = this.instancePico8;
                 break;
             case 'nes':
-                throw new Error('not implemented yet');
+                picker = this.instanceNES;
+                break;
             default:
                 nope(type);
                 throw new Error(`unknown type "${type}"`);

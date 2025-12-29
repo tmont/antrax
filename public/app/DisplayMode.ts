@@ -18,6 +18,7 @@ import {
 
 const colorCountMap: Readonly<Record<DisplayModeName, number>> = {
     none: 25,
+    nes: 25,
     pico8: 25,
     '160A': 4,
     '160B': 13,
@@ -30,6 +31,7 @@ const colorCountMap: Readonly<Record<DisplayModeName, number>> = {
 class DisplayMode {
     public static readonly ModeNone = new DisplayMode('none');
     public static readonly ModePico8 = new DisplayMode('pico8');
+    public static readonly ModeNES = new DisplayMode('nes');
     public static readonly Mode160A = new DisplayMode('160A');
     public static readonly Mode160B = new DisplayMode('160B');
     public static readonly Mode320A = new DisplayMode('320A');
@@ -44,6 +46,7 @@ class DisplayMode {
     public static create(name: DisplayModeName): DisplayMode {
         switch (name) {
             case 'none': return DisplayMode.ModeNone;
+            case 'nes': return DisplayMode.ModeNES;
             case 'pico8': return DisplayMode.ModePico8;
             case '160A': return DisplayMode.Mode160A;
             case '160B': return DisplayMode.Mode160B;
@@ -64,6 +67,7 @@ class DisplayMode {
     public get hasSinglePalette(): boolean {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
                 return false;
             case '160A':
@@ -85,6 +89,8 @@ class DisplayMode {
                 return 'rgb';
             case 'pico8':
                 return 'pico8';
+            case 'nes':
+                return 'nes';
             case '160A':
             case '160B':
             case '320A':
@@ -102,6 +108,8 @@ class DisplayMode {
         switch (this.name) {
             case 'none':
                 return Infinity;
+            case 'nes':
+                return 256;
             case 'pico8':
                 return 128;
             case '160A':
@@ -120,6 +128,7 @@ class DisplayMode {
     public get pixelsPerByte(): number {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
                 return -1;
             case '160A':
@@ -141,6 +150,7 @@ class DisplayMode {
     public get readMode(): number {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
                 return -1;
             case '160A':
@@ -161,6 +171,7 @@ class DisplayMode {
     public get writeMode(): number {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
                 return -1;
             case '160A':
@@ -180,6 +191,7 @@ class DisplayMode {
     public get partsPerPixel(): number {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
             case '160A':
             case '160B':
@@ -200,6 +212,11 @@ class DisplayMode {
             case 'none':
             case 'pico8':
                 return defaults;
+            case 'nes':
+                return {
+                    width: 8,
+                    height: 7,
+                };
             case '160A':
             case '160B':
             case '320A':
@@ -221,6 +238,7 @@ class DisplayMode {
             case 'none':
             case 'pico8':
                 return false;
+            case 'nes':
             case '160A':
             case '160B':
             case '320A':
@@ -237,6 +255,7 @@ class DisplayMode {
     public get canExportToASM(): boolean {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
                 return false;
             case '160A':
@@ -255,6 +274,7 @@ class DisplayMode {
     public get supportsKangarooMode(): boolean {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
                 return false;
             case '160A':
@@ -273,6 +293,7 @@ class DisplayMode {
     public get supportsHorizontalFlip(): boolean {
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
             case '160A':
             case '160B':
@@ -303,6 +324,7 @@ class DisplayMode {
         const expectedColorCount = this.numColors;
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
             case '160A':
             case '160B':
@@ -415,6 +437,7 @@ class DisplayMode {
 
         switch (this.name) {
             case 'none':
+            case 'nes':
             case 'pico8':
                 return [ { colors: [ t ] }, { colors: [ bg ] } ].concat(
                     palettes
@@ -574,6 +597,7 @@ class DisplayMode {
 
             switch (this.name) {
                 case 'none':
+                case 'nes':
                 case 'pico8':
                     throw new Error(`display mode "${this.name}" cannot be exported`);
                 case '160A':
