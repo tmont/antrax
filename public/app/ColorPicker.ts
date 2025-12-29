@@ -1,14 +1,25 @@
-import { ColorPickerAtari7800 } from './ColorPickerAtari7800.ts';
+import { ColorPickerGrid } from './ColorPickerGrid.ts';
 import type { ColorPickerBase, ColorPickerBaseOptions } from './ColorPickerBase.ts';
 import { ColorPickerRGB } from './ColorPickerRGB.ts';
-import type { ColorPaletteType } from './colors.ts';
+import { type ColorPaletteType, colors, pico8Colors } from './colors.ts';
 import { nope } from './utils.ts';
 
 export class ColorPicker {
     private static instanceRGB: ColorPickerRGB = new ColorPickerRGB();
-    private static instanceA7800: ColorPickerAtari7800 = new ColorPickerAtari7800();
+    private static instanceA7800: ColorPickerGrid = new ColorPickerGrid({
+        type: 'atari7800',
+        cols: 16,
+        rows: 16,
+        colors: colors,
+    });
+    private static instancePico8: ColorPickerGrid = new ColorPickerGrid({
+        type: 'pico8',
+        cols: 16,
+        rows: 2,
+        colors: pico8Colors,
+    });
 
-    public static create<T extends ColorPaletteType>(type: T, options?: ColorPickerBaseOptions): ColorPickerBase {
+    public static create(type: ColorPaletteType, options?: ColorPickerBaseOptions): ColorPickerBase {
         let picker: ColorPickerBase;
         switch (type) {
             case 'rgb':
@@ -17,8 +28,10 @@ export class ColorPicker {
             case 'atari7800':
                 picker = this.instanceA7800;
                 break;
-            case 'nes':
             case 'pico8':
+                picker = this.instancePico8;
+                break;
+            case 'nes':
                 throw new Error('not implemented yet');
             default:
                 nope(type);

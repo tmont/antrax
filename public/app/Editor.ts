@@ -1542,20 +1542,11 @@ export class Editor {
         const $displayModeSelect = findSelect(this.$canvasSidebar, '#display-mode-select');
         $displayModeSelect.addEventListener('change', () => {
             const newDisplayMode = $displayModeSelect.value as DisplayModeName;
-            switch (newDisplayMode) {
-                case 'none':
-                case '160A':
-                case '160B':
-                case '320A':
-                case '320B':
-                case '320C':
-                case '320D':
-                    this.project?.setDisplayMode(newDisplayMode);
-                    break;
-                default:
-                    nope(newDisplayMode);
-                    throw new Error(`Unknown value in display mode <select>: "${newDisplayMode}"`);
+            if (!DisplayMode.isValidName(newDisplayMode)) {
+                throw new Error(`Unknown value in display mode <select>: "${newDisplayMode}"`);
             }
+
+            this.project?.setDisplayMode(newDisplayMode);
         });
 
         const $paletteSelect = findSelect(this.$canvasSidebar, '.canvas-palette-select');

@@ -1,37 +1,43 @@
 import { ColorPickerBase } from './ColorPickerBase.ts';
-import { type IndexedRGBColor, colors, type ColorPaletteType } from './colors.ts';
+import { type IndexedRGBColor, type ColorPaletteType, type ColorPaletteTypeFinite } from './colors.ts';
 import { findOrDie, parseTemplate } from './utils-dom.ts';
 import { zeroPad } from './utils.ts';
 
 const tmpl = `<div class="color-picker"><form></form></div>`;
 
-export class ColorPickerAtari7800 extends ColorPickerBase {
-    public get name(): string {
-        return 'ColorPicker';
-    }
+interface ColorPickerGridOptions {
+    type: ColorPaletteTypeFinite;
+    rows: number;
+    cols: number;
+    readonly colors: Readonly<IndexedRGBColor[]>;
+}
 
-    public get type(): ColorPaletteType {
-        return 'atari7800';
-    }
+export class ColorPickerGrid extends ColorPickerBase {
+    private readonly paletteType: ColorPaletteTypeFinite;
 
-    public constructor() {
+    public constructor(options: ColorPickerGridOptions) {
         super({
             $content: parseTemplate(tmpl),
         });
 
+        if (options.rows * options.cols !== options.colors.length) {
+            throw new Error(`rows * cols must equal number of colors ` +
+                `(${options.rows * options.cols} != ${options.colors.length}`);
+        }
+
+        this.paletteType = options.type;
+
         const $form = findOrDie(this.$el, 'form', node => node instanceof HTMLFormElement);
 
-        // note: this all assumes there are 256 colors (e.g. 16*16)
-
         // column headers
-        for (let i = 0; i < 17; i++) {
+        for (let i = 0; i < options.cols + 1; i++) {
             const $span = document.createElement('span');
             $span.innerText = i === 0 ? '' : ((i - 1) % 16).toString(16).toUpperCase();
             $form.appendChild($span);
         }
 
-        colors.forEach((color, i) => {
-            if (i % 16 === 0) {
+        options.colors.forEach((color, i) => {
+            if (i % options.cols === 0) {
                 // row header, except for first column
                 const row = Math.floor(i / 16).toString(16).toUpperCase();
                 const $span = document.createElement('span');
@@ -58,7 +64,7 @@ export class ColorPickerAtari7800 extends ColorPickerBase {
             }
 
             const index = Number(btn.getAttribute('data-color-index'));
-            const color = colors[index];
+            const color = options.colors[index];
             if (!color) {
                 this.logger.error(`invalid color index submitted: ${index}`);
                 return;
@@ -72,6 +78,14 @@ export class ColorPickerAtari7800 extends ColorPickerBase {
             this.logger.debug(`selected color ${index} (${color.hex})`);
             this.emit('color_select', color);
         });
+    }
+
+    public get name(): string {
+        return 'ColorPickerGrid';
+    }
+
+    public get type(): ColorPaletteType {
+        return this.paletteType;
     }
 
     public hide(): void {

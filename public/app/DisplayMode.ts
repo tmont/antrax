@@ -18,6 +18,7 @@ import {
 
 const colorCountMap: Readonly<Record<DisplayModeName, number>> = {
     none: 25,
+    pico8: 25,
     '160A': 4,
     '160B': 13,
     '320A': 4,
@@ -28,6 +29,7 @@ const colorCountMap: Readonly<Record<DisplayModeName, number>> = {
 
 class DisplayMode {
     public static readonly ModeNone = new DisplayMode('none');
+    public static readonly ModePico8 = new DisplayMode('pico8');
     public static readonly Mode160A = new DisplayMode('160A');
     public static readonly Mode160B = new DisplayMode('160B');
     public static readonly Mode320A = new DisplayMode('320A');
@@ -42,6 +44,7 @@ class DisplayMode {
     public static create(name: DisplayModeName): DisplayMode {
         switch (name) {
             case 'none': return DisplayMode.ModeNone;
+            case 'pico8': return DisplayMode.ModePico8;
             case '160A': return DisplayMode.Mode160A;
             case '160B': return DisplayMode.Mode160B;
             case '320A': return DisplayMode.Mode320A;
@@ -55,25 +58,13 @@ class DisplayMode {
     }
 
     public static isValidName(name: string): name is DisplayModeName {
-        const typedName = name as DisplayModeName;
-        switch (typedName) {
-            case 'none':
-            case '160A':
-            case '160B':
-            case '320A':
-            case '320B':
-            case '320C':
-            case '320D':
-                return true;
-            default:
-                nope(typedName);
-                return false;
-        }
+        return name in colorCountMap;
     }
 
     public get hasSinglePalette(): boolean {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return false;
             case '160A':
             case '160B':
@@ -92,6 +83,8 @@ class DisplayMode {
         switch (this.name) {
             case 'none':
                 return 'rgb';
+            case 'pico8':
+                return 'pico8';
             case '160A':
             case '160B':
             case '320A':
@@ -109,6 +102,8 @@ class DisplayMode {
         switch (this.name) {
             case 'none':
                 return Infinity;
+            case 'pico8':
+                return 128;
             case '160A':
             case '160B':
             case '320A':
@@ -125,6 +120,7 @@ class DisplayMode {
     public get pixelsPerByte(): number {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return -1;
             case '160A':
                 return 4;
@@ -145,6 +141,7 @@ class DisplayMode {
     public get readMode(): number {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return -1;
             case '160A':
             case '160B':
@@ -164,6 +161,7 @@ class DisplayMode {
     public get writeMode(): number {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return -1;
             case '160A':
             case '320A':
@@ -182,6 +180,7 @@ class DisplayMode {
     public get partsPerPixel(): number {
         switch (this.name) {
             case 'none':
+            case 'pico8':
             case '160A':
             case '160B':
                 return 1;
@@ -199,6 +198,7 @@ class DisplayMode {
     public getPixelDimensions(defaults: Dimensions): Dimensions {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return defaults;
             case '160A':
             case '160B':
@@ -219,6 +219,7 @@ class DisplayMode {
     public get isFixedPixelSize(): boolean {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return false;
             case '160A':
             case '160B':
@@ -236,6 +237,7 @@ class DisplayMode {
     public get canExportToASM(): boolean {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return false;
             case '160A':
             case '160B':
@@ -253,6 +255,7 @@ class DisplayMode {
     public get supportsKangarooMode(): boolean {
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return false;
             case '160A':
             case '160B':
@@ -270,6 +273,7 @@ class DisplayMode {
     public get supportsHorizontalFlip(): boolean {
         switch (this.name) {
             case 'none':
+            case 'pico8':
             case '160A':
             case '160B':
             case '320A':
@@ -299,6 +303,7 @@ class DisplayMode {
         const expectedColorCount = this.numColors;
         switch (this.name) {
             case 'none':
+            case 'pico8':
             case '160A':
             case '160B':
                 return colors.map((_, i) => i); // identity mapping
@@ -410,6 +415,7 @@ class DisplayMode {
 
         switch (this.name) {
             case 'none':
+            case 'pico8':
                 return [ { colors: [ t ] }, { colors: [ bg ] } ].concat(
                     palettes
                         .map((palette, i) => {
@@ -568,6 +574,7 @@ class DisplayMode {
 
             switch (this.name) {
                 case 'none':
+                case 'pico8':
                     throw new Error(`display mode "${this.name}" cannot be exported`);
                 case '160A':
                 case '320A':

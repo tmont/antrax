@@ -9,8 +9,10 @@ import {
     getA7800ColorObject,
     getRGBIndex,
     type IndexedRGBColor,
+    pico8Colors,
     type RGBColor,
-    rgbToHex
+    rgbToHex,
+    type RGBValues
 } from './colors.ts';
 import { EventEmitter } from './EventEmitter.ts';
 import { Logger } from './Logger.ts';
@@ -165,7 +167,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
 
         ColorPalette.convertColors(this.type, this.colors, (color, newColor, i) => {
             this.colors[i] = newColor;
-            this.logger.debug(`replaced "${color.hex}" with "${newColor.hex}"`);
+            this.logger.debug(`replaced "${rgbToHex(color)}" with "${newColor.hex}"`);
         });
 
         this.updateColors();
@@ -173,26 +175,28 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
 
     public static convertColors(
         type: ColorPaletteType,
-        colorsToConvert: Readonly<RGBColor>[],
-        callback: (original: RGBColor, converted: IndexedRGBColor, index: number) => void,
+        colorsToConvert: Readonly<RGBValues>[],
+        callback: (original: RGBValues, converted: IndexedRGBColor, index: number) => void,
     ): void {
-        let conversionColors: Readonly<IndexedRGBColor>[] = [];
+        let conversionColors: Readonly<IndexedRGBColor[]> = [];
 
         switch (type) {
             case 'atari7800':
-                conversionColors = colors as any;
+                conversionColors = colors;
                 break;
             case 'rgb':
                 conversionColors = colorsToConvert.map((color) => {
                     return {
                         ...color,
-                        hex: rgbToHex(color), // TODO handle if hex is already present
+                        hex: rgbToHex(color),
                         index: getRGBIndex(color),
                     };
                 });
                 return;
-            case 'nes':
             case 'pico8':
+                conversionColors = pico8Colors;
+                break;
+            case 'nes':
                 throw new Error(`palette type "${type}" is not supported yet`);
             default:
                 nope(type);

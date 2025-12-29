@@ -20,7 +20,7 @@ export type Rect = Dimensions & Coordinate;
 
 export type DisplayModeNameLo = '160A' | '160B';
 export type DisplayModeNameHi = '320A' | '320B' | '320C' | '320D';
-export type DisplayModeName = DisplayModeNameLo | DisplayModeNameHi | 'none';
+export type DisplayModeName = DisplayModeNameLo | DisplayModeNameHi | 'none' | 'pico8';
 export type PaletteIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type PaletteColorIndex = 0 | 1 | 2;
 

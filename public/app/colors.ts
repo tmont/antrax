@@ -65,24 +65,45 @@ export type Atari7800ColorList = readonly [
 
 export const colors: Atari7800ColorList = colorsJson as any;
 
-// export const pico8Colors: IndexedRGBColor[] = [
-//     { r: 0, g: 0, b: 0, hex: '#000000', index: 0 },
-//     { r: 29, g: 43, b: 83, hex: '#1d2b53', index: 1 },
-//     { r: 126, g: 37, b: 83, hex: '#7e2553', index: 2 },
-//     { r: 0, g: 135, b: 81, hex: '#008751', index: 3 },
-//     { r: 171, g: 82, b: 54, hex: '#ab5236', index: 4 },
-//     { r: 95, g: 87, b: 79, hex: '#5f574f', index: 5 },
-//     { r: 194, g: 195, b: 199, hex: '#c2c3c7', index: 6 },
-//     { r: 255, g: 241, b: 232, hex: '#fff1e8', index: 7 },
-//     { r: 255, g: 0, b: 77, hex: '#ff004d', index: 8 },
-//     { r: 255, g: 163, b: 0, hex: '#ffa300', index: 9 },
-//     { r: 255, g: 236, b: 39, hex: '#ffff27', index: 10 },
-//     { r: 0, g: 228, b: 54, hex: '#00e756', index: 11 },
-//     { r: 41, g: 173, b: 255, hex: '#29adff', index: 12 },
-//     { r: 131, g: 118, b: 156, hex: '#83769c', index: 13 },
-//     { r: 255, g: 119, b: 168, hex: '#ff77a8', index: 14 },
-//     { r: 255, g: 204, b: 170, hex: '#ffccaa', index: 15 },
-// ];
+/**
+ * @see https://pico-8.fandom.com/wiki/Palette
+ */
+export const pico8Colors: Readonly<IndexedRGBColor[]> = [
+    { r: 0, g: 0, b: 0, hex: '#000000', index: 0 },
+    { r: 29, g: 43, b: 83, hex: '#1d2b53', index: 1 },
+    { r: 126, g: 37, b: 83, hex: '#7e2553', index: 2 },
+    { r: 0, g: 135, b: 81, hex: '#008751', index: 3 },
+    { r: 171, g: 82, b: 54, hex: '#ab5236', index: 4 },
+    { r: 95, g: 87, b: 79, hex: '#5f574f', index: 5 },
+    { r: 194, g: 195, b: 199, hex: '#c2c3c7', index: 6 },
+    { r: 255, g: 241, b: 232, hex: '#fff1e8', index: 7 },
+    { r: 255, g: 0, b: 77, hex: '#ff004d', index: 8 },
+    { r: 255, g: 163, b: 0, hex: '#ffa300', index: 9 },
+    { r: 255, g: 236, b: 39, hex: '#ffff27', index: 10 },
+    { r: 0, g: 228, b: 54, hex: '#00e756', index: 11 },
+    { r: 41, g: 173, b: 255, hex: '#29adff', index: 12 },
+    { r: 131, g: 118, b: 156, hex: '#83769c', index: 13 },
+    { r: 255, g: 119, b: 168, hex: '#ff77a8', index: 14 },
+    { r: 255, g: 204, b: 170, hex: '#ffccaa', index: 15 },
+
+    // "hidden" colors
+    { r: 41, g: 24, b: 20, hex: '#291814', index: 128 },
+    { r: 17, g: 29, b: 53, hex: '#111D35', index: 129 },
+    { r: 66, g: 33, b: 54, hex: '#422136', index: 130 },
+    { r: 18, g: 83, b: 89, hex: '#125359', index: 131 },
+    { r: 116, g: 47, b: 41, hex: '#742F29', index: 132 },
+    { r: 73, g: 51, b: 59, hex: '#49333B', index: 133 },
+    { r: 162, g: 136, b: 121, hex: '#A28879', index: 134 },
+    { r: 243, g: 239, b: 125, hex: '#F3EF7D', index: 135 },
+    { r: 190, g: 18, b: 80, hex: '#BE1250', index: 136 },
+    { r: 255, g: 108, b: 36, hex: '#FF6C24', index: 137 },
+    { r: 168, g: 231, b: 46, hex: '#A8E72E', index: 138 },
+    { r: 0, g: 181, b: 67, hex: '#00B543', index: 139 },
+    { r: 6, g: 90, b: 181, hex: '#065AB5', index: 140 },
+    { r: 117, g: 70, b: 101, hex: '#754665', index: 141 },
+    { r: 255, g: 110, b: 89, hex: '#FF6E59', index: 142 },
+    { r: 255, g: 157, b: 129, hex: '#FF9D81', index: 143 },
+];
 //
 // export const nesColors: IndexedRGBColor[] = [
 //
@@ -279,7 +300,7 @@ const xyzToLab = ({ x, y, z }: XYZColor): LabColor => {
     };
 };
 
-export const convertToClosestColor = (rgb: RGBValues, colors: IndexedRGBColor[]): IndexedRGBColor => {
+export const convertToClosestColor = (rgb: RGBValues, colors: Readonly<IndexedRGBColor[]>): IndexedRGBColor => {
     const { l: l1, a: a1, b: b1 } = xyzToLab(rgbToXYZ(rgb));
 
     let closest = colors[0];
@@ -315,7 +336,8 @@ export const convertToIndexed = (color: RGBValues): IndexedRGBColor => {
     }
 };
 
-export type ColorPaletteType = 'atari7800' | 'rgb' | 'nes' | 'pico8';
+export type ColorPaletteTypeFinite = 'atari7800' | 'nes' | 'pico8';
+export type ColorPaletteType = 'rgb' | ColorPaletteTypeFinite;
 
 export const rgbToHex = ({ r, g, b }: Omit<RGBColor, 'hex'>): string =>
     '#' + [ r, g, b ].map(x => '0'.repeat(Math.round(x) < 16 ? 1 : 0) + Math.round(x).toString(16)).join('');

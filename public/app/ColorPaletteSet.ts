@@ -8,7 +8,7 @@ import {
     getA7800ColorObject,
     type IndexedRGBColor,
     isAtari7800Color,
-    type RGBColor,
+    type RGBColor, rgbToHex
 } from './colors.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
 import { EventEmitter } from './EventEmitter.ts';
@@ -227,7 +227,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         const colors = [ this.backgroundColor ];
         ColorPalette.convertColors(this.type, colors, (color, newColor, i) => {
             colors[i] = newColor;
-            this.logger.debug(`replaced "${color.hex}" with "${newColor.hex}"`);
+            this.logger.debug(`replaced "${rgbToHex(color)}" with "${newColor.hex}"`);
         });
 
         if (colors[0]) {
