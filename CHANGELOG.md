@@ -1,3 +1,19 @@
+## v0.7.0 (2025-12-29)
+- Canvas no longer receives mouse events when in Pan mode
+- Color overhaul:
+    - Display mode __None__ now allows arbitrary colors using an 
+      HSV picker
+    - Switching to a different display mode will update the
+      entire palette set to the closest matching colors available
+- Added __NES__ display mode, which forces pixel dimensions to
+  `8x7` and only allows colors viewable on the NES
+- Added __PICO-8__ display mode, which is restricted to the 16
+  allowed colors plus the "hidden" ones
+- Fixed touch events not being detected properly
+- Fixed scroll position when navigating in the help modal via
+  the back/forward buttons
+- The default "red" color now has a hue of `0` instead of `359`
+
 ## v0.6.0 (2025-12-24)
 - Fixed keyboard shortcuts not working due to bad modal state
   detection
