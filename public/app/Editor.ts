@@ -165,6 +165,8 @@ const defaultSettings: Readonly<EditorSettings> = {
     drawMode: 'draw',
 };
 
+const emptyFn = () => {};
+
 export class Editor {
     private project: Project | null = null;
     private readonly logger: Logger;
@@ -193,6 +195,7 @@ export class Editor {
     private readonly copyBuffer: CopyBuffer = [];
     private loadedFile: LoadedFile | null = null;
     private readonly helpModal: HelpModal;
+    private syncSelectionActionsOverflow = emptyFn;
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
@@ -1594,7 +1597,7 @@ export class Editor {
             content: $moreContent,
         });
 
-        const syncMoreActions = (): void => {
+        this.syncSelectionActionsOverflow = (): void => {
             const $undo = findElement($moreContent, '[data-action="undo"]');
             const $redo = findElement($moreContent, '[data-action="redo"]');
             const $selectAll = findElement($moreContent, '[data-action="select-all"]');
@@ -1608,7 +1611,7 @@ export class Editor {
             $deSelectAll.classList.toggle('disabled', !this.activeCanvas);
         };
 
-        morePopover.on('show', syncMoreActions);
+        morePopover.on('show', () => this.syncSelectionActionsOverflow());
         $moreContent.querySelectorAll('.dropdown-item a').forEach((anchor) => {
             anchor.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1617,11 +1620,9 @@ export class Editor {
                 switch (action) {
                     case 'undo':
                         this.applyCurrentCheckpoint();
-                        syncMoreActions();
                         break;
                     case 'redo':
                         this.applyCurrentCheckpoint(true);
-                        syncMoreActions();
                         break;
                     case 'select-all':
                         this.selectAllOnActiveCanvas();
@@ -1973,7 +1974,7 @@ export class Editor {
         this.logger.debug(`applying checkpoint[${undoContext.current}] to canvas ${canvas.id}`);
         this.project?.applyCheckpoint(canvas, checkpoint);
 
-        // TODO sync moreSelectionActions
+        this.syncSelectionActionsOverflow();
     }
 
     private emptyCopyBuffer(): void {
