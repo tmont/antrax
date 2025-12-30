@@ -64,7 +64,7 @@ export class ColorPickerGrid extends ColorPickerBase {
             }
 
             const index = Number(btn.getAttribute('data-color-index'));
-            const color = options.colors[index];
+            const color = options.colors.find(color => color.index === index);
             if (!color) {
                 this.logger.error(`invalid color index submitted: ${index}`);
                 return;
