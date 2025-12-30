@@ -1455,7 +1455,7 @@ export class Editor {
         inputs.forEach(([ input, setValue ]) => {
             // prevent non-numeric inputs
             input.addEventListener('keydown', (e) => {
-                if (e.key.length === 1 && !/\d/.test(e.key)) {
+                if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.length === 1 && !/\d/.test(e.key)) {
                     e.preventDefault();
                     return;
                 }
