@@ -215,50 +215,52 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
         const selector = `.help-content #${sectionId}`;
         const $activeSection = findElement(this.$content, selector);
 
+        // must cache this because it might be affected when we activate sections
+        const currentScrollTop = this.$scrollContainer.scrollTop;
+
         this.$content.querySelectorAll('.help-section').forEach(($section) => {
             const isActive = $section === $activeSection;
+
             $section.classList.toggle('active', isActive);
 
-            if (isActive) {
-                if (appendToHistory) {
-                    if (this.historyPosition !== this.history.length - 1) {
-                        this.logger.debug(`current navigation index is not at the end of the history stack, ` +
-                            `slicing to 0..${this.historyPosition + 1}`);
-                        this.history = this.history.slice(0, this.historyPosition + 1);
-                    }
-
-                    // don't push consecutive identical history items
-                    const last = this.history[this.history.length - 1];
-                    if (!last || last.section !== sectionName || last.subsection !== subsection) {
-                        const current = this.history[this.historyPosition];
-                        if (current) {
-                            current.scrollTop = this.$scrollContainer.scrollTop;
-                        }
-
-                        this.history.push({
-                            section: sectionName,
-                            subsection,
-                            scrollTop: 0,
-                        });
-                    }
-
-                    while (this.history.length > 50) {
-                        this.history.shift();
-                    }
-
-                    this.historyPosition = this.history.length - 1;
+            if (isActive && appendToHistory) {
+                if (this.historyPosition !== this.history.length - 1) {
+                    this.logger.debug(`current navigation index is not at the end of the history stack, ` +
+                        `slicing to 0..${this.historyPosition + 1}`);
+                    this.history = this.history.slice(0, this.historyPosition + 1);
                 }
 
-                if (subsection) {
-                    const $subsection = findElement($section, `#${sectionId}_${subsection}`);
-                    $subsection.scrollIntoView({
-                        behavior: 'instant',
+                // don't push consecutive identical history items
+                const last = this.history[this.history.length - 1];
+                if (!last || last.section !== sectionName || last.subsection !== subsection) {
+                    const current = this.history[this.historyPosition];
+                    if (current) {
+                        current.scrollTop = currentScrollTop;
+                    }
+
+                    this.history.push({
+                        section: sectionName,
+                        subsection,
+                        scrollTop: 0,
                     });
-                } else {
-                    this.$scrollContainer.scrollTo(0, scrollTop);
                 }
+
+                while (this.history.length > 50) {
+                    this.history.shift();
+                }
+
+                this.historyPosition = this.history.length - 1;
             }
         });
+
+        if (subsection) {
+            const $subsection = findElement($activeSection, `#${sectionId}_${subsection}`);
+            $subsection.scrollIntoView({
+                behavior: 'instant',
+            });
+        } else {
+            this.$scrollContainer.scrollTo(0, scrollTop);
+        }
 
         this.$content.querySelectorAll<HTMLAnchorElement>('.help-sidebar .help-item').forEach(($anchor) => {
             $anchor.classList.toggle('active', new URL($anchor.href).hash === '#' + sectionId);
