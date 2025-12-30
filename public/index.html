@@ -81,7 +81,7 @@
                                     <select id="display-mode-select" class="form-control" autocomplete="off" style="flex: 1">
                                         <option value="none">None</option>
                                         <option value="nes">NES</option>
-                                        <option value="pico8">Pico-8</option>
+                                        <option value="pico8">PICO-8</option>
                                         <optgroup label="Atari 7800">
                                             <option value="160A">160A</option>
                                             <option value="160B">160B</option>
@@ -834,21 +834,42 @@
                                     <thead>
                                         <tr>
                                             <th>Mode</th>
-                                            <th>Colors</th>
+                                            <th>Colors <small>(total)</small></th>
                                             <th>Width multiple</th>
                                             <th>Max width</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr><td>None</td><td>26</td><td>1</td><td>256</td></tr>
-                                        <tr><td>160A</td><td>4</td><td>4</td><td>128</td></tr>
-                                        <tr><td>160B</td><td>13</td><td>2</td><td>64</td></tr>
-                                        <tr><td>320A</td><td>4</td><td>4</td><td>128</td></tr>
-                                        <tr><td>320B</td><td>16</td><td>2</td><td>64</td></tr>
-                                        <tr><td>320C</td><td>13</td><td>2</td><td>64</td></tr>
-                                        <tr><td>320D</td><td>4</td><td>4</td><td>128</td></tr>
+                                        <tr><td>None</td><td>26 <small>(16.7m)</small></td><td>1</td><td>256</td></tr>
+                                        <tr><td>NES</td><td>26 <small>(64)</small></td><td>1</td><td>128</td></tr>
+                                        <tr><td>PICO-8</td><td>26 <small>(16)</small></td><td>1</td><td>128</td></tr>
+                                        <tr><td>160A</td><td>4 <small>(256)</small></td><td>4</td><td>128</td></tr>
+                                        <tr><td>160B</td><td>13 <small>(256)</small></td><td>2</td><td>64</td></tr>
+                                        <tr><td>320A</td><td>4 <small>(256)</small></td><td>4</td><td>128</td></tr>
+                                        <tr><td>320B</td><td>16 <small>(256)</small></td><td>2</td><td>64</td></tr>
+                                        <tr><td>320C</td><td>13 <small>(256)</small></td><td>2</td><td>64</td></tr>
+                                        <tr><td>320D</td><td>4 <small>(256)</small></td><td>4</td><td>128</td></tr>
                                     </tbody>
                                 </table>
+
+                                <p>
+                                    Note that switching between display modes will alter the
+                                    <a href="#help-content-palettes_palettes">palette</a>
+                                    colors. Since not all colors are supported in each display mode,
+                                    the closest available color (according to CIELAB Euclidean distance)
+                                    will be chosen as a replacement. Since multiple
+                                    <span class="help-keyword">objects</span> can share a
+                                    <a href="#help-content-palettes_palette-sets">palette set</a>
+                                    this might affect the appearance of them in an unexpected
+                                    and/or undesirable way.
+                                </p>
+
+                                <p>
+                                    The recommendation is to not share
+                                    <a href="#help-content-palettes_palette-sets">palette set</a>
+                                    among <span class="help-keyword">objects</span> with display
+                                    modes that have different color restrictions.
+                                </p>
                             </div>
                         </section>
 
@@ -860,6 +881,30 @@
                                     like you would expect. There are no limitations on colors, dimensions,
                                     or anything else (beyond what <span class="text-antrax">Antrax</span> itself
                                     supports).
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-display-modes_nes">
+                            <h3>NES</h3>
+                            <div class="section-content">
+                                <p>
+                                    This forces the <span class="help-keyword">pixel</span>
+                                    dimensions to be <code>8&times;7</code>
+                                    and restricts the palette to the 64 colors the NES supports.
+                                    Although, it&lsquo;s more like 55 colors since there are 10 versions
+                                    of black.
+                                </p>
+                            </div>
+                        </section>
+
+                        <section id="help-content-display-modes_pico-8">
+                            <h3>PICO-8</h3>
+                            <div class="section-content">
+                                <p>
+                                    This restricts the colors to the 16 that the PICO-8
+                                    allows, plus the 16 &ldquo;hidden&rdquo; colors.
+                                    No other restrictions are applied.
                                 </p>
                             </div>
                         </section>
