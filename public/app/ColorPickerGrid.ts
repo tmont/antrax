@@ -39,7 +39,7 @@ export class ColorPickerGrid extends ColorPickerBase {
         options.colors.forEach((color, i) => {
             if (i % options.cols === 0) {
                 // row header, except for first column
-                const row = Math.floor(i / 16).toString(16).toUpperCase();
+                const row = Math.floor(color.index / 16).toString(16).toUpperCase();
                 const $span = document.createElement('span');
                 $span.innerText = row;
                 $form.appendChild($span);
