@@ -758,7 +758,7 @@
                             <div class="section-content">
                                 <p>
                                     The <span class="help-keyword-menu">Debug&hellip;</span> menu item
-                                    in an <span class="help-keyword">object</span>&lsquo;s
+                                    in an <span class="help-keyword">object&lsquo;s</span>
                                     <span class="help-keyword">overflow menu</span>
                                     launches a dialog that allows for export and import of the raw
                                     JSON representation for an <span class="help-keyword">object</span>.
@@ -889,8 +889,9 @@
                             <h3>NES</h3>
                             <div class="section-content">
                                 <p>
-                                    This forces the <span class="help-keyword">pixel</span>
-                                    dimensions to be <code>8&times;7</code>
+                                    This forces the
+                                    <a href="#help-content-editor-settings_pixel-dimensions">pixel dimensions</a>
+                                    to be <code>8&times;7</code>
                                     and restricts the palette to the 64 colors the NES supports.
                                     Although, it&lsquo;s more like 55 colors since there are 10 versions
                                     of black.
@@ -913,8 +914,9 @@
                             <h3>160A/160B</h3>
                             <div class="section-content">
                                 <p>
-                                    These modes force the <span class="help-keyword">pixel</span>
-                                    dimensions to be <code>12&times;7</code>. The
+                                    These modes force the
+                                    <a href="#help-content-editor-settings_pixel-dimensions">pixel dimensions</a>
+                                    to be <code>12&times;7</code>. The
                                     <span class="help-keyword">canvas</span> width is clamped
                                     to certain multiples and has a maximum width
                                     based on how many bytes of graphics data each
@@ -951,8 +953,8 @@
                                     The reason they&lsquo;re called &ldquo;320&rdquo; is because the resolution
                                     is doubled. However, I find that an incredibly confusing way of
                                     thinking about it, as you cannot draw twice as many
-                                    <span class="help-keyword">pixel</span>s, the
-                                    <span class="help-keyword">pixel</span>s are
+                                    <span class="help-keyword">pixels</span>, the
+                                    <span class="help-keyword">pixels</span> are
                                     just now rendered differently. Internally,
                                     <span class="text-antrax">Antrax</span> treats these double-resolution
                                     &ldquo;pixels&rdquo; as a single <span class="help-keyword">pixel</span>
@@ -977,7 +979,7 @@
                                     actually works and not get caught up in how much
                                     "resolution" you are gaining or losing for each display mode:
                                     they simply render the same sized
-                                    <span class="help-keyword">pixel</span>s
+                                    <span class="help-keyword">pixels</span>
                                     in a different manner.
                                 </p>
                             </div>
@@ -1030,7 +1032,7 @@
                                 <p>
                                     <span data-shortcut="DrawModeFill">Fills</span>
                                     all (cardinally) adjacent pixels that match the current
-                                    <span class="help-keyword">pixel</span>&lsquo;s
+                                    <span class="help-keyword">pixel&lsquo;s</span>
                                     color with the <span class="help-keyword">active color</span>.
                                 </p>
                             </div>
@@ -1147,7 +1149,7 @@
                             <div class="section-content">
                                 <p>
                                     The width and height in onscreen pixels of each
-                                    <span class="help-keyword">object</span>&lsquo;s
+                                    <span class="help-keyword">object&lsquo;s</span>
                                     <span class="help-keyword">pixel</span>. In general,
                                     this should just be the aspect ratio of the pixels
                                     when they are rendered by the actual hardware, e.g.
@@ -1166,7 +1168,7 @@
                             <h3>Canvas dimensions</h3>
                             <div class="section-content">
                                 <p>
-                                    The width and height in <span class="help-keyword">pixel</span>s
+                                    The width and height in <span class="help-keyword">pixels</span>
                                     of the active <span class="help-keyword">object</span>.
                                 </p>
 
@@ -1230,7 +1232,7 @@
                             <h3><span data-shortcut="ToggleUncolored">Uncolored pixel behavior</span></h3>
                             <div class="section-content">
                                 <p>
-                                    Uncolored <span class="help-keyword">pixel</span>s show up as
+                                    Uncolored <span class="help-keyword">pixels</span> show up as
                                     a <span class="color-swatch transparent-checkerboard"></span>
                                     checkerboard pattern by default. This can be changed so
                                     that they appear as the active
@@ -1251,10 +1253,10 @@
                                 <p>
                                     <span data-shortcut="ToggleKangaroo" class="with-icon">&#x1f998; Kangaroo mode</span>
                                     is an Atari 7800 oddity that replaces transparent
-                                    <span class="help-keyword">pixel</span>s
+                                    <span class="help-keyword">pixels</span>
                                     (or <a href="#help-content-display-modes_320">partial pixels</a>)
                                     with the background color. This means that all
-                                    <span class="help-keyword">object</span>s will actually render as
+                                    <span class="help-keyword">objects</span> will actually render as
                                     rectangular.
                                 </p>
 
@@ -1304,7 +1306,7 @@
                             <header><span data-shortcut="ExportASM">Export ASM</span></header>
                             <div class="section-content">
                                 <p>
-                                    <span class="help-keyword">Object</span>s in certain
+                                    <span class="help-keyword">Objects</span> in certain
                                     <a href="#help-content-display-modes">display modes</a>
                                     can be exported to Assembly suitable for the Atari 7800.
                                     This code can be directly integrated into the rest of the
@@ -1375,7 +1377,7 @@
                             <div class="section-content">
                                 <p>
                                     &ldquo;Detail&rdquo; provides control over how much
-                                    extra annotation to display in comments.
+                                    extra annotation is displayed in the comments.
                                 </p>
                             </div>
                         </section>
@@ -1404,7 +1406,8 @@
                                 </p>
 
                                 <p>
-                                    If the sum of the widths of all the objects
+                                    If the sum of the widths of all the
+                                    <span class="help-keyword">objects</span>
                                     exceeds 256 bytes then a warning will be displayed.
                                     You can use the <span class="help-keyword">object</span>
                                     filter to omit <span class="help-keyword">objects</span>
@@ -1450,7 +1453,7 @@
                                 <p>
                                     If checked, the <span class="help-keyword">group</span>
                                     name will be added as a prefix to each
-                                    <span class="help-keyword">object</span>&lsquo;s
+                                    <span class="help-keyword">object&lsquo;s</span>
                                     label.
                                 </p>
 
@@ -1490,9 +1493,9 @@
                             <header><span data-shortcut="ExportImage">Export image</span></header>
                             <div class="section-content">
                                 <p>
-                                    <span class="help-keyword">Object</span>s can be exported
-                                    as images. <span class="help-keyword">Group</span>s and
-                                    <span class="help-keyword">project</span>s can be exported
+                                    <span class="help-keyword">Objects</span> can be exported
+                                    as images. <span class="help-keyword">Groups</span> and
+                                    <span class="help-keyword">projects</span> can be exported
                                     as spritesheets.
                                 </p>
 
@@ -1529,7 +1532,7 @@
                             <h3>Orientation</h3>
                             <div class="section-content">
                                 <p>
-                                    When exporting multiple <span class="help-keyword">object</span>s,
+                                    When exporting multiple <span class="help-keyword">objects</span>,
                                     they will be grouped by their <span class="help-keyword">group</span>
                                     and arranged in rows (<em>Horizontal</em>) or
                                     columns (<em>Vertical</em>).
@@ -1573,9 +1576,9 @@
                                 <p>
                                     This setting can be useful if the
                                     <span class="help-keyword">object</span> has non-square
-                                    <span class="help-keyword">pixel</span>s but you want
+                                    <span class="help-keyword">pixels</span> but you want
                                     the exported image to use square
-                                    <span class="help-keyword">pixel</span>s.
+                                    <span class="help-keyword">pixels</span>.
                                 </p>
 
                                 <p>
@@ -1612,7 +1615,7 @@
                                 <p>
                                     The <a href="#help-content-editor-settings_zoom-level">zoom level</a>
                                     affects the appearance of the exported
-                                    <span class="help-keyword">object</span>s. The
+                                    <span class="help-keyword">objects</span>. The
                                     current <a href="#help-content-editor-settings_zoom-level">zoom level</a>
                                     can be adjusted from this dialog by clicking on the
                                     <i class="fa-solid fa-magnifying-glass"></i> icon.
@@ -2171,7 +2174,7 @@
 
                                         <p>
                                             In certain <a href="#help-content-display-modes">display modes</a>,
-                                            <span class="help-keyword">pixel</span>s can contain more than one color.
+                                            <span class="help-keyword">pixels</span> can contain more than one color.
                                             In those cases, each color will be shown in each color row.
                                         </p>
                                     </section>

@@ -12,7 +12,8 @@ const keywordContent = {
         '<span class="color-swatch" style="background-color: rebeccapurple"></span></div>'),
     'draw mode': 'Dictates the behavior when interacting with the canvas: e.g. draw/erase/fill/pan/etc.',
     group: 'A named, ordered collection of objects visible in the main sidebar',
-    object: 'A graphics object, most often this can be considered a "sprite"',
+    object: 'A graphics object, most often this can be considered a "sprite", but can also refer to ' +
+        'background or tile graphics',
     'overflow menu': parseTemplate(`<div>Dropdown menu identified by a button with an ellipsis: ` +
         `<button type="button" class="btn btn-xs btn-tertiary"><i class="fa-solid fa-ellipsis-h"></i></button></div>`),
     project: 'A collection of groups and objects which can be serialized to an external file',
@@ -134,7 +135,7 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
 
         const keywordPopover = new Popover({ size: 'medium' });
         $content.querySelectorAll<HTMLSpanElement>('.help-keyword').forEach(($keyword) => {
-            const text = $keyword.innerText.trim().toLowerCase();
+            const text = $keyword.innerText.trim().toLowerCase().replace(/[^-a-z\s0-9]/g, '');
             const textNoS = text.replace(/s$/, '');
             let keyword: HelpKeyword;
             if (isKeyword(text)) {
@@ -244,15 +245,6 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
                     while (this.history.length > 50) {
                         this.history.shift();
                     }
-
-                    // this.logger.debug(
-                    //     `history stack:`,
-                    //     '"' +
-                    //     this.history
-                    //         .map(x => x.section + (x.subsection ? ' > ' + x.subsection : ''))
-                    //         .join(`" ${chars.arrowRight} "`) +
-                    //     '"'
-                    // );
 
                     this.historyPosition = this.history.length - 1;
                 }
