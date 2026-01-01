@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "./config";
 
 .empty-project-hero {
@@ -30,6 +31,62 @@
     .hero-text {
         font-size: 150%;
         text-align: center;
+    }
+
+    .hero-link-item {
+        height: config.$gutter * 4;
+        padding: config.$gutter-quarter;
+        display: flex;
+        gap: config.$gutter-half;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+        border: 2px solid config.$border-color;
+        border-radius: 4px;
+        cursor: pointer;
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        background-color: config.$bg-color;
+
+        &:hover {
+            background-image: linear-gradient(to bottom, config.$bg-color, config.$sidebar-bg-color);
+            box-shadow:
+                2px 2px 4px rgba(0, 0, 0, 0.5),
+                0 0 3px rgba(config.$primary-bg, 0.75),
+                0 0 8px rgba(0, 0, 0, 0.75);
+        }
+
+        header {
+            font-weight: bold;
+            font-size: 105%;
+        }
+
+        .link-text-details {
+            color: config.$muted-color;
+            font-size: 90%;
+        }
+
+        figure {
+            height: 100%;
+            aspect-ratio: 1/1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            .icon {
+                font-size: 250%;
+            }
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+                display: none;
+            }
+        }
+        .link-text {
+            flex: 1;
+        }
     }
 
     .row {

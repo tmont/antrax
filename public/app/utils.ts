@@ -198,6 +198,11 @@ export interface ColorPaletteSetStats {
     objectCount: number;
 }
 
+export interface ProjectStats {
+    objectCount: number;
+    groupCount: number;
+}
+
 export interface StatsReceiver<T> {
     updateStats(stats: T): void;
 }

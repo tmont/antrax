@@ -2,7 +2,7 @@ import { ColorPaletteSet } from './ColorPaletteSet.ts';
 import { ColorPaletteSetCollection, type ColorPaletteSetCollectionSerialized } from './ColorPaletteSetCollection.ts';
 import DisplayMode from './DisplayMode.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
-import { formatFileSize } from './formatting.ts';
+import { formatFileSize, formatRelativeTime } from './formatting.ts';
 import { HelpModal } from './HelpModal.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
@@ -15,12 +15,14 @@ import {
     findButton,
     findElement,
     findInput,
+    findOrDie,
     findSelect,
     findTemplateContent,
     parseTemplate,
     setTextAndTitle
 } from './utils-dom.ts';
 import { type ClientCoordinates, isLeftMouseButton, touchToCoordinates } from './utils-event.ts';
+import { type EditorStateStats, lastEditorStateStorageKey } from './utils-localStorage.ts';
 import { isValidShortcutName, type ShortcutCategory, type ShortcutName } from './utils-shortcuts.ts';
 import {
     getZoomIndex,
@@ -40,6 +42,7 @@ import {
     type DisplayModeColorValue,
     type DisplayModeName,
     type DrawMode,
+    get2dContext,
     getColorValueCombinedLabel,
     hasMessage,
     isDrawMode,
@@ -196,6 +199,8 @@ export class Editor {
     private loadedFile: LoadedFile | null = null;
     private readonly helpModal: HelpModal;
     private syncSelectionActionsOverflow = emptyFn;
+    private saveTimeoutId: number | null = null;
+    private autoSaveEnabled = false;
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
@@ -584,7 +589,7 @@ export class Editor {
             $displayModeSelect.value = activeCanvas?.displayMode.name || 'none';
 
             this.syncCanvasSidebarVisibility();
-            this.syncEmptyProjectHeroVisibility();
+            this.syncEmptyProjectState();
         });
 
         const onCanvasPixelsChanged = (e: { behavior: PixelDrawingBehavior }, canvas: PixelCanvas) => {
@@ -656,7 +661,7 @@ export class Editor {
                 group,
             });
         });
-        this.project.on('group_remove', () => this.syncEmptyProjectHeroVisibility());
+        this.project.on('group_remove', () => this.syncEmptyProjectState());
         this.project.on('canvas_draw_state_change', (_, canvas) => {
             this.syncSelectionActions(canvas);
             this.syncSelectionSize();
@@ -707,23 +712,7 @@ export class Editor {
                 popover.hide();
             });
         });
-        this.project.on('action_load', async (file) => {
-            // normally it should be application/gzip, but sometimes it's application/x-gzip, so now
-            // we just look for "gzip" anywhere and assume it's gzipped
-
-            const loadedFile: LoadedFile = {
-                name: file.name,
-                size: file.size,
-                sizeInflated: null,
-                loadTime: new Date(),
-            };
-            if (!/gzip/.test(file.type)) {
-                // assume it's JSON
-                this.load(await file.text(), loadedFile);
-            } else {
-                this.load(await file.arrayBuffer(), loadedFile);
-            }
-        });
+        this.project.on('action_load', async (file) => this.loadFile(file));
         this.project.on('action_new_project', () => {
             const modal = Modal.confirm(
                 {
@@ -749,6 +738,10 @@ export class Editor {
         });
 
         this.project.on('zoom_level_change', newIndex => this.setAndClampZoomIndex(newIndex));
+        this.project.on('autosave', async () => {
+            this.logger.info(`manually saving to localStorage`);
+            await this.saveToLocalStorage()
+        });
 
         this.updateObjectStats();
     }
@@ -759,10 +752,52 @@ export class Editor {
         findElement(this.$canvasSidebar, '.has-selected-object').classList.toggle('hidden', !activeCanvas);
     }
 
-    private syncEmptyProjectHeroVisibility(): void {
-        findElement(this.$el, '.empty-project-hero').style.display = this.project?.hasItems() ?
-            'none' :
-            '';
+    private syncEmptyProjectState(): void {
+        const isEmpty = !this.project?.hasItems();
+        const $hero = findElement(this.$el, '.empty-project-hero');
+        $hero.style.display = !isEmpty ? 'none' : '';
+
+        if (isEmpty) {
+            this.stopAutoSaveTimer();
+
+            const $localSave = findElement($hero, '.local-save');
+            const infoStr = window.localStorage.getItem(`${lastEditorStateStorageKey}_info`) || 'null';
+            let info: EditorStateStats | null = null;
+            try {
+                info = JSON.parse(infoStr);
+            } catch (e) {
+                this.logger.error('failed to parse local save info as JSON', e);
+            }
+
+            if (!info) {
+                $localSave.style.display = 'none';
+            } else {
+                $localSave.style.display = '';
+
+                const $icon = findElement($localSave, 'figure .icon');
+                const $img = findOrDie($localSave, 'figure img', node => node instanceof HTMLImageElement);
+
+                if (info.image) {
+                    $icon.style.display = 'none';
+                    $img.style.display = 'inline';
+                    $img.src = info.image;
+                } else {
+                    $icon.style.display = 'inline';
+                    $img.style.display = 'none';
+                }
+
+                findElement($localSave, 'header').innerText = info.projectName;
+                findElement($localSave, '.link-text-details').innerText =
+                    formatRelativeTime(new Date(info.savedAt)) +
+                    ' ' + chars.interpunct + ' ' +
+                    formatFileSize(info.size) +
+                    ' ' + chars.interpunct + ' ' +
+                    info.stats.groupCount + 'gr / ' + info.stats.objectCount + 'obj'
+                    ;
+            }
+        } else {
+            this.startAutoSaveTimer();
+        }
     }
 
     private updateObjectStats(): void {
@@ -1648,7 +1683,68 @@ export class Editor {
         this.updateZoomLevelUI();
         this.addShortcutTextToAll(this.$el);
 
+        document.addEventListener('visibilitychange', () => this.onVisibilityChange());
+
+        this.syncEmptyProjectState();
+        const $localSave = findElement(this.$el, '.empty-project-hero .local-save');
+        $localSave.addEventListener('click', () => this.loadFromLocalStorage());
+
+        const $loadFromFile = findInput(this.$el, '.empty-project-hero input[type="file"]');
+        $loadFromFile.addEventListener('change', async () => {
+            const { files } = $loadFromFile;
+            const file = files?.[0];
+            if (!file) {
+                return;
+            }
+
+            await this.loadFile(file);
+        });
+
         this.initialized = true;
+    }
+
+    private onVisibilityChange(): void {
+        const state = document.visibilityState;
+        this.logger.debug(`visibilityState changed to "${state}"`);
+        if (state === 'hidden') {
+            this.stopAutoSaveTimer();
+        } else {
+            this.syncEmptyProjectState();
+        }
+    }
+
+    public startAutoSaveTimer(): void {
+        if (this.saveTimeoutId !== null || this.autoSaveEnabled) {
+            return;
+        }
+
+        const saveTimeoutMs = 10000;
+
+        if (this.autoSaveEnabled) {
+            return;
+        }
+
+        this.autoSaveEnabled = true;
+        this.logger.info(`starting autosave timer every ${saveTimeoutMs}ms`);
+        const save = () => {
+            this.saveToLocalStorage()
+                .finally(() => {
+                    this.saveTimeoutId = window.setTimeout(save, saveTimeoutMs);
+                });
+        };
+
+        save();
+    }
+
+    public stopAutoSaveTimer(): void {
+        if (!this.saveTimeoutId) {
+            return;
+        }
+
+        this.autoSaveEnabled = false;
+        this.logger.info(`stopping autosave timer`);
+        window.clearTimeout(this.saveTimeoutId);
+        this.saveTimeoutId = null;
     }
 
     private addShortcutTextToAll($container: HTMLElement): void {
@@ -2199,14 +2295,94 @@ export class Editor {
         };
     }
 
-    public save(filename?: string): void {
+    public async saveToLocalStorage(): Promise<void> {
+        if (!this.project) {
+            return;
+        }
+
+        const storageKey = lastEditorStateStorageKey;
+
+        try {
+            const start = Date.now();
+            const bytes = new Uint8Array(await new Response(await this.getGZippedJSON()).arrayBuffer());
+            const base64 = bytes.toBase64();
+            const savedAt = new Date();
+
+            const stats: EditorStateStats = {
+                savedAt: savedAt.getTime(),
+                size: bytes.byteLength,
+                sizeBase64: base64.length,
+                projectName: this.project.getName(),
+                stats: this.project.stats,
+                image: null,
+            };
+
+            const canvas = this.activeCanvas;
+            if (canvas) {
+                const $canvas = document.createElement('canvas');
+                const maxSize = 128;
+                const { width, height } = canvas.getDisplayDimensions();
+                const maxDimension = Math.max(width, height);
+                const scale = maxDimension <= maxSize ? 1 : maxSize / maxDimension;
+                $canvas.width = width * scale;
+                $canvas.height = height * scale;
+                const ctx = get2dContext($canvas);
+                canvas.drawBackgroundOnto(ctx, 0, 0, $canvas.width, $canvas.height);
+                canvas.drawImageOnto(ctx, 0, 0, $canvas.width, $canvas.height);
+                stats.image = $canvas.toDataURL('image/png');
+            }
+
+            window.localStorage.setItem(storageKey, base64);
+            window.localStorage.setItem(`${storageKey}_info`, JSON.stringify(stats));
+            this.logger.info(`saved to localStorage at "${storageKey}" in ${Date.now() - start}ms ` +
+                `(${bytes.byteLength} bytes)`);
+            this.project.onAutosave();
+        } catch (e) {
+            this.logger.error(`failed to save to localStorage`, e);
+            throw e;
+        }
+    }
+
+    public async loadFromLocalStorage(): Promise<void> {
+        try {
+            const base64 = window.localStorage.getItem(lastEditorStateStorageKey);
+            if (!base64) {
+                return;
+            }
+
+            const decoded = atob(base64);
+            const bytes = new Uint8Array(decoded.length);
+            for (let i = 0; i < decoded.length; i++) {
+                bytes[i] = decoded.charCodeAt(i);
+            }
+
+            const blob = new Blob([ bytes ]);
+            this.load(blob, {
+                name: 'localStorage',
+                sizeInflated: null,
+                size: bytes.byteLength,
+                loadTime: new Date(),
+            });
+        } catch (e) {
+            this.logger.error(`failed to load from localStorage`, e);
+            Popover.toast({
+                type: 'danger',
+                content: 'Failed to load data from localStorage',
+            });
+        }
+    }
+
+    private getGZippedJSON(): Promise<Blob> {
         const json = this.toJSON();
         const stringified = JSON.stringify(json);
         const blobStream = new Blob([ stringified ]).stream();
         const compressedStream = blobStream.pipeThrough(new CompressionStream('gzip'));
 
-        new Response(compressedStream)
-            .blob()
+        return new Response(compressedStream).blob();
+    }
+
+    public save(filename?: string): void {
+        this.getGZippedJSON()
             .then((blob) => {
                 const anchor = document.createElement('a');
                 anchor.download = filename || `antrax.json.gz`;
@@ -2221,6 +2397,33 @@ export class Editor {
                     content: `Failed to generate downloadable gzip stream of JSON${msg}`,
                 });
             });
+    }
+
+    private async loadFile(file: File): Promise<void> {
+        const loadedFile: LoadedFile = {
+            name: file.name,
+            size: file.size,
+            sizeInflated: null,
+            loadTime: new Date(),
+        };
+
+        try {
+            // normally it should be application/gzip, but sometimes it's application/x-gzip, so now
+            // we just look for "gzip" anywhere and assume it's gzipped
+            if (!/gzip/.test(file.type)) {
+                // if it's not gzip-ish, assume it's JSON
+                this.load(await file.text(), loadedFile);
+            } else {
+                this.load(await file.arrayBuffer(), loadedFile);
+            }
+        } catch (e) {
+            this.logger.error(e);
+            const msg = hasMessage(e) ? `: ${e.message}` : '';
+            Popover.toast({
+                type: 'danger',
+                content: `Failed to load data from external file "${loadedFile.name}${msg}"`,
+            });
+        }
     }
 
     public load(data: string | ArrayBuffer | Blob, file: LoadedFile): void {

@@ -23,6 +23,24 @@
         .project-name {
             font-weight: bold;
             flex: 1;
+            display: flex;
+            gap: config.$gutter-eighth;
+
+            .autosave {
+                opacity: 0.5;
+                font-size: 85%;
+                transition: opacity linear 150ms;
+                .icon {
+                    vertical-align: middle;
+                }
+                &:hover {
+                    opacity: 1;
+                }
+            }
+
+            .project-name-text {
+                flex: 1;
+            }
         }
     }
 

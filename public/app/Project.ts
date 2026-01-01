@@ -41,6 +41,7 @@ import {
     type LoadedFile,
     type PixelCanvasDrawStateContext,
     type PixelInfo,
+    type ProjectStats,
     zeroPad
 } from './utils.ts';
 import { ZoomControl } from './ZoomControl.ts';
@@ -48,7 +49,10 @@ import { ZoomControl } from './ZoomControl.ts';
 const tmpl = `
 <div class="project-structure">
     <div class="project-structure-header section-item">
-        <header class="project-name clamp-1"></header>
+        <header class="project-name">
+            <a href="#" class="autosave"><i class="fa-solid fa-floppy-disk icon"></i></a>
+            <div class="project-name-text clamp-1"></div>
+        </header>
         <div class="project-controls">
             <button type="button"
                     class="btn btn-sm btn-success new-object-btn"
@@ -145,6 +149,7 @@ export interface ProjectOptions {
 }
 
 export type ProjectEventMap = {
+    autosave: [];
     canvas_rotate: [ PixelCanvas ];
     canvas_activate: [ PixelCanvas | null ];
     pixel_hover: [ Coordinate, PixelInfo, PixelCanvas ];
@@ -182,6 +187,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private readonly $el: HTMLElement;
     private readonly $stats: HTMLElement;
     private readonly $groupsContainer: HTMLElement;
+    private readonly $autosave: HTMLElement;
     private initialized = false;
     private readonly logger: Logger;
     private readonly groups: ObjectGroup[];
@@ -190,6 +196,12 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private loadedFile: LoadedFile | null = null;
     private readonly editorSettings: EditorSettings;
 
+    private static autosaveFormatter = new Intl.DateTimeFormat([], {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+    });
+
     public constructor(options: ProjectOptions) {
         super();
         this.name = options.name;
@@ -197,6 +209,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.$el = parseTemplate(tmpl);
         this.$groupsContainer = findElement(this.$el, '.project-objects');
         this.$stats = findElement(this.$el, '.project-stats');
+        this.$autosave = findElement(this.$el, '.autosave');
         this.groups = options.groups || [];
         this.activeItem = options.activeItem || null;
         this.codeGenOptions = {
@@ -258,9 +271,16 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.updateNameUI();
     }
 
+    public get stats(): ProjectStats {
+        return {
+            groupCount: this.groups.length,
+            objectCount: this.canvases.length,
+        };
+    }
+
     public updateObjectCountsUI(): void {
-        const objectCount = this.canvases.length;
-        findElement(this.$stats, '.object-counts').innerText = `${this.groups.length}gr / ${objectCount}obj`;
+        const { groupCount, objectCount } = this.stats;
+        findElement(this.$stats, '.object-counts').innerText = `${groupCount}gr / ${objectCount}obj`;
     }
 
     public setLoadedFile(file: LoadedFile): void {
@@ -307,7 +327,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             arrowAlign: 'left',
         });
 
-        const $projectName = findElement($header, '.project-name');
+        const $projectName = findElement($header, '.project-name-text');
         const $input = findInput($editForm, '.project-name-input');
 
         $editForm.addEventListener('submit', (e) => {
@@ -518,6 +538,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
         });
 
         this.$mountEl.appendChild(this.$el);
+
+        this.$autosave.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.emit('autosave');
+        });
 
         this.initialized = true;
     }
@@ -1201,7 +1226,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public updateNameUI(): void {
-        const $name = findElement(this.$el, '.project-name');
+        const $name = findElement(this.$el, '.project-name-text');
         $name.innerText = this.name;
         $name.setAttribute('title', this.name);
     }
@@ -1313,6 +1338,11 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
     public hasItems(): boolean {
         return this.groups.some(group => group.hasItems());
+    }
+
+    public onAutosave(): void {
+        const formatter = Project.autosaveFormatter;
+        this.$autosave.setAttribute('title', `Last autosaved at ${formatter.format(new Date())}`);
     }
 
     public toJSON(): ProjectSerialized {
