@@ -1,10 +1,11 @@
-import { type ColorValue, get2dContext } from '../utils.ts';
+import { type ColorValue, type DisplayModeColor, get2dContext, type Rect } from '../utils.ts';
 import { BaseCanvas } from './BaseCanvas.ts';
 
 export class BackgroundCanvas extends BaseCanvas {
     private static transparentPatternMap: Record<number, CanvasPattern> = {};
     public static readonly transparentColor1 = '#8f8f8f';
     public static readonly transparentColor2 = '#a8a8a8';
+    public static readonly checkerboardSize = 16;
 
     protected get canvasClassName(): string[] {
         return [ 'editor-bg' ];
@@ -20,8 +21,8 @@ export class BackgroundCanvas extends BaseCanvas {
 
         if (!pattern) {
             const $canvas = document.createElement('canvas');
-            $canvas.width = 16 * this.magnificationScale;
-            $canvas.height = 16 * this.magnificationScale;
+            $canvas.width = BackgroundCanvas.checkerboardSize * this.magnificationScale;
+            $canvas.height = BackgroundCanvas.checkerboardSize * this.magnificationScale;
 
             const ctx = get2dContext($canvas);
 
@@ -62,6 +63,64 @@ export class BackgroundCanvas extends BaseCanvas {
         }
     }
 
+    /**
+     * Renders a single background pixel, handling checkerboard offsets
+     */
+    public renderPixelOnto(ctx: CanvasRenderingContext2D, rect: Rect): void {
+        const { x, y, width, height } = rect;
+
+        if (this.editorSettings.uncoloredPixelBehavior === 'background') {
+            ctx.fillStyle = this.backgroundColor.hex;
+            ctx.fillRect(x, y, width, height);
+            return;
+        }
+
+        const color0 = this.getColors()[0];
+        if (!color0 || (color0.colors.length === 1 && color0.colors[0]?.value === 'transparent')) {
+            // fully transparent, render checkerboard.
+            // the checkerboard is a fixed size: it does not scale with pixel dimensions or zoom level,
+            // so we must do math to render "partial" checkerboards in some cases.
+            const squareSize = BackgroundCanvas.checkerboardSize * this.magnificationScale / 2;
+
+            const maxX = x + width;
+            const maxY = y + height;
+
+            for (let i = x; i < x + width;) {
+                const xVal = Math.floor(i / squareSize) % 2;
+                const realWidth = Math.min(squareSize - (i % squareSize), maxX - i);
+                for (let j = y; j < y + height;) {
+                    const yVal = Math.floor(j / squareSize) % 2;
+                    ctx.fillStyle = xVal === yVal ? BackgroundCanvas.transparentColor1 : BackgroundCanvas.transparentColor2;
+
+                    const realHeight = Math.min(squareSize - (j % squareSize), maxY - j);
+                    ctx.fillRect(i, j, realWidth, realHeight);
+
+                    j += realHeight;
+                }
+
+                i += realWidth;
+            }
+            return;
+        }
+
+        this.renderMultiColoredPixel(ctx, color0.colors, rect);
+    }
+
+    private renderMultiColoredPixel(ctx: CanvasRenderingContext2D, colors: DisplayModeColor[], rect: Rect): void {
+        const { x, y, width, height } = rect;
+
+        colors.forEach((color, i) => {
+            if (color.value === 'transparent') {
+                // this isn't really supported, although it falls back to something
+                // the checkerboard will (potentially) not be offset correctly if pixel dimensions aren't
+                // a multiple of (checkerboardSize / 2).
+                this.logger.error('trying to render bg pixel with partial transparency');
+            }
+            ctx.fillStyle = this.getPatternForColor(color.value);
+            ctx.fillRect(x + (i * (width / colors.length)), y, width / colors.length, height);
+        });
+    }
+
     public render(): void {
         const ctx = this.ctx;
 
@@ -86,13 +145,11 @@ export class BackgroundCanvas extends BaseCanvas {
 
                     const ctx = get2dContext(canvas);
 
-                    colors.forEach((color, i) => {
-                        if (color.value === 'transparent') {
-                            // this isn't really supported, although it falls back to something
-                            this.logger.error('trying to render bg pixel with partial transparency');
-                        }
-                        ctx.fillStyle = this.getPatternForColor(color.value);
-                        ctx.fillRect(i * (canvas.width / colors.length), 0, canvas.width / colors.length, canvas.height);
+                    this.renderMultiColoredPixel(ctx, colors, {
+                        x: 0,
+                        y: 0,
+                        width: canvas.width,
+                        height: canvas.height,
                     });
 
                     const pattern = ctx.createPattern(canvas, 'repeat');

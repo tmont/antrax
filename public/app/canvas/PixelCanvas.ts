@@ -73,6 +73,7 @@ interface DrawPixelOptions {
     ctx?: CanvasRenderingContext2D;
     immutable?: boolean; // do not update the pixel's color, defaults to false
     allowErasure: boolean;
+    explicitErasure?: boolean; // explicitly draw erased pixels instead of clearing them
 }
 
 export type PixelDrawingBehavior =
@@ -703,23 +704,22 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                                 }
                             }
 
-                            // TODO erasing?
-                            const drawn = this.drawPixelFromRowAndCol({ x: col, y: row }, pixel, {
+                            const drawnColor = erasing ? null : this.activeColor;
+                            const coordinate: Coordinate = { x: col, y: row };
+                            const drawn = this.drawPixelFromRowAndCol({ ...coordinate }, pixel, {
                                 behavior: 'user',
-                                color: this.activeColor,
+                                color: drawnColor,
                                 emit: false,
                                 ctx: transientCtx,
                                 immutable: true,
                                 allowErasure: true,
+                                explicitErasure: true,
                             });
 
                             if (drawn) {
                                 this.transientState.push({
-                                    color: this.activeColor,
-                                    coordinate: {
-                                        x: col,
-                                        y: row,
-                                    },
+                                    color: drawnColor,
+                                    coordinate: { ...coordinate },
                                     pixel, // NOTE: pixel must not be de-referenced
                                 });
                             }
@@ -1409,12 +1409,17 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         this.emit('reset');
     }
 
-    public clearRect(x: number, y: number, width: number, height: number, ctx = this.ctx): void {
+    public clearRect(x: number, y: number, width: number, height: number, ctx = this.ctx, explicit = false): void {
         if (this.destroyed) {
             return;
         }
 
-        ctx.clearRect(x, y, width, height);
+        if (explicit) {
+            // draw the background explicitly onto the canvas instead of just clearing it
+            this.bgCanvas.renderPixelOnto(ctx, { x, y, width, height });
+        } else {
+            ctx.clearRect(x, y, width, height);
+        }
     }
 
     private clearTransientRect(): void {
@@ -1515,6 +1520,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                     immutable: true,
                     color: pixel.modeColorIndex,
                     allowErasure: true,
+                    explicitErasure: true,
                 });
 
                 if (callback && drawn) {
@@ -1566,6 +1572,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                     this.internalPixelWidth,
                     this.internalPixelHeight,
                     ctx,
+                    options.explicitErasure,
                 );
             }
         } else {
@@ -1579,6 +1586,7 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                         this.internalPixelWidth,
                         this.internalPixelHeight,
                         ctx,
+                        options.explicitErasure,
                     );
                 }
             } else {
@@ -1600,7 +1608,14 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
                         ctx.fillRect(x, canvasCoordinate.y, width, this.internalPixelHeight);
                     } else if (color.value === 'transparent') {
                         if (shouldErase) {
-                            this.clearRect(x, canvasCoordinate.y, width, this.internalPixelHeight, ctx);
+                            this.clearRect(
+                                x,
+                                canvasCoordinate.y,
+                                width,
+                                this.internalPixelHeight,
+                                ctx,
+                                options.explicitErasure,
+                            );
                         }
                     } else {
                         ctx.fillStyle = color.value.palette.getColorAt(color.value.index).hex;
