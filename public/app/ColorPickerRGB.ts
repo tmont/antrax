@@ -144,18 +144,23 @@ export class ColorPickerRGB extends ColorPickerBase implements EventListenerObje
     }
 
     public handleEvent(e: Event) {
-        if ((e instanceof MouseEvent || e instanceof TouchEvent) && (e.type === 'mousemove' || e.type === 'touchmove')) {
+        const isMove = (e instanceof MouseEvent  && e.type === 'mousemove') ||
+            (e instanceof TouchEvent && e.type === 'touchmove');
+        if (isMove) {
             const coords = e instanceof MouseEvent ? e : touchToCoordinates(e);
             this.handleMouseMove(coords);
             return;
         }
 
-        if (e.type === 'mousedown' && e.target instanceof HTMLElement && e.target.closest('.sat-val-picker')) {
+        const isStart = (e.type === 'mousedown' || e.type === 'touchstart') &&
+            e.target instanceof HTMLElement && e.target.closest('.sat-val-picker');
+
+        if (isStart) {
             this.handleMouseDown();
             return;
         }
 
-        if (e.type === 'mouseup') {
+        if (e.type === 'mouseup' || e.type === 'touchend') {
             this.handleMouseUp();
             return;
         }
@@ -164,6 +169,8 @@ export class ColorPickerRGB extends ColorPickerBase implements EventListenerObje
     private handleMouseDown() {
         document.body.classList.add('no-user-select');
         document.addEventListener('mousemove', this);
+        document.addEventListener('touchmove', this);
+        document.addEventListener('touchend', this);
         document.addEventListener('mouseup', this);
     }
 
@@ -185,6 +192,7 @@ export class ColorPickerRGB extends ColorPickerBase implements EventListenerObje
     private handleMouseUp(): void {
         document.body.classList.remove('no-user-select');
         document.removeEventListener('mousemove', this);
+        document.removeEventListener('touchmove', this);
     }
 
     private handleInput($input: HTMLInputElement): void {
@@ -246,6 +254,7 @@ export class ColorPickerRGB extends ColorPickerBase implements EventListenerObje
 
     public hide(): void {
         document.removeEventListener('mousemove', this);
+        document.removeEventListener('touchmove', this);
         this.$gradient.removeEventListener('mousedown', this);
         this.$gradient.removeEventListener('touchstart', this);
         this.popover.hide();
