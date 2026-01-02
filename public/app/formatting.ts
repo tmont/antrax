@@ -16,16 +16,16 @@ export const formatRelativeTime = (date: Date): string => {
         value = diffMs / 60 / 1000;
         unit = 'minute';
     } else if (absDiff < 24 * 60 * 60 * 1000) {
-        value = diffMs / 24 / 60 / 1000;
+        value = diffMs / 60 / 60 / 1000;
         unit = 'hour';
     } else if (absDiff < 30 * 24 * 60 * 60 * 1000) {
-        value = diffMs / 24 / 60 / 1000;
+        value = diffMs / 24 / 60 / 60 / 1000;
         unit = 'day';
     } else if (absDiff < 3 * 30 * 24 * 60 * 60 * 1000) {
-        value = diffMs / 7 / 24 / 60 / 1000;
+        value = diffMs / 7 / 24 / 60 / 60 / 1000;
         unit = 'week';
     } else if (absDiff < 365 * 24 * 60 * 60 * 1000) {
-        value = diffMs / 30 / 24 / 60 / 1000;
+        value = diffMs / 30 / 24 / 60 / 60 / 1000;
         unit = 'month';
     } else {
         value = diffMs / 365 * 24 * 60 * 60 * 1000;
