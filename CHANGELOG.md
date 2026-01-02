@@ -1,3 +1,13 @@
+## v0.8.0 (2026-01-01)
+- Fixed inability to use modifiers (e.g. `Ctrl+A`) inside a text input
+- `Undo`/`Redo` overflow menu items update in real-time when a keyboard
+  shortcut is used
+- Current project and editor state is saved to `localStorage` every 10
+  seconds. An option to reload this saved state becomes available when
+  the project is empty.
+- Added _Ninja Golf_ example project and enhanced the "first run"
+  splash screen
+
 ## v0.7.0 (2025-12-29)
 - Canvas no longer receives mouse events when in Pan mode
 - Color overhaul:
