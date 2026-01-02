@@ -91,7 +91,7 @@ const loadedFileInfoTmpl = `
         </tr>
         <tr>
             <th>Loaded:</th>
-            <td><time class="has-info"></time></td>
+            <td><time class="relative-time has-info"></time></td>
         </tr>
     </table>
 </div>
@@ -441,6 +441,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
 
             $time.setAttribute('datetime', this.loadedFile.loadTime.toISOString());
             $time.setAttribute('title', this.loadedFile.loadTime.toISOString());
+            $time.setAttribute('data-ts', this.loadedFile.loadTime.getTime().toString());
             $time.innerText = formatRelativeTime(this.loadedFile.loadTime);
 
             popover.show($link);

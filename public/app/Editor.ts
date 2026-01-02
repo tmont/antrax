@@ -201,6 +201,7 @@ export class Editor {
     private syncSelectionActionsOverflow = emptyFn;
     private saveTimeoutId: number | null = null;
     private autoSaveEnabled = false;
+    private relativeTimeUpdateId: number | null = null;
 
     private paletteSets: ColorPaletteSetCollection;
     private undoContext: Record<PixelCanvas['id'], UndoContext> = {};
@@ -786,14 +787,25 @@ export class Editor {
                     $img.style.display = 'none';
                 }
 
+                const date = new Date(info.savedAt);
+
+                const $time = document.createElement('time');
+                $time.classList.add('relative-time', 'has-info');
+                $time.setAttribute('data-ts', info.savedAt.toString());
+                $time.setAttribute('title', date.toISOString());
+
+                $time.innerText = formatRelativeTime(date);
+
                 findElement($localSave, 'header').innerText = info.projectName;
-                findElement($localSave, '.link-text-details').innerText =
-                    formatRelativeTime(new Date(info.savedAt)) +
+                const $details = findElement($localSave, '.link-text-details');
+                $details.innerHTML = '';
+                $details.append(
+                    $time,
                     ' ' + chars.interpunct + ' ' +
-                    formatFileSize(info.size) +
-                    ' ' + chars.interpunct + ' ' +
-                    info.stats.groupCount + 'gr / ' + info.stats.objectCount + 'obj'
-                    ;
+                        formatFileSize(info.size) +
+                        ' ' + chars.interpunct + ' ' +
+                        info.stats.groupCount + 'gr / ' + info.stats.objectCount + 'obj',
+                );
             }
         } else {
             this.startAutoSaveTimer();
@@ -1700,7 +1712,42 @@ export class Editor {
             await this.loadFile(file);
         });
 
+        this.startRelativeTimeInterval();
+
         this.initialized = true;
+    }
+
+    private startRelativeTimeInterval(): void {
+        if (this.relativeTimeUpdateId) {
+            return;
+        }
+
+        const update = () => {
+            document.querySelectorAll('.relative-time').forEach(($el) => {
+                if (!($el instanceof HTMLElement)) {
+                    return;
+                }
+                const ts = $el.getAttribute('data-ts');
+                if (!ts) {
+                    return;
+                }
+
+                $el.innerText = formatRelativeTime(new Date(Number(ts)));
+            });
+        };
+
+        this.logger.debug(`starting relative time interval`);
+
+        update();
+        this.relativeTimeUpdateId = window.setInterval(() => update(), 10000);
+    }
+
+    private stopRelativeTimeInterval(): void {
+        if (this.relativeTimeUpdateId) {
+            this.logger.debug(`stopping relative time interval`);
+            window.clearInterval(this.relativeTimeUpdateId);
+            this.relativeTimeUpdateId = null;
+        }
     }
 
     private onVisibilityChange(): void {
@@ -1708,7 +1755,9 @@ export class Editor {
         this.logger.debug(`visibilityState changed to "${state}"`);
         if (state === 'hidden') {
             this.stopAutoSaveTimer();
+            this.stopRelativeTimeInterval();
         } else {
+            this.startRelativeTimeInterval();
             this.syncEmptyProjectState();
         }
     }
