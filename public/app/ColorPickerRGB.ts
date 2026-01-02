@@ -144,8 +144,8 @@ export class ColorPickerRGB extends ColorPickerBase implements EventListenerObje
     }
 
     public handleEvent(e: Event) {
-        const isMove = (e instanceof MouseEvent  && e.type === 'mousemove') ||
-            (e instanceof TouchEvent && e.type === 'touchmove');
+        const isMove = (e.type === 'mousemove' && e instanceof MouseEvent) ||
+            (e.type === 'touchmove' && e instanceof TouchEvent);
         if (isMove) {
             const coords = e instanceof MouseEvent ? e : touchToCoordinates(e);
             this.handleMouseMove(coords);
