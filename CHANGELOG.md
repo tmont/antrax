@@ -1,3 +1,12 @@
+## 0.9.1 (2026-01-02)
+- Relative time text now updates in real time! ooh!
+- Fixed touch support for RGB color picker
+- Transparent pixels are now handled properly when drawing
+  shapes/lines and moving selections
+- Fixed a bunch of issues with color conversion between display modes.
+  Surely it's now fixed forever.
+- Updated example projects
+
 ## v0.8.0 (2026-01-01)
 - Fixed inability to use modifiers (e.g. `Ctrl+A`) inside a text input
 - `Undo`/`Redo` overflow menu items update in real-time when a keyboard
