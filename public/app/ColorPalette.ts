@@ -5,9 +5,8 @@ import {
     type ColorSerialized,
     colorToJson,
     convertToClosestColor,
-    convertToIndexed,
-    getA7800ColorObject,
-    getRGBIndex,
+    convertToIndexedRGB,
+    deserializeColor,
     type IndexedRGBColor,
     nesColors,
     pico8Colors,
@@ -20,7 +19,7 @@ import { Logger } from './Logger.ts';
 import { findElement, parseTemplate } from './utils-dom.ts';
 import { generateId, isPaletteColorIndex, nope, type PaletteColorIndex } from './utils.ts';
 
-type AllowedColorOption = IndexedRGBColor | ColorSerialized;
+type AllowedColorOption = ColorSerialized;
 
 export interface ColorPaletteOptions {
     id?: ColorPalette['id'];
@@ -61,7 +60,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
     private readonly logger: Logger;
     private readonly $el: HTMLElement;
     public readonly id: string;
-    private type: ColorPaletteType = 'rgb';
+    private type: ColorPaletteType;
 
     public constructor(options: ColorPaletteOptions) {
         super();
@@ -70,12 +69,10 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         this.name = options.name;
         this.type = options.type;
 
-        const color1 = getA7800ColorObject(options?.colors?.[0]) || convertToIndexed(colors[0x47]);
-
         this.colors = [
-            color1,
-            getA7800ColorObject(options?.colors?.[1]) || convertToIndexed(colors[0xe6]),
-            getA7800ColorObject(options?.colors?.[2]) || convertToIndexed(colors[0x97]),
+            deserializeColor(options?.colors?.[0], this.type, colors[0x47]),
+            deserializeColor(options?.colors?.[1], this.type, colors[0xe6]),
+            deserializeColor(options?.colors?.[2], this.type, colors[0x97]),
         ];
         this.$el = parseTemplate(colorPaletteTmpl);
         this.logger = Logger.from(this);
@@ -168,7 +165,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
 
         ColorPalette.convertColors(this.type, this.colors, (color, newColor, i) => {
             this.colors[i] = newColor;
-            this.logger.debug(`replaced "${rgbToHex(color)}" with "${newColor.hex}"`);
+            this.logger.debug(`replaced "${rgbToHex(color)}" with "${newColor.hex}" (${newColor.index})`);
         });
 
         this.updateColors();
@@ -186,14 +183,8 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
                 conversionColors = colors;
                 break;
             case 'rgb':
-                conversionColors = colorsToConvert.map((color) => {
-                    return {
-                        ...color,
-                        hex: rgbToHex(color),
-                        index: getRGBIndex(color),
-                    };
-                });
-                return;
+                conversionColors = colorsToConvert.map(convertToIndexedRGB);
+                break;
             case 'pico8':
                 conversionColors = pico8Colors;
                 break;
@@ -223,7 +214,7 @@ export class ColorPalette extends EventEmitter<ColorPaletteEventMap> {
         return {
             id: this.id,
             name: this.name,
-            colors: this.colors.map(colorToJson) as [ ColorSerialized, ColorSerialized, ColorSerialized ],
+            colors: this.colors.map(color => colorToJson(color, this.type)) as [ ColorSerialized, ColorSerialized, ColorSerialized ],
         };
     }
 }

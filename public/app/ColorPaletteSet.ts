@@ -5,9 +5,9 @@ import {
     colors,
     type ColorSerialized,
     colorToJson,
-    getA7800ColorObject,
+    deserializeColor,
     type IndexedRGBColor,
-    isAtari7800Color,
+    isIndexedColor,
     type RGBColor, rgbToHex
 } from './colors.ts';
 import { type SerializationContext, SerializationTypeError } from './errors.ts';
@@ -28,7 +28,7 @@ import {
 export interface ColorPaletteSetOptions {
     id?: ColorPaletteSet['id'];
     mountEl: HTMLElement;
-    backgroundColor?: IndexedRGBColor | ColorSerialized;
+    backgroundColor?: ColorSerialized;
     palettes?: ColorPalette[] | ColorPaletteSerialized[];
     name?: string;
     type: ColorPaletteType;
@@ -94,9 +94,9 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         ColorPaletteSet.instanceCount++;
 
         this.id = options.id || generateId();
-        this.backgroundColor = getA7800ColorObject(options.backgroundColor) || colors[3];
         this.name = options.name || `Palette Set ${ColorPaletteSet.instanceCount}`;
         this.type = options.type;
+        this.backgroundColor = deserializeColor(options.backgroundColor, this.type, colors[3]);
         this.logger = Logger.from(this);
 
         const palettes = Array.isArray(options.palettes) ?
@@ -109,7 +109,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
                     colors: palette.colors,
                     id: String(palette.id),
                     name: palette.name,
-                    type: this.type || 'atari7800', // legacy empty values are atari7800
+                    type: this.type,
                 });
             }) :
             [];
@@ -227,7 +227,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         const colors = [ this.backgroundColor ];
         ColorPalette.convertColors(this.type, colors, (color, newColor, i) => {
             colors[i] = newColor;
-            this.logger.debug(`replaced "${rgbToHex(color)}" with "${newColor.hex}"`);
+            this.logger.debug(`replaced "${rgbToHex(color)}" with "${newColor.hex}" (${newColor.index})`);
         });
 
         if (colors[0]) {
@@ -342,13 +342,13 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
             return line;
         };
 
-        if (isAtari7800Color(this.backgroundColor)) {
+        if (isIndexedColor(this.backgroundColor)) {
             code.push(generateCodeLine(this.backgroundColor, 'BG'));
         }
 
         this.palettes.forEach((palette) => {
             palette.colors.forEach((color, colorIndex) => {
-                if (!isAtari7800Color(color)) {
+                if (!isIndexedColor(color)) {
                     return;
                 }
 
@@ -365,7 +365,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         return {
             id: this.id,
             name: this.name,
-            backgroundColor: colorToJson(this.backgroundColor),
+            backgroundColor: colorToJson(this.backgroundColor, this.type),
             palettes: this.palettes.map(palette => palette.toJSON()),
             type: this.type,
         };
@@ -380,7 +380,7 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
             palettes: json.palettes,
             backgroundColor: json.backgroundColor,
             name: json.name,
-            type: json.type || 'atari7800',
+            type: json.type || 'rgb',
         });
     }
 
@@ -392,9 +392,6 @@ export class ColorPaletteSet extends EventEmitter<ColorPaletteSetEventMap> imple
         }
         if (typeof json.name !== 'string') {
             throw new SerializationTypeError(context, 'name', 'string', json.name);
-        }
-        if (typeof json.backgroundColor !== 'number') {
-            throw new SerializationTypeError(context, 'backgroundColor', 'number', json.backgroundColor);
         }
         if (!Array.isArray(json.palettes) && !json.palettes.every((item: unknown) => typeof item === 'object')) {
             throw new SerializationTypeError(context, 'palettes', 'array of objects');

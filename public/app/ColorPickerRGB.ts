@@ -1,7 +1,7 @@
 import { ColorPickerBase } from './ColorPickerBase.ts';
 import {
     type ColorPaletteType,
-    convertToIndexed,
+    convertToIndexedRGB,
     type HSVColor,
     hsvToRGB,
     type IndexedRGBColor,
@@ -270,14 +270,14 @@ export class ColorPickerRGB extends ColorPickerBase implements EventListenerObje
     public setHSV(hsv: HSVColor | null): void {
         this.hsv = hsv;
         const rgb = hsv ? hsvToRGB(hsv) : null;
-        this.activeColor = rgb ? convertToIndexed(rgb) : null;
+        this.activeColor = rgb ? convertToIndexedRGB(rgb) : null;
         if (this.activeColor) {
             this.debounceColorSelection();
         }
     }
 
     public setRGB(rgb: RGBValues | null): void {
-        this.activeColor = rgb ? convertToIndexed(rgb) : null;
+        this.activeColor = rgb ? convertToIndexedRGB(rgb) : null;
         this.hsv = rgb ? rgbToHSV(rgb) : null;
         if (this.activeColor) {
             this.debounceColorSelection();

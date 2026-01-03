@@ -1,4 +1,5 @@
 import colorsJson from './data/colors.json';
+import { nope } from './utils.ts';
 
 export interface RGBValues {
     r: number;
@@ -11,7 +12,9 @@ export interface RGBColor extends RGBValues {
 }
 
 export const hexToRGB = (hex: string): IndexedRGBColor => {
-    let [ r, g, b ] = (/^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/.exec(hex) || [ '0', '0', '0' ]).map(hex => parseInt(hex, 16));
+    let [ r, g, b ] = (/^#([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i.exec(hex) || [ '', '0', '0', '0' ])
+        .slice(1)
+        .map(hex => parseInt(hex, 16));
     r = r || 0;
     g = g || 0;
     b = b || 0;
@@ -177,26 +180,92 @@ export const nesColors: Readonly<IndexedRGBColor[]> = [
 
 export type Atari7800ColorSerialized = IndexedRGBColor['index'];
 export type RGBColorSerialized = RGBColor['hex'];
-export type ColorSerialized = Atari7800ColorSerialized | RGBColorSerialized;
+export interface ColorObjectSerialized {
+    type: ColorPaletteType;
+    index: number;
+}
+export type ColorSerialized = Atari7800ColorSerialized | RGBColorSerialized | ColorObjectSerialized;
+
+export const isRGB = (color: any): color is RGBValues =>
+    !!color &&
+    typeof color === 'object' &&
+    typeof color.r === 'number' &&
+    typeof color.g === 'number' &&
+    typeof color.b === 'number';
 
 // noinspection SuspiciousTypeOfGuard
-export const isAtari7800Color = (color: any): color is IndexedRGBColor =>
-    !!color && typeof (color as IndexedRGBColor).index === 'number';
+export const isIndexedColor = (color: any): color is IndexedRGBColor =>
+    isRGB(color) && typeof (color as IndexedRGBColor).index === 'number';
 
-export const colorToJson = (color: RGBColor): ColorSerialized => isAtari7800Color(color) ? color.index : color.hex;
+export const colorToJson = (color: IndexedRGBColor, type: ColorPaletteType): ColorObjectSerialized => {
+    return {
+        type,
+        index: color.index,
+    };
+}
 
-export const getA7800ColorObject = (value: IndexedRGBColor | ColorSerialized | undefined): IndexedRGBColor | null => {
-    if (typeof value === 'number') {
-        // serialized atari 7800 color
-        return colors[value] || null;
+export const deserializeColor = (
+    value: ColorSerialized | undefined,
+    type: ColorPaletteType,
+    fallback: RGBValues,
+): IndexedRGBColor => {
+    if (typeof value === 'number' && colors[value]) {
+        // legacy atari7800 color
+        if (type === 'atari7800') {
+            return colors[value]!;
+        }
+
+        // treat it as rgb so it can be properly indexed if the conversion type is rgb
+        value = colors[value]!.hex;
     }
 
-    if (typeof value === 'string') {
-        // serialized rgb color
+    if (type === 'rgb' && typeof value === 'string') {
+        // serialized rgb color (legacy)
         return hexToRGB(value);
     }
 
-    return value || null;
+    // if value is not a serialized object at this point, it's an invalid index
+    const index = typeof value !== 'object' ? -1 : value.index;
+
+    switch (type) {
+        case 'nes':
+            return nesColors[index] || convertColorToType(fallback, type);
+        case 'atari7800':
+            return colors[index] || convertColorToType(fallback, type);
+        case 'pico8':
+            return pico8Colors[index] || convertColorToType(fallback, type);
+        case 'rgb': {
+            if (index === -1) {
+                return convertColorToType(fallback, type);
+            }
+            const rgb: RGBValues = {
+                r: (index >> 16) & 255,
+                g: (index >> 8) & 255,
+                b: index & 255,
+            };
+
+            return {
+                ...rgb,
+                hex: rgbToHex(rgb),
+                index: getRGBIndex(rgb),
+            };
+        }
+        default:
+            nope(type);
+            return convertColorToType(fallback, type);
+    }
+};
+
+export const convertColorToType = (color: RGBValues, type: ColorPaletteType): IndexedRGBColor => {
+    switch (type) {
+        case 'rgb': return convertToIndexedRGB(color);
+        case 'nes': return convertToClosestColor(color, nesColors);
+        case 'pico8': return convertToClosestColor(color, pico8Colors);
+        case 'atari7800': return convertToClosestColor(color, colors);
+        default:
+            nope(type);
+            throw new Error(`unknown color palette type "${type}"`);
+    }
 };
 
 export interface HSLColor {
@@ -392,7 +461,7 @@ export const convertToClosestColor = (rgb: RGBValues, colors: Readonly<IndexedRG
 
 export const getRGBIndex = ({ r, g, b }: RGBValues) => (r << 16) | (g << 8) | b;
 
-export const convertToIndexed = (color: RGBValues): IndexedRGBColor => {
+export const convertToIndexedRGB = (color: RGBValues): IndexedRGBColor => {
     return {
         r: color.r,
         g: color.g,
