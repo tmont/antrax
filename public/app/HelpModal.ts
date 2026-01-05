@@ -8,6 +8,7 @@ import { findButton, findElement, findTemplateContent, parseTemplate } from './u
 
 const keywordContent = {
     'active color': 'The currently selected color, this can change from object to object',
+    'active object': 'The currently selected graphics object, its canvas will be visible within the Canvas Area',
     canvas: 'The rectangular region in the center of the screen on which you draw',
     'color swatch': parseTemplate('<div>Little square displaying a drawable color, e.g. ' +
         '<span class="color-swatch" style="background-color: rebeccapurple"></span></div>'),

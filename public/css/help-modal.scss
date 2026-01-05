@@ -110,6 +110,14 @@
             gap: config.$gutter;
             justify-content: center;
             align-items: center;
+
+            &.grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                figure img {
+                    max-width: 100%;
+                }
+            }
         }
 
         figure {
