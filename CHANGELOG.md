@@ -1,4 +1,9 @@
-## 0.9.1 (2026-01-02)
+## v1.0.0 (2026-01-05)
+- New favicon
+- Added OpenGraph tags
+- Added version info to "About" section in help docs
+
+## v0.9.1 (2026-01-02)
 - Relative time text now updates in real time! ooh!
 - Fixed touch support for RGB color picker
 - Transparent pixels are now handled properly when drawing
