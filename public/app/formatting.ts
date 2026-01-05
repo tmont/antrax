@@ -35,6 +35,14 @@ export const formatRelativeTime = (date: Date): string => {
     return relativeTimeFormatter.format(Math.round(value), unit);
 };
 
+const dateTimeFormatter = new Intl.DateTimeFormat([], {
+    dateStyle: 'long',
+    timeStyle: 'medium',
+});
+export const formatLocalDateTime = (date: Date): string => {
+    return dateTimeFormatter.format(date);
+};
+
 const numberFormatter = new Intl.NumberFormat([], {});
 export const formatNumber = (value: number): string => {
     return numberFormatter.format(value);

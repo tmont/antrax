@@ -1,4 +1,5 @@
 import { EventEmitter } from './EventEmitter.ts';
+import { formatLocalDateTime } from './formatting.ts';
 import { Logger } from './Logger.ts';
 import { Modal } from './Modal.ts';
 import { Popover } from './Popover.ts';
@@ -194,6 +195,19 @@ export class HelpModal extends EventEmitter<HelpModalEventMap> {
                 shortcutPopover.setContent($content);
                 shortcutPopover.show($el);
             });
+        });
+
+        $content.querySelectorAll<HTMLTimeElement>('time.local-time[datetime]').forEach((time) => {
+            const datetime = time.getAttribute('datetime');
+            if (!datetime) {
+                return;
+            }
+            const date = new Date(datetime);
+            if (isNaN(date.getTime())) {
+                return;
+            }
+            time.setAttribute('title', date.toISOString());
+            time.innerText = formatLocalDateTime(date);
         });
 
         this.modal = Modal.create({

@@ -54,11 +54,16 @@ main() {
         done
 
         local gitRevision
-        gitRevision=$(git log -n 1 --pretty='%h')
+        gitRevision=$(git log -n 1 --pretty='%H')
 
-        perl -p -i -e "s/\\\$VERSION\\\$/${nextVersion}/" "${releaseDir}/public/index.html"
-        perl -p -i -e "s/\\\$COMMIT\\\$/${gitRevision}/" "${releaseDir}/public/index.html"
-        perl -p -i -e "s^\\\$CHANGELOG\\\$^${changelogContent}^" "${releaseDir}/public/index.html"
+        local dateIso
+        dateIso=$(date --iso-8601=seconds)
+
+        echo "replacing template variables in index.html..."
+        perl -p -i -e "s/\\\$VERSION\\\$/${nextVersion}/g" "${releaseDir}/public/index.html"
+        perl -p -i -e "s/\\\$COMMIT\\\$/${gitRevision}/g" "${releaseDir}/public/index.html"
+        perl -p -i -e "s^\\\$CHANGELOG\\\$^${changelogContent}^g" "${releaseDir}/public/index.html"
+        perl -p -i -e "s^\\\$ISO_TIME\\\$^${dateIso}^g" "${releaseDir}/public/index.html"
 
         echo "writing new version to package.json..."
         bun -e "import pkg from './package.json'; pkg.version = '${nextVersion}'; Bun.write('./package.json', JSON.stringify(pkg, null, '    ') + '\n');"
