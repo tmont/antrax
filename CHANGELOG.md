@@ -1,3 +1,7 @@
+## v1.0.1 (2026-01-06)
+- Added MIT license to source code
+- Added link to GitHub in "About" section in help docs
+
 ## v1.0.0 (2026-01-05)
 - New favicon
 - Added OpenGraph tags
