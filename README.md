@@ -1,6 +1,6 @@
 # Antrax
 
-A pixel art editor geared toward the Atari 7800.
+A dependency-free pixel art editor geared toward the Atari 7800.
 
 ![Antrax for generic pixel art](./docs/images/screenshots/main.png)
 
@@ -71,13 +71,69 @@ Changelog: [CHANGELOG.md](./CHANGELOG.md)
 </details>
 
 ## Development
+This is started out as a sort of "I wonder if this will work?" situation and
+then it kind of just kept snowballing. The codebase is a little hectic; there
+are a few too many God objects, but refactoring stuff was not the name of the
+game here. Nor was thinking ahead or designing stuff. I bolted things on
+when it felt right. And it frequently felt right.
+
+I deliberately made it free of dependencies, as such I invented my own
+"component" architecture involving events.
+
+All this to say, don't judge me based on this code. I was just having a
+good time.
+
+I don't even play the Atari 7800, I wrote this for someone else because
+it sounded like fun.
+
+### Brief explanation and pre-emptive rebuttal
+Each "component"-type thing in `public/app/` has a vague kind of hierarchy.
+"Child" components cannot directly invoke methods on their parent (because
+they are unaware of their parent), they only emit events. So:
+direct function invocation from parent→child, emit+listen to communicate
+from child→parent.
+
+```typescript
+class Parent {
+    private child: Child;
+    public foo(): void {
+        this.child.on('event', () => console.log('my child has done something'));
+        this.child.directCall();
+   }
+}
+
+class Child {
+    public directCall(): void {
+        this.emit('event');
+    }
+}
+```
+
+The SASS is mostly a bunch of spaghetti, but who has ever written CSS that
+wasn't? Not me.
+
+The `Editor` and the `PixelCanvas` classes are the true God objects. `PixelCanvas`
+handles all the drawing (with some minor delegation to the other canvases),
+while the `Editor` manages the project structure and app state.
+
+The representation of the graphics stuff is pretty verbose, so when serializing
+it just converts the `Editor` to JSON and then compresses it using gzip. It turns
+out that's totally good enough. Since it's so repetitive the JSON representation
+lends itself well to compression. Generally on the order of 50x for larger projects.
+
+Many things are less than ideal (i.e. the way color palettes are set up). However,
+they work, and are functional. If I deleted everything and rewrote it all from
+scratch with all the lessons learned I'm sure it would be perfect and much more 
+impressive. Particularly since when I started I knew nothing about the Atari 7800
+and now I slightly more than nothing.
+
 ### Prerequisites
 1. [Bun](https://bun.com/docs/installation)
 2. [Dart Sass](https://github.com/sass/dart-sass/releases)
     - install it to `.dev/` such that the path to the `sass` executable is
       `.dev/dart-sass/sass`
 
-## Development
+### Running locally
 
 1. `bun install`
 2. `bun run build`
