@@ -1,11 +1,8 @@
 # Antrax
 
-A graphics editor for the Atari 7800. 
+A pixel art editor geared toward the Atari 7800.
 
-As far as I understand things, character/tile data is not supported.
-
-It is also a (very limited) general purpose pixel art editor, insomuch as at the
-moment you can only use colors supported by the Atari 7800.
+![Antrax for generic pixel art](./docs/images/screenshots/main.png)
 
 Main site: https://antrax.tmont.com/
 
@@ -13,45 +10,64 @@ Changelog: [CHANGELOG.md](./CHANGELOG.md)
 
 ## Features
 ### Editor features
-- Zooming (1x to 10x)
+- Zooming
 - Grid
 - Customizable canvas size
-- Customizable pixel size (locked to 12x7 when using an Atari 7800 display mode)
+- Customizable pixel size
 - Shape drawing (rectangle/ellipse/line)
+- Select/copy/paste/move parts of the canvas
 - Fill/Eye-dropper/Erase
-- Save/load from/to external files
+- Save/load from/to external files 
+- Automatic save+restore to `localStorage`
 - Edit/manage multiple named graphics objects
 - Clone existing graphics object
-- Export to image
+- Export to image/spritesheet
+- View sprite animations
 - Color palette management
 - Lots of keyboard shortcuts
+- Extensive in-app help documentation
+- Touch support
+- Horizontal/vertical flip
+- Rotate
 
 ### Atari 7800-specific features
 - Export object/header/palettes to ASM
-- Color picker for supported colors
-- Toggle kangaroo mode
+- Color picker for all 256 supported colors
+- Kangaroo mode support
 - Switch between all display modes (160A/B, 320A/B/C/D)
 - Color palette logic
 - Object width is clamped to what the display mode supports
+
+### Other features
+- NES color palette (64 colors)
+- PICO-8 color palette (8 + 8 "hidden" colors)
 
 ## Screenshots
 <details>
 <summary>Antrax screenshots</summary>
 
-### Generic pixel art
-![Antrax for generic pixel art](./docs/images/screenshots/pixel-art.png)
-
 ### Atari 7800 sprites
-![Antrax for 7800 sprites](./docs/images/screenshots/pixel-art-7800.png)
+#### 160 display mode
+![Antrax for 7800 sprites](docs/images/screenshots/pixel-art-7800-160.png)
+
+#### 320 display mode
+![Antrax for 7800 sprites](docs/images/screenshots/pixel-art-7800-320.png)
 
 ### Color picker
 ![Color picker with Atari 7800 supported colors](./docs/images/screenshots/color-picker.png)
 
-### Display modes
-![Editing graphics in an Atari 7800 display mode](./docs/images/screenshots/display-mode.png)
+### Export assembly
+![Export graphics object to ASM](./docs/images/screenshots/export-asm.png)
 
-### Export
-![Export graphics object to ASM](./docs/images/screenshots/export-asm.jpeg)
+### Export image
+![Export graphics objects as spritesheet](./docs/images/screenshots/export-image.png)
+
+### Keyboard shortcuts
+![Keyboard shortcuts](./docs/images/screenshots/kbd-shortcuts.png)
+
+### In-app help documentation
+![Help documentation](./docs/images/screenshots/help.png)
+
 </details>
 
 ## Development
@@ -69,9 +85,17 @@ Changelog: [CHANGELOG.md](./CHANGELOG.md)
 4. In another terminal, `bun run sass`
 5. Visit http://localhost:11000/
 
+### SVG sprite
+Run `scripts/svg-inline.sh` to create an inline SVG sprite from the files
+in `public/images/svg/`. For a file named `foo-bar.svg`, use like so:
+
+```html
+<i class="icon icon-svg"><svg><use href="#svg-foo-bar"/></svg></i>
+```
+
 ## Deployment
 You will need normal shell tools (`rsync`, `perl`, `git`) in addition to `pandoc` (for rendering
-CHANGELOG.md to HTML).
+the changelog to HTML).
 
 The release script has only been tested on Linux.
 
