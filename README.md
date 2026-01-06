@@ -125,7 +125,7 @@ Many things are less than ideal (i.e. the way color palettes are set up). Howeve
 they work, and are functional. If I deleted everything and rewrote it all from
 scratch with all the lessons learned I'm sure it would be perfect and much more 
 impressive. Particularly since when I started I knew nothing about the Atari 7800
-and now I slightly more than nothing.
+and now I know slightly more than nothing.
 
 ### Prerequisites
 1. [Bun](https://bun.com/docs/installation)
