@@ -2,6 +2,7 @@
     "name": "antrax",
     "version": "1.0.0",
     "private": true,
+    "license": "MIT",
     "devDependencies": {
         "@fortawesome/fontawesome-free": "7.1.0",
         "@types/node": "24.9.1",

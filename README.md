@@ -161,3 +161,6 @@ The release script has only been tested on Linux.
     RELEASE_REMOTE_DIR=/var/www/atari7800gfx.example.com
    ```
 2. Run `scripts/release.sh`
+
+## License
+Licensed under MIT. See LICENSE for details.
