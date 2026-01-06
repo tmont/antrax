@@ -1977,7 +1977,7 @@ export class Editor {
                                     $li.append('Middle click');
                                 } else {
                                     const $i = parseTemplate(
-                                        `<i class="icon icon-svg"><svg><use href="#svg-${action}" /></svg><i></i>`
+                                        `<i class="icon icon-svg"><svg><use href="#svg-${action}" /></svg></i>`
                                     );
                                     $li.append($i);
                                 }
