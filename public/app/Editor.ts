@@ -452,6 +452,16 @@ export class Editor {
                         return true;
                     })
 
+                    .register('Save', 'Application', 'Save project to external file', [ 'Ctrl+S' ], (e) => {
+                        if (!this.project) {
+                            return true;
+                        }
+
+                        e.preventDefault();
+
+                        this.showSavePopover(this.project.$nameText);
+                        return true;
+                    })
                     .register('ZoomIn', 'Application', 'Increase zoom level', [ '=', '+' ], this.incrementZoomLevel.bind(this, 1))
                     .register('ZoomOut', 'Application', 'Decrease zoom level', [ '-', '_' ], this.incrementZoomLevel.bind(this, -1))
                     .register('ZoomDefault', 'Application', 'Set zoom level to 1x', [ 'Shift+0' ], () => {
@@ -676,46 +686,7 @@ export class Editor {
         this.project.on('action_add_object', () => {
             this.project?.createObjectInNewGroup(this.getDefaultCanvasOptions());
         });
-        this.project.on('action_save', ($target) => {
-            const $form = parseTemplate(saveAsFormTmpl);
-            if (!($form instanceof HTMLFormElement)) {
-                throw new Error(`saveAsFormTmpl is misconfigured, no <form> element`);
-            }
-
-            const popover = new Popover({
-                content: $form,
-            });
-
-            popover.show($target);
-
-            let filename: string;
-            let prefix: string;
-
-            // if loaded from localStorage we use "localStorage" as a placeholder "filename" for
-            // UI purposes, but we don't actually want to use that name to prepopulate the input.
-            if (this.loadedFile && !/^localStorage/.test(this.loadedFile.name)) {
-                prefix = this.loadedFile.name.replace(/\..*$/, '');
-                filename = `${prefix}.json.gz`;
-            } else {
-                const name = (this.project?.getName().trim() || 'antrax')
-                    .toLowerCase()
-                    .replace(/ /g, '_')
-                    .replace(/\W/g, '');
-                prefix = name || 'antrax';
-                filename = `${prefix}.json.gz`;
-            }
-
-            const $filenameInput = findInput($form, 'input.filename-input');
-            $filenameInput.value = filename;
-
-            $filenameInput.focus();
-            $filenameInput.setSelectionRange(0, prefix.length);
-            $form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.save($filenameInput.value.trim());
-                popover.hide();
-            });
-        });
+        this.project.on('action_save', $target => this.showSavePopover($target));
         this.project.on('action_load', async (file) => this.loadFile(file));
         this.project.on('action_new_project', () => {
             const modal = Modal.confirm(
@@ -849,6 +820,47 @@ export class Editor {
         // need to show that nonsense in the UI, though.
         findElement(this.$canvasLocation, '.canvas-location').innerText =
             `${Math.round(coordinate.x)}, ${Math.round(coordinate.y)}`;
+    }
+
+    private showSavePopover($target: HTMLElement): void {
+        const $form = parseTemplate(saveAsFormTmpl);
+        if (!($form instanceof HTMLFormElement)) {
+            throw new Error(`saveAsFormTmpl is misconfigured, no <form> element`);
+        }
+
+        const popover = new Popover({
+            content: $form,
+        });
+
+        popover.show($target);
+
+        let filename: string;
+        let prefix: string;
+
+        // if loaded from localStorage we use "localStorage" as a placeholder "filename" for
+        // UI purposes, but we don't actually want to use that name to prepopulate the input.
+        if (this.loadedFile && !/^localStorage/.test(this.loadedFile.name)) {
+            prefix = this.loadedFile.name.replace(/\..*$/, '');
+            filename = `${prefix}.json.gz`;
+        } else {
+            const name = (this.project?.getName().trim() || 'antrax')
+                .toLowerCase()
+                .replace(/ /g, '_')
+                .replace(/\W/g, '');
+            prefix = name || 'antrax';
+            filename = `${prefix}.json.gz`;
+        }
+
+        const $filenameInput = findInput($form, 'input.filename-input');
+        $filenameInput.value = filename;
+
+        $filenameInput.focus();
+        $filenameInput.setSelectionRange(0, prefix.length);
+        $form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.save($filenameInput.value.trim());
+            popover.hide();
+        });
     }
 
     public pushUndoItem(canvas: PixelCanvas): void {

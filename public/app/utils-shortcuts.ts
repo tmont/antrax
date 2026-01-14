@@ -12,6 +12,7 @@ export type ShortcutName =
     'HidePopoverOrModal' |
     `DrawMode${ShortcutNameDrawMode}` |
     'NextColor' | 'PrevColor' |
+    'Save' |
     'Undo' | 'Redo' | 'Rotate' | 'FlipHorizontal' | 'FlipVertical' | 'SelectAll' | 'DeSelectAll' |
     `Selection${ShortcutNameSelection}` |
     `Zoom${ShortcutNameZoom}` |
@@ -45,6 +46,7 @@ const nameMap: Record<ShortcutName, 1> = {
     PrevColor: 1,
     Redo: 1,
     Rotate: 1,
+    Save: 1,
     SelectAll: 1,
     SelectionCopy: 1,
     SelectionCrop: 1,

@@ -21,7 +21,8 @@ import {
     findOrDie,
     findSelect,
     findTemplateContent,
-    parseTemplate
+    parseTemplate,
+    setTextAndTitle
 } from './utils-dom.ts';
 import {
     type AssemblyNumberFormatRadix,
@@ -188,6 +189,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     private readonly $stats: HTMLElement;
     private readonly $groupsContainer: HTMLElement;
     private readonly $autosave: HTMLElement;
+    public readonly $nameText: HTMLElement;
     private initialized = false;
     private readonly logger: Logger;
     private readonly groups: ObjectGroup[];
@@ -210,6 +212,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
         this.$groupsContainer = findElement(this.$el, '.project-objects');
         this.$stats = findElement(this.$el, '.project-stats');
         this.$autosave = findElement(this.$el, '.autosave');
+        this.$nameText = findElement(this.$el, '.project-structure-header .project-name-text');
         this.groups = options.groups || [];
         this.activeItem = options.activeItem || null;
         this.codeGenOptions = {
@@ -327,7 +330,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
             arrowAlign: 'left',
         });
 
-        const $projectName = findElement($header, '.project-name-text');
+        const $projectName = this.$nameText;
         const $input = findInput($editForm, '.project-name-input');
 
         $editForm.addEventListener('submit', (e) => {
@@ -1227,9 +1230,7 @@ export class Project extends EventEmitter<ProjectEventMap> {
     }
 
     public updateNameUI(): void {
-        const $name = findElement(this.$el, '.project-name-text');
-        $name.innerText = this.name;
-        $name.setAttribute('title', this.name);
+        setTextAndTitle(this.$nameText, this.name);
     }
 
     public updateActiveObjectInfo(): void {
