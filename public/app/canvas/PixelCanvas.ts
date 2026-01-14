@@ -1064,26 +1064,63 @@ export class PixelCanvas extends BaseCanvas<PixelCanvasEventMap> implements Edit
         this.logger.debug(`committing transient state (${this.transientState.length} pixels)`);
         while (this.transientState.length) {
             const data = this.transientState.pop()!;
-            if (this.pixelData[data.coordinate.y]?.[data.coordinate.x]) {
-                // in some cases the transient data is dereferenced, so we must explicitly set the pixel
-                // into the canonical pixelData array
-                this.pixelData[data.coordinate.y]![data.coordinate.x] = data.pixel;
-            } else {
-                this.logger.warn(`transient pixel does not exist in pixel data at ${data.coordinate.x},${data.coordinate.y}`);
-            }
-
-            drawn = this.drawPixelFromRowAndCol(data.coordinate, data.pixel, {
-                behavior: 'internal',
-                emit: false,
-                color: data.color,
-                allowErasure: true,
-            }) || drawn;
+            drawn = this.commitTransientPixel(data.coordinate, data.pixel, data.color) || drawn;
         }
         this.clearTransientRect();
 
         if (drawn) {
             this.emit('pixel_draw_aggregate', { behavior: 'user' });
         }
+    }
+
+    public commitMovedData(): void {
+        // this should be the same as finalizeTransientState, but the "transient" stuff is kind of
+        // a mess. movedData/transientState should not really be separate concepts, but they are,
+        // so whatever.
+
+        const rect = this.drawContext.selection;
+        const { movedData } = this.drawContext;
+        if (!rect || !movedData.length) {
+            return;
+        }
+
+        const size = `${movedData[0]?.length || 0}${chars.times}${movedData.length}`;
+        this.logger.debug(`committing ${size} movedData to canvas`);
+
+        let drawn = false;
+        this.drawContext.movedData.forEach((row, i) => {
+            const y = rect.y + i;
+            row.forEach((pixel, j) => {
+                const x = rect.x + j;
+                drawn = this.commitTransientPixel({ x, y }, pixel, pixel.modeColorIndex) || drawn;
+            });
+        });
+
+        if (drawn) {
+            this.emit('pixel_draw_aggregate', { behavior: 'user' });
+        }
+    }
+
+    private commitTransientPixel(
+        coordinate: Coordinate,
+        pixel: PixelInfo,
+        color: DisplayModeColorIndex | null,
+    ): boolean {
+        const { x, y } = coordinate;
+        if (this.pixelData[y]?.[x]) {
+            // in some cases the transient data is dereferenced, so we must explicitly set the pixel
+            // into the canonical pixelData array
+            this.pixelData[y][x] = pixel;
+        } else {
+            this.logger.warn(`transient pixel does not exist in pixel data at ${x},${y}`);
+        }
+
+        return this.drawPixelFromRowAndCol({ x, y }, pixel, {
+            behavior: 'internal',
+            emit: false,
+            color,
+            allowErasure: true,
+        });
     }
 
     public getDrawState(): PixelCanvasDrawState {

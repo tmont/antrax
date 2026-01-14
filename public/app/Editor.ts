@@ -2236,6 +2236,11 @@ export class Editor {
         // to paste+move+de-select each time.
         if (this.settings.drawMode === 'move') {
             canvas.finalizeTransientState(() => true);
+
+            // movedData in certain cases (I forget which) is not part of the transientState, so it
+            // must be committed separately to the canvas. these concepts should not be distinct, but
+            // they are, and I don't want to fix it.
+            canvas.commitMovedData();
         }
 
         // paste onto [0, 0], select the newly pasted data, and go into move mode. note that
