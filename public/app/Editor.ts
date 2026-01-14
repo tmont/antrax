@@ -690,7 +690,10 @@ export class Editor {
 
             let filename: string;
             let prefix: string;
-            if (this.loadedFile) {
+
+            // if loaded from localStorage we use "localStorage" as a placeholder "filename" for
+            // UI purposes, but we don't actually want to use that name to prepopulate the input.
+            if (this.loadedFile && !/^localStorage/.test(this.loadedFile.name)) {
                 prefix = this.loadedFile.name.replace(/\..*$/, '');
                 filename = `${prefix}.json.gz`;
             } else {
