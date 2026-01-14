@@ -34,8 +34,10 @@ ul.kbd-command-list {
 
     li:not(:last-child) {
         &:after {
-            content: "•";
+            content: "OR";
             margin: 0 0.5em;
+            font-variant: all-small-caps;
+            color: config.$muted-color;
         }
     }
 }
