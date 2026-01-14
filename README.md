@@ -1,6 +1,6 @@
 # Antrax
 
-A dependency-free pixel art editor geared toward the Atari 7800.
+A web-based, dependency-free pixel art editor geared toward the Atari 7800.
 
 ![Antrax for generic pixel art](./docs/images/screenshots/main.png)
 
