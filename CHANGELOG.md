@@ -1,3 +1,14 @@
+## v1.1.0 (2026-01-14)
+- Moved data is now committed to the canvas before pasting
+- Moved "Colors & palettes" help topic to its rightful place lexicographically
+- Tweaked help text styles
+- Added `Ctrl+S` keyboard shortcut for saving
+- Added help content for the autosave functionality
+- Tweaked keyboard shortcut styles
+- Removed spellcheck from filename text input when saving
+- Updated Dragon Warrior/Crystalis example projects to use non-Atari 7800
+  colors where possible
+
 ## v1.0.1 (2026-01-06)
 - Added MIT license to source code
 - Added link to GitHub in "About" section in help docs
