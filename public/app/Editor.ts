@@ -108,6 +108,7 @@ const saveAsFormTmpl = `
                type="text"
                minlength="1"
                maxlength="100"
+               spellcheck="false"
                placeholder="antrax.json.gz" />
     </div>
     <div class="submit-container">
