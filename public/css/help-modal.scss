@@ -171,15 +171,14 @@
 
     .help-keyword, .help-keyword-menu, [data-shortcut] {
         display: inline-block;
-        &:before {
-            content: "\b7";
-        }
     }
-    .help-keyword {
-        color: config.$help-keyword-color;
+    .help-keyword, [data-shortcut] {
         text-decoration: underline;
         text-decoration-style: dotted;
         cursor: pointer;
+    }
+    .help-keyword {
+        color: config.$help-keyword-color;
     }
 
     .help-keyword-menu {
